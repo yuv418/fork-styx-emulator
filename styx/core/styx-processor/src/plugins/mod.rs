@@ -4,7 +4,7 @@
 //! The plugin interface is a Work in Progress. TODOs are noted where applicable.
 //!
 //! The primary user facing traits are [`Plugin`] and [`UninitPlugin`]. [`Plugin`] represents a
-//! completely initialized plugin and contains runtime behavior including [`Plugin::tick()`].
+//! completely initialized plugin and contains runtime behavior including [`Plugin::on_processor_start()`].
 //! [`UninitPlugin`] defines the way of constructing a [`Plugin`].
 //!
 //! # Example
@@ -66,8 +66,8 @@
 //!         self: Box<Self>,
 //!         proc: &mut BuildingProcessor,
 //!     ) -> Result<Box<dyn Plugin>, UnknownError> {
-//!         // initialize plugin by adding our hook
-//!         proc.core.cpu.add_hook(StyxHook::unmapped_fault(
+//!         // initialize plugin by adding our hook to the first vCPU
+//!         proc.vcpus[0].cpu.add_hook(StyxHook::unmapped_fault(
 //!             ..,
 //!             HaltableHook { halt: self.halt },
 //!         ))?;

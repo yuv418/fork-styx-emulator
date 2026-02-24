@@ -16,21 +16,24 @@ use std::fmt::Debug;
 pub use builder::*;
 
 mod sync;
+use styx_errors::anyhow::anyhow;
 pub use sync::*;
 
 mod emulation_report;
 pub use emulation_report::*;
-
 use static_assertions::assert_impl_all;
 use styx_errors::UnknownError;
 
-use crate::{
-    core::{ProcMeta, ProcessorCore},
-    executor::{ExecutionConstraint, Executor},
-    hooks::{AddHookError, DeleteHookError, HookToken, Hookable, StyxHook},
-    plugins::{collection::PluginsContainer, Plugin},
-    runtime::ProcessorRuntime,
-};
+mod vcpu_container;
+pub use vcpu_container::VcpuContainer;
+
+use crate::core::{ProcMeta, ProcessorCore, VcpuCore, VcpuId};
+use crate::executor::{ExecutionConstraint, Executor};
+use crate::hooks::{AddHookError, DeleteHookError, HookToken, StyxHook};
+use crate::memory::MemoryBackend;
+use crate::plugins::collection::PluginsContainer;
+use crate::plugins::Plugin;
+use crate::runtime::ProcessorRuntime;
 
 // Processor impls Send
 assert_impl_all!(Processor: Send);
@@ -49,8 +52,10 @@ assert_impl_all!(Processor: Send);
 /// A [`Sync`] processor wrapper is available: [`SyncProcessor`].
 ///
 pub struct Processor {
-    /// Represents the execution core of a [`Processor`], all target execution
-    /// occurs in the context of a [`ProcessorCore`]
+    /// Per-vCPU execution state; each entry holds a CPU backend, MMU, and secondary
+    /// event controller. Most single-CPU use-cases access `vcpus[0]`.
+    pub vcpus: Vec<VcpuCore>,
+    /// Processor-level shared state: physical memory and the event distributor.
     pub core: ProcessorCore,
     /// Metadata about the specific [`Processor`]
     #[allow(unused)]
@@ -102,9 +107,24 @@ impl Processor {
         &mut self,
         bounds: impl ExecutionConstraint,
     ) -> Result<EmulationReport, UnknownError> {
+        if self.vcpus.len() != 1 {
+            return Err(anyhow!("run is only compatible with single vcpu emulators. Use run_multi for multi vcpu emulation."));
+        }
+        self.run_multi(bounds)
+            .map(|mut r| r.pop().expect("should have one emulation report"))
+    }
+
+    /// Start [`Processor`] execution.
+    ///
+    /// Compared to [`Processor::run()`], `run_multi()` supports multi-vcpu systems.
+    /// These are separated to keep [`Processor::run()`]'s single execution report signature.
+    pub fn run_multi(
+        &mut self,
+        bounds: impl ExecutionConstraint,
+    ) -> Result<Vec<EmulationReport>, UnknownError> {
         // pass to executor
         self.executor
-            .begin(&mut self.core, &mut self.plugins, bounds)
+            .begin(&mut self.vcpus, &mut self.core, &mut self.plugins, &bounds)
     }
 
     /// Get resolved ipc port the [`Processor`] will use for I/O
@@ -115,27 +135,95 @@ impl Processor {
 
     /// Save the [`Processor`]'s context to be restored in the future.
     pub fn context_save(&mut self) -> Result<(), UnknownError> {
-        self.core.cpu.context_save()?;
-        self.core.mmu.context_save()?;
+        for vcpu in self.vcpus.iter_mut() {
+            vcpu.context_save()?;
+        }
         Ok(())
     }
+
     /// Restore the [`Processor`]'s context from a saved one.
     pub fn context_restore(&mut self) -> Result<(), UnknownError> {
-        self.core.cpu.context_restore()?;
-        self.core.mmu.context_save()?;
+        for vcpu in self.vcpus.iter_mut() {
+            vcpu.context_restore()?;
+        }
         Ok(())
     }
 }
 
-impl Hookable for Processor {
-    /// Adds a [`StyxHook`] to be executed when applicable.
-    fn add_hook(&mut self, hook: StyxHook) -> Result<HookToken, AddHookError> {
-        self.core.cpu.add_hook(hook)
+/// Error adding a [`StyxHook`] to every vCPU via [`Processor::add_hooks()`].
+#[derive(thiserror::Error, Debug)]
+pub enum AddHooksError {
+    /// Adding the hook to the vCPU with the given [`VcpuId`] failed.
+    #[error("failed to add hook to vcpu {vcpu_id}: {error}")]
+    AddHook {
+        vcpu_id: VcpuId,
+        #[source]
+        error: AddHookError,
+    },
+    /// A hook add failed and rolling back the previously added hooks also failed,
+    /// leaving the processor in an inconsistent state. This indicates that
+    /// something is seriously wrong.
+    #[error(
+        "failed to remove hooks while rolling back a failed add_hooks on vcpu {vcpu_id}: {error}"
+    )]
+    ErrorRemovingHooks {
+        vcpu_id: VcpuId,
+        #[source]
+        error: DeleteHookError,
+    },
+}
+
+impl Processor {
+    /// Adds a [`StyxHook`] to all vCPUs on the processor.
+    ///
+    /// `make_hook` is invoked once per vCPU (with that vCPU's [`VcpuId`]) to produce a
+    /// fresh hook for it. A factory is required rather than a single [`StyxHook`] because
+    /// [`StyxHook`] is not `Clone`.
+    ///
+    /// On success, returns the [`HookToken`] for each vCPU, indexed by [`VcpuId`].
+    ///
+    /// If one of the adds fails then all previously added hooks will be removed and
+    /// [`AddHooksError::AddHook`] is returned. Another error,
+    /// [`AddHooksError::ErrorRemovingHooks`], is returned instead if removing those
+    /// previous hooks fails; this indicates that something is seriously wrong.
+    pub fn add_hooks(
+        &mut self,
+        mut make_hook: impl FnMut(VcpuId) -> StyxHook,
+    ) -> Result<VcpuContainer<HookToken>, AddHooksError> {
+        let mut tokens = VcpuContainer::default();
+        for vcpu_id in 0..self.vcpus.len() as VcpuId {
+            let hook = make_hook(vcpu_id);
+            match self.vcpus[vcpu_id as usize].cpu.add_hook(hook) {
+                Ok(token) => tokens.push(token),
+                Err(add_error) => {
+                    // Leave the processor as we found it by removing every hook we
+                    // managed to add before this failure.
+                    self.remove_hooks(&tokens).map_err(|del_error| {
+                        AddHooksError::ErrorRemovingHooks {
+                            vcpu_id,
+                            error: del_error,
+                        }
+                    })?;
+                    return Err(AddHooksError::AddHook {
+                        vcpu_id,
+                        error: add_error,
+                    });
+                }
+            }
+        }
+        Ok(tokens)
     }
 
-    /// Removes a [`StyxHook`] from the [`Processor`].
-    fn delete_hook(&mut self, token: HookToken) -> Result<(), DeleteHookError> {
-        self.core.cpu.delete_hook(token)
+    /// Removes hooks previously added by [`Processor::add_hooks()`], deleting each token
+    /// from the vCPU it was added to (tokens are indexed by [`VcpuId`]).
+    pub fn remove_hooks(
+        &mut self,
+        tokens: &VcpuContainer<HookToken>,
+    ) -> Result<(), DeleteHookError> {
+        for (vcpu_id, &token) in tokens.iter().enumerate() {
+            self.vcpus[vcpu_id].cpu.delete_hook(token)?;
+        }
+        Ok(())
     }
 }
 

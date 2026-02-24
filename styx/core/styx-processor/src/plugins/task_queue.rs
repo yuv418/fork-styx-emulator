@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: BSD-2-Clause
-use std::{
-    collections::VecDeque,
-    fmt::Debug,
-    sync::{mpsc, Arc, Mutex},
-};
+use std::collections::VecDeque;
+use std::fmt::Debug;
+use std::sync::{mpsc, Arc, Mutex};
 
 use log::trace;
 use styx_errors::UnknownError;
 
-use crate::core::ProcessorCore;
-
 use super::{Plugin, UninitPlugin};
+use crate::core::{ProcessorCore, VcpuCore};
+use crate::executor::time::GlobalDelta;
 
 pub struct TaskHandle<T> {
     recv: mpsc::Receiver<T>,
@@ -23,8 +21,11 @@ impl<T> TaskHandle<T> {
     }
 }
 
+type TaskFn = Box<dyn FnOnce(&mut VcpuCore, &mut ProcessorCore) + Send>;
+
+#[allow(dead_code)]
 struct Task {
-    function: Box<dyn FnOnce(&mut ProcessorCore) + Send>,
+    function: TaskFn,
 }
 
 /// Add tasks to the queue. Freely cloneable.
@@ -42,13 +43,15 @@ impl TaskQueueHandle {
     ///
     /// [`TaskHandle::join()`] allows you to get the returned value and block until the task is
     /// completed. However, the task will run and complete even if not joined.
+    ///
+    /// Tasks are run on vcpu 0.
     pub fn add_task<T: Send + 'static>(
         &self,
-        task: impl FnOnce(&mut ProcessorCore) -> T + Send + 'static,
+        task: impl FnOnce(&mut VcpuCore, &mut ProcessorCore) -> T + Send + 'static,
     ) -> TaskHandle<T> {
         let (send, recv) = mpsc::channel();
-        let new_fn = move |core: &mut ProcessorCore| {
-            let res = task(core);
+        let new_fn = move |vcpu: &mut VcpuCore, core: &mut ProcessorCore| {
+            let res = task(vcpu, core);
             // ok if send errors here, it just means the join handle was dropped
             let _ = send.send(res);
         };
@@ -74,6 +77,7 @@ impl Default for TaskQueueHandle {
 /// See [TaskQueuePlugin::new()] and [TaskQueueHandle::add_task()].
 #[derive(Default)]
 pub struct TaskQueuePlugin {
+    #[allow(dead_code)]
     task_queue: TaskQueueHandle,
 }
 
@@ -87,12 +91,17 @@ impl TaskQueuePlugin {
 }
 
 impl Plugin for TaskQueuePlugin {
-    fn tick(&mut self, proc: &mut ProcessorCore) -> Result<(), UnknownError> {
+    fn tick(
+        &mut self,
+        core: &mut ProcessorCore,
+        _delta: &GlobalDelta,
+        vcpus: &mut [VcpuCore],
+    ) -> Result<(), UnknownError> {
         trace!("exec task queue");
         let mut tasks = self.task_queue.tasks.lock().unwrap();
-        // run each task in queue
+        // run each task in queue on cpu 0
         while let Some(task) = tasks.pop_front() {
-            (task.function)(proc);
+            (task.function)(&mut vcpus[0], core);
         }
         // drop tasks lock
         trace!("done exec task queue");
