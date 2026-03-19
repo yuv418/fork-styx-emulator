@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //! Manages gdb-internal breakpoints for the gdb-plugin
+use styx_core::core::VcpuId;
 use styx_core::hooks::HookToken;
+use styx_core::prelude::log::trace;
 use styx_core::sync::sync::atomic::{AtomicBool, Ordering};
 use styx_core::sync::sync::{Arc, Mutex, RwLock};
 use tracing::debug;
@@ -12,12 +14,35 @@ enum BreakpointState {
     Deactive,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum BreakpointFound {
+    Found,
+    NotFound,
+}
+
+impl BreakpointFound {
+    pub(crate) fn found(self) -> bool {
+        self == BreakpointFound::Found
+    }
+
+    pub(crate) fn from_found(is_found: bool) -> Self {
+        if is_found {
+            BreakpointFound::Found
+        } else {
+            BreakpointFound::NotFound
+        }
+    }
+}
+
 /// contains all the bp data, only compared and sorted on the
 /// address of the breakpoint, not the state or the token
 #[derive(Debug)]
 struct BpContainer {
     addr: u64,
-    token: HookToken,
+    /// Currently we just deactivate breakpoints instead of removing them.
+    /// If we want to remove them from the cpu backend later we can use these.
+    #[allow(dead_code)]
+    tokens: Vec<HookToken>,
     state: BreakpointState,
 }
 
@@ -25,15 +50,15 @@ impl BpContainer {
     fn from_addr(addr: &u64) -> Self {
         Self {
             addr: *addr,
-            token: HookToken::default(),
+            tokens: Vec::new(),
             state: BreakpointState::default(),
         }
     }
 
-    pub fn new(token: HookToken, addr: u64) -> Self {
+    pub fn new(tokens: Vec<HookToken>, addr: u64) -> Self {
         Self {
             addr,
-            token,
+            tokens,
             state: BreakpointState::default(),
         }
     }
@@ -60,7 +85,7 @@ impl Ord for BpContainer {
 }
 
 /// Used to track the pause state of the gdbstub, when `self.paused`
-/// is equal to true then the target emulation is halted at a breakpoint.
+/// is set then the target emulation is halted at a breakpoint.
 ///
 /// ## Operation
 /// In the top level `gdb` plugin, when the user
@@ -75,10 +100,11 @@ impl Ord for BpContainer {
 /// in the grand scheme of things, the slowdown from gdb won't really
 /// notice skipping over breakpoints that are still alive but
 /// deactivated.
-#[derive(Debug, Default)]
+#[derive(Default, Debug)]
 pub struct BreakpointManager {
     paused: AtomicBool,
     paused_address: Arc<Mutex<u64>>,
+    paused_vcpu: Arc<Mutex<VcpuId>>,
     /// Addresses of breakpoints from the gdb client. These get reset on each
     /// emulation start/stop.
     ///
@@ -87,17 +113,15 @@ pub struct BreakpointManager {
     breakpoints: Arc<RwLock<Vec<BpContainer>>>,
 }
 
-unsafe impl Sync for BreakpointManager {}
-unsafe impl Send for BreakpointManager {}
-
 impl BreakpointManager {
+    #[cfg(test)]
     pub fn paused_address(&self) -> Option<u64> {
         if self.paused.load(Ordering::Acquire) {
             return Some(*self.paused_address.lock().unwrap());
         }
-
         None
     }
+
     /// Checks if this [`BreakpointManager`] contains a breakpoint
     /// at this address that is *active*
     pub fn contains_active(&self, addr: &u64) -> bool {
@@ -113,17 +137,20 @@ impl BreakpointManager {
         false
     }
 
-    pub fn contains_deactive(&self, addr: &u64) -> bool {
+    /// Do we have a deactivated breakpoint at addr?
+    pub fn contains_deactive(&self, addr: &u64) -> BreakpointFound {
         let search_item = BpContainer::from_addr(addr);
         let breakpoints = self.breakpoints.read().unwrap();
 
         // see if we could find a breakpoint with the same address
         // that is deactive
         if let Ok(bp_idx) = breakpoints.binary_search(&search_item) {
-            return breakpoints.get(bp_idx).unwrap().state == BreakpointState::Deactive;
+            return BreakpointFound::from_found(
+                breakpoints.get(bp_idx).unwrap().state == BreakpointState::Deactive,
+            );
         }
 
-        false
+        BreakpointFound::NotFound
     }
 
     /// Checks if a breakpoint is set at the requested address
@@ -136,7 +163,7 @@ impl BreakpointManager {
         breakpoints.binary_search(&search_item).is_ok()
     }
 
-    pub fn activate(&self, addr: &u64) -> bool {
+    pub fn activate(&self, addr: &u64) -> BreakpointFound {
         let search_item = BpContainer::from_addr(addr);
         let mut breakpoints = self.breakpoints.write().unwrap();
 
@@ -145,14 +172,17 @@ impl BreakpointManager {
             let bp = breakpoints.get_mut(pos).unwrap();
 
             bp.state = BreakpointState::Active;
-            true
+            BreakpointFound::Found
         } else {
             // could not find it
-            false
+            BreakpointFound::NotFound
         }
     }
 
-    pub fn deactivate(&self, addr: &u64) -> bool {
+    /// Deactivates breakpoints at `addr` but does not remove them.
+    ///
+    /// Returns true if breakpoints were found, otherwise false.
+    pub fn deactivate(&self, addr: &u64) -> BreakpointFound {
         let search_item = BpContainer::from_addr(addr);
         let mut breakpoints = self.breakpoints.write().unwrap();
 
@@ -161,25 +191,42 @@ impl BreakpointManager {
             let bp = breakpoints.get_mut(pos).unwrap();
 
             bp.state = BreakpointState::Deactive;
-            true
+            trace!("deactivated bp at 0x{addr:X}");
+            BreakpointFound::Found
         } else {
             // could not find it
-            false
+            BreakpointFound::NotFound
         }
+    }
+
+    /// Pause at the given address, recording which vCPU triggered it.
+    pub fn pause_with_vcpu(&self, addr: u64, vcpu_index: VcpuId) {
+        self.paused.store(true, Ordering::Release);
+        *self.paused_address.lock().unwrap() = addr;
+        *self.paused_vcpu.lock().unwrap() = vcpu_index;
+        debug!("BP manager is now paused (vcpu {vcpu_index})");
     }
 
     /// Sets `self.paused` to `true`, set when the inner emulation pauses
     /// and yields control to us
-    #[inline]
+    #[cfg(test)]
     pub fn pause(&self, addr: u64) {
-        self.paused.store(true, Ordering::Release);
-        *self.paused_address.lock().unwrap() = addr;
-        debug!("BP manager is now paused");
+        self.pause_with_vcpu(addr, 0);
+    }
+
+    /// Returns the vcpu index that triggered the pause, if paused.
+    #[cfg(test)]
+    pub fn paused_vcpu_index(&self) -> Option<VcpuId> {
+        if self.paused.load(Ordering::Acquire) {
+            Some(*self.paused_vcpu.lock().unwrap())
+        } else {
+            None
+        }
     }
 
     /// Sets `self.paused` to `false`, set when we are ready to resume inner
     /// emulation and yield control back to the target emulation
-    #[inline]
+    #[cfg(test)]
     pub fn unpause(&self) {
         self.paused.store(false, Ordering::Release);
         debug!("BP manager is now unpaused");
@@ -191,7 +238,7 @@ impl BreakpointManager {
         self.paused.load(Ordering::Acquire)
     }
 
-    pub fn add_breakpoint(&self, hook_token: HookToken, addr: u64) -> bool {
+    pub fn add_breakpoint(&self, tokens: Vec<HookToken>, addr: u64) -> bool {
         // TODO: only 1 bp per address for now
         if self.contains_breakpoint(&addr) {
             return false;
@@ -200,27 +247,27 @@ impl BreakpointManager {
         let mut breakpoints = self.breakpoints.write().unwrap();
 
         // add the breakpoint, and sort the list
-        let item = BpContainer::new(hook_token, addr);
+        let item = BpContainer::new(tokens, addr);
         breakpoints.push(item);
         breakpoints.sort_unstable();
 
         true
     }
 
-    /// Removes a breakpoint address from the store, returns bool if removed.
+    /// Removes a breakpoint address from the store, returns the hook tokens.
     ///
     /// Note that the breakpoint should be deleted from the CpuEngine with
-    /// the returned token
-    #[allow(dead_code)]
-    pub fn remove_breakpoint(&self, addr: u64) -> Result<HookToken, ()> {
+    /// the returned tokens.
+    #[cfg(test)]
+    pub fn remove_breakpoint(&self, addr: u64) -> Result<Vec<HookToken>, ()> {
         let mut breakpoints = self.breakpoints.write().unwrap();
         debug!("BreakpointManager::remove_breakpoint({:#x})", addr);
 
         let search_item = BpContainer::from_addr(&addr);
-        // find the matching bp and return the token
+        // find the matching bp and return the tokens
         if let Ok(pos) = breakpoints.binary_search(&search_item) {
             let bp = breakpoints.remove(pos);
-            Ok(bp.token)
+            Ok(bp.tokens)
         } else {
             // no bp found
             Err(())
@@ -283,17 +330,32 @@ mod tests {
     }
 
     #[test]
+    fn breakpoint_mgr_pause_with_vcpu() {
+        let mgr = BreakpointManager::default();
+        assert!(!mgr.paused());
+        assert_eq!(None, mgr.paused_vcpu_index());
+
+        mgr.pause_with_vcpu(0x1000, 2);
+        assert!(mgr.paused());
+        assert_eq!(Some(0x1000), mgr.paused_address());
+        assert_eq!(Some(2), mgr.paused_vcpu_index());
+
+        mgr.unpause();
+        assert_eq!(None, mgr.paused_vcpu_index());
+    }
+
+    #[test]
     fn breakpoint_add() {
         let hook_token = HookToken::default();
         let address = 0x41414141;
 
         // success add once
         let mgr = BreakpointManager::default();
-        assert!(mgr.add_breakpoint(hook_token, address));
+        assert!(mgr.add_breakpoint(vec![hook_token], address));
 
         // fail add twice to same address
         let hook_token = HookToken::default();
-        assert!(!mgr.add_breakpoint(hook_token, address));
+        assert!(!mgr.add_breakpoint(vec![hook_token], address));
 
         // at this point `breakpoints` should have length 1
         assert_eq!(1, mgr.breakpoints.read().unwrap().len());
@@ -308,7 +370,7 @@ mod tests {
 
         // success add once
         let mgr = BreakpointManager::default();
-        assert!(mgr.add_breakpoint(hook_token, address));
+        assert!(mgr.add_breakpoint(vec![hook_token], address));
 
         // at this point `breakpoints` should have length 1
         assert_eq!(1, mgr.breakpoints.read().unwrap().len());
@@ -331,9 +393,9 @@ mod tests {
 
         // success add breakpoints
         let mgr = BreakpointManager::default();
-        assert!(mgr.add_breakpoint(hook_token1, address1));
-        assert!(mgr.add_breakpoint(hook_token2, address2));
-        assert!(mgr.add_breakpoint(hook_token3, address3));
+        assert!(mgr.add_breakpoint(vec![hook_token1], address1));
+        assert!(mgr.add_breakpoint(vec![hook_token2], address2));
+        assert!(mgr.add_breakpoint(vec![hook_token3], address3));
 
         // at this point `breakpoints` should have length 3
         assert_eq!(3, mgr.breakpoints.read().unwrap().len());
@@ -353,19 +415,19 @@ mod tests {
 
         // success add once
         let mgr = BreakpointManager::default();
-        assert!(mgr.add_breakpoint(hook_token, address));
+        assert!(mgr.add_breakpoint(vec![hook_token], address));
 
         // at this point `breakpoints` should have length 1
         assert_eq!(1, mgr.breakpoints.read().unwrap().len());
         // the address of the breakpoint should be == address
         assert_eq!(address, mgr.breakpoints.read().unwrap()[0].addr);
         // activate
-        assert!(mgr.activate(&address));
+        assert!(mgr.activate(&address).found());
         // the breakpoint is active
         assert!(mgr.breakpoints.read().unwrap()[0].state == BreakpointState::Active);
 
         // we fail to activate a breakpoint that does not exist
-        assert!(!mgr.activate(&0x99999999));
+        assert!(!mgr.activate(&0x99999999).found());
     }
 
     #[test]
@@ -375,19 +437,19 @@ mod tests {
 
         // success add once
         let mgr = BreakpointManager::default();
-        assert!(mgr.add_breakpoint(hook_token, address));
+        assert!(mgr.add_breakpoint(vec![hook_token], address));
 
         // at this point `breakpoints` should have length 1
         assert_eq!(1, mgr.breakpoints.read().unwrap().len());
         // the address of the breakpoint should be == address
         assert_eq!(address, mgr.breakpoints.read().unwrap()[0].addr);
         // activate
-        assert!(mgr.deactivate(&address));
+        assert!(mgr.deactivate(&address).found());
         // the breakpoint is deactive
         assert!(mgr.breakpoints.read().unwrap()[0].state == BreakpointState::Deactive);
 
         // we fail to deactivate a breakpoint that does not exist
-        assert!(!mgr.deactivate(&0x99999999));
+        assert!(!mgr.deactivate(&0x99999999).found());
     }
 
     #[test]
@@ -397,14 +459,14 @@ mod tests {
 
         // success add once
         let mgr = BreakpointManager::default();
-        assert!(mgr.add_breakpoint(hook_token, address));
+        assert!(mgr.add_breakpoint(vec![hook_token], address));
 
         // at this point `breakpoints` should have length 1
         assert_eq!(1, mgr.breakpoints.read().unwrap().len());
         // the address of the breakpoint should be == address
         assert_eq!(address, mgr.breakpoints.read().unwrap()[0].addr);
         // activate
-        assert!(mgr.activate(&address));
+        assert!(mgr.activate(&address).found());
         // the breakpoint is active
         assert!(mgr.breakpoints.read().unwrap()[0].state == BreakpointState::Active);
 
@@ -421,14 +483,14 @@ mod tests {
 
         // success add once
         let mgr = BreakpointManager::default();
-        assert!(mgr.add_breakpoint(hook_token, address));
+        assert!(mgr.add_breakpoint(vec![hook_token], address));
 
         // at this point `breakpoints` should have length 1
         assert_eq!(1, mgr.breakpoints.read().unwrap().len());
         // the address of the breakpoint should be == address
         assert_eq!(address, mgr.breakpoints.read().unwrap()[0].addr);
         // activate
-        assert!(mgr.activate(&address));
+        assert!(mgr.activate(&address).found());
         // the breakpoint is active
         assert!(mgr.breakpoints.read().unwrap()[0].state == BreakpointState::Active);
 
@@ -454,9 +516,9 @@ mod tests {
 
         // success add breakpoints
         let mgr = BreakpointManager::default();
-        assert!(mgr.add_breakpoint(hook_token1, address1));
-        assert!(mgr.add_breakpoint(hook_token2, address2));
-        assert!(mgr.add_breakpoint(hook_token3, address3));
+        assert!(mgr.add_breakpoint(vec![hook_token1], address1));
+        assert!(mgr.add_breakpoint(vec![hook_token2], address2));
+        assert!(mgr.add_breakpoint(vec![hook_token3], address3));
 
         // at this point `breakpoints` should have length 3
         assert_eq!(3, mgr.breakpoints.read().unwrap().len());
@@ -488,17 +550,17 @@ mod tests {
 
         // success add breakpoints
         let mgr = BreakpointManager::default();
-        assert!(mgr.add_breakpoint(hook_token1, address1));
-        assert!(mgr.add_breakpoint(hook_token2, address2));
-        assert!(mgr.add_breakpoint(hook_token3, address3));
+        assert!(mgr.add_breakpoint(vec![hook_token1], address1));
+        assert!(mgr.add_breakpoint(vec![hook_token2], address2));
+        assert!(mgr.add_breakpoint(vec![hook_token3], address3));
 
         // at this point `breakpoints` should have length 3
         assert_eq!(3, mgr.breakpoints.read().unwrap().len());
 
-        assert!(mgr.activate(&address1));
+        assert!(mgr.activate(&address1).found());
         // address2 is deactivated
-        assert!(mgr.deactivate(&address2));
-        assert!(mgr.activate(&address3));
+        assert!(mgr.deactivate(&address2).found());
+        assert!(mgr.activate(&address3).found());
 
         // we *do* contain the active addresses, and not the address 2
         assert!(mgr.contains_active(&address1));
@@ -513,21 +575,21 @@ mod tests {
 
         // success add once
         let mgr = BreakpointManager::default();
-        assert!(mgr.add_breakpoint(hook_token, address));
+        assert!(mgr.add_breakpoint(vec![hook_token], address));
 
         // at this point `breakpoints` should have length 1
         assert_eq!(1, mgr.breakpoints.read().unwrap().len());
         // the address of the breakpoint should be == address
         assert_eq!(address, mgr.breakpoints.read().unwrap()[0].addr);
         // activate
-        assert!(mgr.deactivate(&address));
+        assert!(mgr.deactivate(&address).found());
         // the breakpoint is deactive
         assert!(mgr.breakpoints.read().unwrap()[0].state == BreakpointState::Deactive);
 
         // we find a breakpoint that does exist
-        assert!(mgr.contains_deactive(&address));
+        assert!(mgr.contains_deactive(&address).found());
         // we fail to find a breakpoint that does not exist
-        assert!(!mgr.contains_deactive(&0x99999999));
+        assert!(!mgr.contains_deactive(&0x99999999).found());
     }
 
     #[test]
@@ -541,21 +603,21 @@ mod tests {
 
         // success add breakpoints
         let mgr = BreakpointManager::default();
-        assert!(mgr.add_breakpoint(hook_token1, address1));
-        assert!(mgr.add_breakpoint(hook_token2, address2));
-        assert!(mgr.add_breakpoint(hook_token3, address3));
+        assert!(mgr.add_breakpoint(vec![hook_token1], address1));
+        assert!(mgr.add_breakpoint(vec![hook_token2], address2));
+        assert!(mgr.add_breakpoint(vec![hook_token3], address3));
 
         // at this point `breakpoints` should have length 3
         assert_eq!(3, mgr.breakpoints.read().unwrap().len());
 
         // deactivate 1 + 2
-        assert!(mgr.deactivate(&address1));
-        assert!(mgr.deactivate(&address2));
-        assert!(mgr.activate(&address3));
+        assert!(mgr.deactivate(&address1).found());
+        assert!(mgr.deactivate(&address2).found());
+        assert!(mgr.activate(&address3).found());
 
         // we *do* contain the deactive addresses, and not the address 3
-        assert!(mgr.contains_deactive(&address1));
-        assert!(mgr.contains_deactive(&address2));
-        assert!(!mgr.contains_deactive(&address3));
+        assert!(mgr.contains_deactive(&address1).found());
+        assert!(mgr.contains_deactive(&address2).found());
+        assert!(!mgr.contains_deactive(&address3).found());
     }
 }
