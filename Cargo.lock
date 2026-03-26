@@ -6842,6 +6842,7 @@ dependencies = [
  "async-stream",
  "async-trait",
  "derivative",
+ "smallvec",
  "styx-core",
  "styx-workspace-hack",
  "thiserror 2.0.18",

@@ -17,6 +17,7 @@ tonic = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
 tracing = { workspace = true }
+smallvec = { workspace = true }
 thiserror = { workspace = true }
 derivative = { workspace = true }
 as-any = { workspace = true }
