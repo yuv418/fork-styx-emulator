@@ -6774,7 +6774,6 @@ dependencies = [
  "styx-blackfin-processor",
  "styx-core",
  "styx-cyclonev-processor",
- "styx-event-controllers",
  "styx-hexagon-processor",
  "styx-kinetis21-processor",
  "styx-powerquicci-processor",
