@@ -1,0 +1,13 @@
+[package]
+name = "hexagonfw"
+version = "0.1.0"
+edition = "2024"
+
+[profile.release]
+debug = true
+
+[dependencies]
+styx-emulator = { path = "../../styx" }
+
+bitbybit = "2"
+arbitrary-int = "2"
