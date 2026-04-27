@@ -24,12 +24,14 @@ use styx_core::{
     errors::UnknownError,
     event_controller::{ActivateIRQnError, InterruptExecuted, Peripherals},
     hooks::CoreHandle,
-    memory::Mmu,
+    memory::{MemoryBackend, Mmu},
     prelude::{
         log::{error, info, trace, warn},
         ArchRegister, BasicArchRegister, Context, EventControllerImpl, ExceptionNumber,
     },
 };
+
+use crate::angel;
 
 const SUBSYSTEM_BASE: u64 = 0xfc900000;
 
@@ -613,7 +615,11 @@ impl EventControllerImpl for L2Vic {
         todo!()
     }
 
-    fn init(&mut self, cpu: &mut dyn CpuBackend, _mmu: &mut Mmu) -> Result<(), UnknownError> {
+    fn init(
+        &mut self,
+        cpu: &mut dyn CpuBackend,
+        _mmu: &mut MemoryBackend,
+    ) -> Result<(), UnknownError> {
         trace!("the hexagon l2vic has started");
         cpu.mem_write_hook(
             L2VIC_BASE,
@@ -689,45 +695,7 @@ pub fn interrupt_handler(
             .read_register::<u32>(HexagonRegister::R1)
             .with_context(|| "couldn't read r1 in interrupt")?;
 
-        // Some other useful ones to implement
-        // 0x15 - get cmdline
-        // 0x16 - heap?
-
-        if swi_no == 0x43 {
-            print!("{}", arg as u8 as char);
-        }
-        // SYS_WRITE
-        else if swi_no == 0x5 {
-            let arg = arg as u64;
-            let fileno = mmu.read_u32_le_virt_data(arg, cpu).unwrap();
-            let ptr = mmu.read_u32_le_virt_data(arg + 4, cpu).unwrap();
-            let bytes = mmu.read_u32_le_virt_data(arg + 8, cpu).unwrap();
-
-            let mut data = vec![0; bytes as usize];
-            mmu.virt_read_data(ptr as u64, &mut data, cpu).unwrap();
-
-            info!("SYS_WRITE data is {data:?}");
-            let data_str = str::from_utf8_mut(&mut data).unwrap().to_owned();
-            info!("SYS_WRITE no:{fileno} data:{data:x?} bytes:{bytes} str:{data_str}");
-
-            cpu.write_register(HexagonRegister::R0, 0u32)
-                .with_context(|| "couldn't write r0 for SYS_WRITE")?;
-            print!("{data_str}");
-        }
-        // SYS_CLOSE
-        else if swi_no == 0x2 {
-            // auto success
-            cpu.write_register(HexagonRegister::R0, 0u32)
-                .with_context(|| "couldn't write r0 for SYS_CLOSE")?;
-        }
-        // SYS_EXIT
-        // https://github.com/ARM-software/abi-aa/blob/main/semihosting/semihosting.rst#sys-exit-0x18
-        else if swi_no == 0x18 {
-            // TODO: what is the right way to wind down/exit?
-            exit(0)
-        } else {
-            info!("unimplemented trap: trap0 swi_no is 0x{swi_no:x}, arg 0x{arg:x}");
-        }
+        angel::handle_angel(cpu, mmu, swi_no, arg)?;
 
         // There are some mailboxes in trap0 that are
         // used depending on the hexagon runtime

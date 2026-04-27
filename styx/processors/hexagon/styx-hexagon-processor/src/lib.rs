@@ -10,7 +10,7 @@ use styx_core::cpu::{Arch, Backend, CpuBackend, PcodeBackendConfiguration};
 use styx_core::hooks::CoreHandle;
 use styx_core::loader::LoaderHints;
 use styx_core::memory::physical::PhysicalMemoryVariant;
-use styx_core::memory::{MemoryPermissions, Mmu};
+use styx_core::memory::{MemoryBackend, MemoryPermissions, MemoryRegion, Mmu};
 use styx_core::prelude::{Context, Peripheral};
 use styx_core::{
     core::{
@@ -23,6 +23,7 @@ use styx_core::{
 };
 use tlb::HexagonTlb;
 
+mod angel;
 mod clade;
 mod exception;
 mod l2vic;
@@ -64,12 +65,8 @@ impl ProcessorImpl for HexagonBuilder {
             l2vic::interrupt_handler(proc.cpu, proc.mmu, interrupt)
         }))?;
 
-        let mut mmu = match self.variant {
-            HexagonVariants::QDSP6V62 => Mmu::new(
-                Box::new(HexagonTlb::new()),
-                PhysicalMemoryVariant::RegionStore,
-                cpu.as_mut(),
-            )?,
+        let mut memory = match self.variant {
+            HexagonVariants::QDSP6V62 => MemoryBackend::new(PhysicalMemoryVariant::FlatMemory),
             _ => {
                 return Err(UnknownError::msg(
                     "hexagon variant {self.variant:?} is not supported, only v62 is supported",
@@ -77,7 +74,10 @@ impl ProcessorImpl for HexagonBuilder {
             }
         };
 
-        mmu.memory_map(0, 2u64.pow(36), MemoryPermissions::all())?;
+        // Peripherals may use this
+        memory
+            .memory_map(0x100000000, 0x40000000, MemoryPermissions::all())
+            .with_context(|| "couldn't add memory region for peripherals")?;
 
         let l2vic = Box::new(L2Vic::default());
 
@@ -89,7 +89,8 @@ impl ProcessorImpl for HexagonBuilder {
 
         Ok(ProcessorBundle {
             cpu,
-            mmu,
+            tlb: Box::new(HexagonTlb::new()),
+            memory,
             event_controller: l2vic,
             peripherals,
             loader_hints: hints,
