@@ -1,8 +1,7 @@
-use styx_emulator::arch::RegisterValue;
+// SPDX-License-Identifier: BSD-2-Clause
 use styx_emulator::cpu::arch::hexagon::{
     HexagonRegister, gdb_targets::HexagonHvxCpuTargetDescription,
 };
-use styx_emulator::hooks::MemoryReadHook;
 use styx_emulator::prelude::gdb::{GDBOptions, GdbExecutor, GdbPluginParams, StepIRQs};
 use styx_emulator::prelude::log::{info, trace, warn};
 use styx_emulator::prelude::logging::init_logging;
@@ -12,9 +11,9 @@ use styx_emulator::processors::hexagon::hexagon::HexagonBuilder;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     init_logging();
 
-    let shld_debug = std::env::var("HEX_LLDB").map_or(false, |_| true);
-    let test_case = std::env::var("TEST_CASE").map_or(false, |_| true);
-    let p5 = std::env::var("PIXEL5").map_or(false, |_| true);
+    let shld_debug = std::env::var("HEX_LLDB").is_ok_and(|_| true);
+    let test_case = std::env::var("TEST_CASE").is_ok_and(|_| true);
+    let p5 = std::env::var("PIXEL5").is_ok_and(|_| true);
 
     let mut proc = ProcessorBuilder::default()
         .with_builder(HexagonBuilder::default())
@@ -149,7 +148,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     proc.core
         .cpu
-        .write_register(HexagonRegister::CfgBase, 0x0000d838 as u32)
+        .write_register(HexagonRegister::CfgBase, 0x0000d838_u32)
         .unwrap();
 
     // l2tcm base - also experimentally determined.
@@ -233,7 +232,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         proc.core.cpu.add_hook(StyxHook::MemoryRead(
             (0x04080028..0x0408002c).into(),
             Box::new(
-                |mut proc: CoreHandle, address: u64, size: u32, data: &mut [u8]| {
+                |proc: CoreHandle, _address: u64, _size: u32, _data: &mut [u8]| {
                     proc.mmu.write_u32_le_phys_data(0x04080028, 0xfffffff0)?;
 
                     Ok(())
@@ -244,7 +243,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         proc.core.cpu.add_hook(StyxHook::MemoryRead(
             (0x04122000..0x04122004).into(),
             Box::new(
-                |mut proc: CoreHandle, address: u64, size: u32, data: &mut [u8]| {
+                |proc: CoreHandle, _address: u64, _size: u32, _data: &mut [u8]| {
                     let val = proc.mmu.read_u32_le_phys_data(0x04122000)?;
                     proc.mmu.write_u32_le_phys_data(0x04122000, val + 0x100)?;
 

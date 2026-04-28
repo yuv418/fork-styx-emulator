@@ -9,7 +9,7 @@ use styx_core::cpu::{Arch, Backend, CpuBackend, PcodeBackendConfiguration};
 use styx_core::hooks::CoreHandle;
 use styx_core::loader::LoaderHints;
 use styx_core::memory::physical::PhysicalMemoryVariant;
-use styx_core::memory::{MemoryBackend, MemoryPermissions, MemoryRegion, Mmu};
+use styx_core::memory::{MemoryBackend, MemoryPermissions, Mmu};
 use styx_core::prelude::{Context, Peripheral};
 use styx_core::{
     core::{
@@ -23,7 +23,6 @@ use styx_core::{
 use tlb::HexagonTlb;
 
 mod angel;
-mod exception;
 mod l2vic;
 mod qtimer;
 mod tlb;
@@ -133,7 +132,6 @@ pub fn read_cfgtable_field(
         .with_context(|| "couldn't read cfgbase")? as u64;
 
     let cfgtable_offset_addr: u64 = (cfgbase << 16) + offset;
-    Ok(mmu
-        .read_u32_le_phys_data(cfgtable_offset_addr)
-        .with_context(|| "couldn't read offset from cfg table")?)
+    mmu.read_u32_le_phys_data(cfgtable_offset_addr)
+        .with_context(|| "couldn't read offset from cfg table")
 }
