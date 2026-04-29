@@ -24,8 +24,12 @@ use styx_core::{
 pub enum AngelCall {
     // Close
     Close = 0x2,
+    // Write a null terminated string
+    Write0 = 0x4,
     // Write a buffer of characters
     Write = 0x5,
+    // Get command line arguments
+    GetCmdline = 0x15,
     // Quit the emulator
     Exit = 0x18,
     // Write a character from the register
@@ -42,6 +46,39 @@ pub fn handle_angel(
     arg: u32,
 ) -> Result<(), UnknownError> {
     match AngelCall::new_with_raw_value(swi_no) {
+        // Only return one argument for now
+        Ok(AngelCall::Write0) => {
+            let str_addr = arg as u64;
+
+            // Read until zero
+            let mut i = 0;
+            loop {
+                let chr = mmu.read_u8_le_virt_data(str_addr + i, cpu).unwrap() as char;
+
+                print!("{chr}");
+                i += 1;
+
+                if chr == '\0' {
+                    break;
+                }
+            }
+        }
+        // Only return one argument for now
+        Ok(AngelCall::GetCmdline) => {
+            if let Some(bin_name) = std::env::args().nth(1) {
+                let arg = arg as u64;
+                let buf = mmu.read_u32_le_virt_data(arg, cpu).unwrap();
+                let buf_len = mmu.read_u32_le_virt_data(arg + 4, cpu).unwrap();
+
+                for (i, byt) in bin_name.chars().enumerate() {
+                    mmu.write_u8_le_virt_data((buf + i as u32) as u64, byt as u8, cpu)
+                        .unwrap();
+                }
+
+                cpu.write_register(HexagonRegister::R0, 0u32)
+                    .with_context(|| "couldn't write r0 for SYS_GET_CMDLINE")?;
+            }
+        }
         Ok(AngelCall::WriteCReg) => {
             print!("{}", arg as u8 as char);
         }
