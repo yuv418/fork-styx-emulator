@@ -11,7 +11,9 @@ workspace = true
 [dependencies]
 # Styx dependencies
 styx-core = { workspace = true }
+styx-peripherals = { path = "../../../peripherals" }
 styx-workspace-hack = { version = "0.1", path = "../../../workspace-hack" }
+styx-hexagon-sys = { path =  "../../../generated/styx-hexagon-sys", optional = true }
 
 # Third party dependencies
 serde = { workspace = true }
@@ -19,5 +21,7 @@ bitbybit = { workspace = true }
 arbitrary-int = { workspace = true }
 thiserror = { workspace = true }
 derivative = { workspace = true }
+bitvec = { workspace = true, optional = true }
 
 [features]
+hexagon-clade = ["dep:styx-hexagon-sys", "dep:bitvec"]

@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //! # Styx-Processors
 
+#[cfg(feature = "hexagon-clade")]
+use clade::Clade;
+
 use event_controller::HexagonEventController;
 use styx_core::arch::hexagon::HexagonRegister;
 use styx_core::cpu::arch::hexagon::HexagonVariants;
@@ -23,6 +26,10 @@ use tlb::HexagonTlb;
 mod angel;
 mod cfgtable;
 mod config;
+
+#[cfg(feature = "hexagon-clade")]
+mod clade;
+
 mod event_controller;
 mod tlb;
 
@@ -96,7 +103,13 @@ impl ProcessorImpl for HexagonBuilder {
         }
 
         let hec = Box::new(HexagonEventController::default());
-        let peripherals: Vec<Box<dyn Peripheral>> = Vec::new();
+
+        let peripherals: Vec<Box<dyn Peripheral>> = vec![
+            #[cfg(feature = "hexagon-clade")]
+            {
+                Box::new(Clade::default())
+            },
+        ];
 
         let mut hints = LoaderHints::new();
         hints.insert("arch".to_string().into_boxed_str(), Box::new(Arch::Hexagon));

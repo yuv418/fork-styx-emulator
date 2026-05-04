@@ -8,7 +8,7 @@ hexagon-tests = ["dep:styx-hexagon-testdata"]
 disable-hexagon-tests = []
 
 [dependencies]
-styx-emulator = { workspace = true }
+styx-emulator = { workspace = true, features = ["hexagon-clade"] }
 styx-workspace-hack = { version = "0.1", path = "../../styx/workspace-hack" }
 styx-hexagon-testdata = { path = "../../data/test-binaries/styx-hexagon-testdata", features = [
   "hexagon-tests",
