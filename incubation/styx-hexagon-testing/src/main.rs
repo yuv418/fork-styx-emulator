@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 use styx_emulator::cpu::arch::hexagon::{
-    HexagonRegister, gdb_targets::HexagonHvxCpuTargetDescription,
+    gdb_targets::HexagonHvxCpuTargetDescription, HexagonRegister,
 };
 use styx_emulator::prelude::gdb::{GDBOptions, GdbExecutor, GdbPluginParams, StepIRQs};
 use styx_emulator::prelude::log::{info, trace, warn};

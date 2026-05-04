@@ -9,15 +9,24 @@ use styx_core::{
     cpu::{CpuBackend, CpuBackendExt},
     errors::UnknownError,
     memory::Mmu,
-    prelude::{log::info, Context},
+    prelude::{
+        log::{info, trace},
+        Context,
+    },
 };
 
 // From QUIC QEMU, branch hex-next:
-// target/hexagon/hexswi.c
+// target/hexagon/hexswi.c. See `sim_handle_trap0` for information on the Angel calling convention.
+// In QEMU, semihosting/arm-compat-semi.c may also have useful information.
 //
-// Some other useful ANGEL calls to implement
-// 0x15 - get cmdline
-// 0x16 - heap?
+// Also see https://developer.arm.com/documentation/dui0205/g/semihosting/about-semihosting,
+// especially the "Semihosting SVCs" section for documentation on common Angel calls and how
+// they should be implemented.
+//
+// In the future, we should also implement the following calls, because they have been seen in
+// tests or firmware:
+//
+// 0x16 - heap info
 #[derive(Debug)]
 #[bitenum(u32, exhaustive = false)]
 #[allow(unused)]
@@ -72,13 +81,24 @@ pub fn handle_angel(
                 let buf = mmu.read_u32_le_virt_data(arg, cpu).unwrap();
                 let buf_len = mmu.read_u32_le_virt_data(arg + 4, cpu).unwrap();
 
-                for (i, byt) in bin_name.chars().enumerate() {
-                    mmu.write_u8_le_virt_data((buf + i as u32) as u64, byt as u8, cpu)
-                        .unwrap();
+                // add one for null terminator, if check fails then fail out
+                if bin_name.len() + 1 > buf_len as usize {
+                    trace!("Angel get command line failed with buf name {:x} and supplied buf_len {:x}", bin_name.len()+1, buf_len);
+                    // in quic QEMU, tests/tcg/hexagon/system/crt0/min_libc.c,
+                    // SYS_GET_CMDLINE will fail is the return value is not zero.
+                    cpu.write_register(HexagonRegister::R0, u32::MAX)
+                        .with_context(|| "couldn't write r0 for SYS_GET_CMDLINE")?;
                 }
+                // buffer size test passed
+                else {
+                    for (i, byt) in bin_name.chars().enumerate() {
+                        mmu.write_u8_le_virt_data((buf + i as u32) as u64, byt as u8, cpu)
+                            .unwrap();
+                    }
 
-                cpu.write_register(HexagonRegister::R0, 0u32)
-                    .with_context(|| "couldn't write r0 for SYS_GET_CMDLINE")?;
+                    cpu.write_register(HexagonRegister::R0, 0u32)
+                        .with_context(|| "couldn't write r0 for SYS_GET_CMDLINE")?;
+                }
             }
         }
         Ok(AngelCall::WriteC) => {
