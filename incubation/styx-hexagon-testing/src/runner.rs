@@ -38,7 +38,10 @@ pub fn setup_load_hexagon(
     let mut proc = ProcessorBuilder::default()
         .with_builder(HexagonBuilder::default())
         .with_backend(Backend::Pcode)
-        .with_loader(ElfLoader::default())
+        .with_loader(ElfLoader::new(ElfLoaderConfig {
+            segment_addr_preference: SegmentAddr::Paddr,
+            ..Default::default()
+        }))
         .register_config(config);
 
     if let Some(debug) = debug {

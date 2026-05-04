@@ -7,6 +7,7 @@
 //!
 use std::sync::atomic::{AtomicU64, Ordering};
 
+use log::info;
 use thiserror::Error;
 
 type Word = AtomicU64;

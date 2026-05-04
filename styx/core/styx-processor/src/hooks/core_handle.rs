@@ -101,5 +101,6 @@ impl<'a> CoreHandle<'a> {
             #[call(latch)]
             pub fn latch_event(&mut self, event: ExceptionNumber) -> Result<(), ActivateIRQnError>;
         }
+
     }
 }

@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: BSD-2-Clause
 use derive_more::FromStr;
-use log::trace;
-use styx_cpu_type::arch::hexagon::{register_fields::Ssr, HexagonRegister};
+use log::{info, trace};
+use styx_cpu_type::arch::hexagon::{
+    register_fields::{Ipendad, Ssr},
+    HexagonRegister,
+};
 use styx_errors::anyhow::Context;
 use styx_pcode::{
     pcode::{SpaceName, VarnodeData},
@@ -28,7 +31,7 @@ pub struct InterruptGenericStub {
 /// Look at <https://github.com/quic/qemu/blob/hex-next/target/hexagon/cpu_bits.h>
 #[repr(i32)]
 #[allow(unused)]
-pub enum InterruptType {
+pub enum HexagonInterruptType {
     None = -1,
     Reset = 0,
     Imprecise = 1,
@@ -55,6 +58,52 @@ pub enum InterruptType {
     IntD = 0x1d,
     IntE = 0x1e,
     IntF = 0x1f,
+    Halt = 0x20,
+}
+
+#[repr(u8)]
+#[derive(Debug, Copy, Clone)]
+pub enum HexagonInterruptCause {
+    Reset = 0x000,
+    BiuPrecise = 0x001,
+    UnsuportedHvx64B = 0x002, /* qemu-specific */
+    DoubleExcept = 0x003,
+    Trap0 = 0x008,
+    Trap1 = 0x009,
+    FetchNoXpage = 0x011,
+    FetchNoUpage = 0x012,
+    InvalidPacketOrOpcode = 0x015,
+    NoCoprocEnable = 0x016,
+    NoCoproc2Enable = 0x018,
+    PRivUSerNOGInsn = 0x01a,
+    PrivUserNoSinsn = 0x01b,
+    RegWriteConflict = 0x01d,
+    PcNotAligned = 0x01e,
+    MisalignedLoad = 0x020,
+    MisalignedStore = 0x021,
+    PrivNoRead = 0x022,
+    PrivNoWrite = 0x023,
+    PrivNoUread = 0x024,
+    PrivNoUwrite = 0x025,
+    CoprocLdst = 0x026,
+    StackLimit = 0x027,
+    VwctrlWindowMiss = 0x029,
+    ImpreciseNmi = 0x043,
+    ImpreciseMultiTlbMatch = 0x044,
+    TlbmissxCauseNormal = 0x060,
+    TlbmissxCauseNextpage = 0x061,
+    TlbmissrwCauseRead = 0x070,
+    TlbmissrwCauseWrite = 0x071,
+    DebugSinglestep = 0x80,
+    FptrapCauseBadfloat = 0x0bf,
+    Int0 = 0x0c0,
+    Int1 = 0x0c1,
+    Int2OrVic0 = 0x0c2,
+    Int3OrVic1 = 0x0c3,
+    Int4OrVic2 = 0x0c4,
+    Int5OrVic3 = 0x0c5,
+    Int6 = 0x0c6,
+    Int7 = 0x0c7,
 }
 
 /// Trap instruction, see 11.9.3 Trap.
@@ -101,13 +150,13 @@ impl<T: CpuBackend> CallOtherCallback<T> for Trap0Handler {
             .write_register(HexagonRegister::Ssr, ssr.raw_value())
             .unwrap();
 
-        trace!(
+        info!(
             "trap0 with exception {exc_no}, ssr is {:x}",
             ssr.raw_value()
         );
 
         Ok(PCodeStateChange::DelayedInterrupt(
-            InterruptType::Trap0 as i32,
+            HexagonInterruptType::Trap0 as i32,
         ))
     }
 }
@@ -145,18 +194,26 @@ impl<T: CpuBackend> CallOtherCallback<T> for CswiHandler {
             .read(&inputs[0])
             .with_context(|| "couldn't read cswi register argument value")?
             .to_u64()
-            .with_context(|| "couldn't unwrap mask")? as u32;
+            .with_context(|| "couldn't unwrap mask")? as u16;
 
-        let ipend_value = backend
-            .read_register::<u32>(HexagonRegister::Ipend)
-            .with_context(|| "couldn't read IPEND register")?;
-        let ipend_cleared = ipend_value & !rs;
+        let mut ipendad = Ipendad::new_with_raw_value(
+            backend
+                .read_register::<u32>(HexagonRegister::Ipendad)
+                .with_context(|| "couldn't read IPEND register")?,
+        );
+        let ipendad_old = ipendad;
+
+        ipendad.set_ipend(ipendad.ipend() & !rs);
 
         backend
-            .write_register(HexagonRegister::Ipend, ipend_cleared)
+            .write_register(HexagonRegister::Ipendad, ipendad.raw_value())
             .with_context(|| "couldn't clear specified bits of IPEND register")?;
 
-        trace!("cswi: rs {rs:x} ipend_old {ipend_value:x} ipend_after {ipend_cleared:x}",);
+        trace!(
+            "cswi: rs {rs:x} ipend_old {:x} ipend_after {:x}",
+            ipendad_old.ipend(),
+            ipendad.ipend(),
+        );
 
         Ok(PCodeStateChange::Fallthrough)
     }
@@ -169,6 +226,7 @@ pub struct CiadHandler;
 impl<T: CpuBackend> CallOtherCallback<T> for CiadHandler {
     /// Implement CIAD (clear interrupt auto disable)
     /// NOTE: the implementation of this may change when we implement the interrupt controller.
+    /// NOTE: this implementation uses IPENDAD.IAD, but some older DSPs use the full IAD register.
     ///
     /// See [CswiHandler::handle], the same note about implementation applies here.
     fn handle(
@@ -185,19 +243,35 @@ impl<T: CpuBackend> CallOtherCallback<T> for CiadHandler {
             .read(&inputs[0])
             .with_context(|| "couldn't read ciad register argument value")?
             .to_u64()
-            .with_context(|| "couldn't unwrap mask")? as u32;
+            .with_context(|| "couldn't unwrap mask")? as u16;
 
-        let iad_value = backend
-            .read_register::<u32>(HexagonRegister::Iad)
-            .with_context(|| "couldn't read IAD register")?;
+        let mut ipendad = Ipendad::new_with_raw_value(
+            backend
+                .read_register::<u32>(HexagonRegister::Ipendad)
+                .with_context(|| "couldn't read IAD register")?,
+        );
+        let ipendad_old = ipendad;
 
-        let iad_cleared = iad_value & !rs;
+        ipendad.set_iad(ipendad.iad() & !rs);
 
         backend
-            .write_register(HexagonRegister::Iad, iad_cleared)
+            .write_register(HexagonRegister::Ipendad, ipendad.raw_value())
             .with_context(|| "couldn't clear specified bits of IAD register")?;
 
-        trace!("ciad: rs {rs:x} iad_old {iad_value:x} after {iad_cleared:x}",);
+        // CIAD also resets the value of the VID register, according to QEMU.
+        // See op_helper.c, and specifically the ciad instruction.
+        //
+        // -1 resets the Vid back into "invalid" state.
+        // See hw/include/intc/l2vic.h and target/hexagon/op_helper.c (hexagon_set_vid)
+        backend
+            .write_register(HexagonRegister::Vid, u32::MAX)
+            .with_context(|| "couldn't reset the Vid register")?;
+
+        trace!(
+            "ciad: rs {rs:x} iad_old {:x} after {:x}",
+            ipendad_old.iad(),
+            ipendad.iad()
+        );
 
         Ok(PCodeStateChange::Fallthrough)
     }
@@ -277,9 +351,9 @@ impl<T: CpuBackend> CallOtherCallback<T> for NmiHandler {
         else {
             unimplemented!("nmi({:x}) called", rs_val);
 
-            /*Ok(PCodeStateChange::DelayedInterrupt(
-                InterruptType::Imprecise as i32,
-            ))*/
+            // Ok(PCodeStateChange::DelayedInterrupt(
+            //     HexagonInterruptType::Imprecise as i32,
+            // ))
         }
     }
 }
