@@ -12,6 +12,7 @@ use std::sync::Arc;
 
 use arbitrary_int::*;
 use bitbybit::{bitenum, bitfield};
+use styx_core::arch::hexagon::GlobalHexagonRegister;
 use styx_core::core::VCpuCore;
 use styx_core::event_controller::{EventControllerImpl, PrimaryEventControllerImpl};
 use styx_core::prelude::GlobalDelta;
@@ -483,7 +484,7 @@ impl EventControllerImpl for L2Vic {
         // and if they're not equal set to whatever it is.
 
         let vid = cpu
-            .read_register::<u32>(HexagonRegister::Vid)
+            .read_register::<u32>(GlobalHexagonRegister::Vid)
             .with_context(|| "Couldn't read VID register")?;
         if self.vid != vid {
             info!("l2vic: vid was set in code or by ciad, updating to 0x{vid:x}.");
@@ -636,7 +637,7 @@ impl EventControllerImpl for L2Vic {
         // on the one VID.
         self.vid = irq as u32;
         // Update the backing register store
-        cpu.write_register(HexagonRegister::Vid, self.vid)
+        cpu.write_register(GlobalHexagonRegister::Vid, self.vid)
             .with_context(|| "couldn't update vid register")?;
 
         // We also need to set the SSR cause to the VID
@@ -653,11 +654,11 @@ impl EventControllerImpl for L2Vic {
 
         // Set the irq pending
         let mut ipendad = Ipendad::new_with_raw_value(
-            cpu.read_register::<u32>(HexagonRegister::Ipendad)
+            cpu.read_register::<u32>(GlobalHexagonRegister::Ipendad)
                 .with_context(|| "couldn't read r0 in interrupt")?,
         );
         ipendad.set_ipend(ipendad.ipend() | (1 << hex_irq_number));
-        cpu.write_register(HexagonRegister::Ipendad, ipendad.raw_value())
+        cpu.write_register(GlobalHexagonRegister::Ipendad, ipendad.raw_value())
             .with_context(|| "couldn't write ipendad")?;
 
         // NOTE: the interrupt number is dependent on the VID. Right now there is only
@@ -750,7 +751,7 @@ pub fn async_interrupt_handler(
 ) -> Result<(), UnknownError> {
     // bail if the interrupt is not pending or disabled
     let mut ipendad = Ipendad::new_with_raw_value(
-        cpu.read_register::<u32>(HexagonRegister::Ipendad)
+        cpu.read_register::<u32>(GlobalHexagonRegister::Ipendad)
             .with_context(|| "couldn't read r0 in interrupt")?,
     );
     let iad = (ipendad.iad() >> interrupt_number) & 1;
@@ -764,7 +765,7 @@ pub fn async_interrupt_handler(
     ipendad.set_iad(ipendad.iad() & !(1 << interrupt_number));
     ipendad.set_ipend(ipendad.ipend() & !(1 << interrupt_number));
 
-    cpu.write_register(HexagonRegister::Ipendad, ipendad.raw_value())
+    cpu.write_register(GlobalHexagonRegister::Ipendad, ipendad.raw_value())
         .with_context(|| "couldn't write ipendad")?;
 
     interrupt_handler(cpu, mmu, interrupt_number, None)
@@ -813,7 +814,7 @@ pub fn interrupt_handler(
 
     // get evb which is the interrupt vector base
     let evb = cpu
-        .read_register::<u32>(HexagonRegister::Evb)
+        .read_register::<u32>(GlobalHexagonRegister::Evb)
         .with_context(|| "couldn't read interrupt vector base")?;
     let jump_point = evb + (interrupt_number * 4) as u32;
 

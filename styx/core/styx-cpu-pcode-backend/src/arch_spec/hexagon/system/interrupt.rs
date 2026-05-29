@@ -3,7 +3,7 @@ use derive_more::FromStr;
 use log::{info, trace};
 use styx_cpu_type::arch::hexagon::{
     register_fields::{Ipendad, Ssr},
-    HexagonRegister,
+    GlobalHexagonRegister, HexagonRegister,
 };
 use styx_errors::anyhow::Context;
 use styx_pcode::{
@@ -198,7 +198,7 @@ impl<T: CpuBackend> CallOtherCallback<T> for CswiHandler {
 
         let mut ipendad = Ipendad::new_with_raw_value(
             backend
-                .read_register::<u32>(HexagonRegister::Ipendad)
+                .read_register::<u32>(GlobalHexagonRegister::Ipendad)
                 .with_context(|| "couldn't read IPEND register")?,
         );
         let ipendad_old = ipendad;
@@ -206,7 +206,7 @@ impl<T: CpuBackend> CallOtherCallback<T> for CswiHandler {
         ipendad.set_ipend(ipendad.ipend() & !rs);
 
         backend
-            .write_register(HexagonRegister::Ipendad, ipendad.raw_value())
+            .write_register(GlobalHexagonRegister::Ipendad, ipendad.raw_value())
             .with_context(|| "couldn't clear specified bits of IPEND register")?;
 
         trace!(
@@ -247,7 +247,7 @@ impl<T: CpuBackend> CallOtherCallback<T> for CiadHandler {
 
         let mut ipendad = Ipendad::new_with_raw_value(
             backend
-                .read_register::<u32>(HexagonRegister::Ipendad)
+                .read_register::<u32>(GlobalHexagonRegister::Ipendad)
                 .with_context(|| "couldn't read IAD register")?,
         );
         let ipendad_old = ipendad;
@@ -255,7 +255,7 @@ impl<T: CpuBackend> CallOtherCallback<T> for CiadHandler {
         ipendad.set_iad(ipendad.iad() & !rs);
 
         backend
-            .write_register(HexagonRegister::Ipendad, ipendad.raw_value())
+            .write_register(GlobalHexagonRegister::Ipendad, ipendad.raw_value())
             .with_context(|| "couldn't clear specified bits of IAD register")?;
 
         // CIAD also resets the value of the VID register, according to QEMU.
@@ -264,7 +264,7 @@ impl<T: CpuBackend> CallOtherCallback<T> for CiadHandler {
         // -1 resets the Vid back into "invalid" state.
         // See hw/include/intc/l2vic.h and target/hexagon/op_helper.c (hexagon_set_vid)
         backend
-            .write_register(HexagonRegister::Vid, u32::MAX)
+            .write_register(GlobalHexagonRegister::Vid, u32::MAX)
             .with_context(|| "couldn't reset the Vid register")?;
 
         trace!(
