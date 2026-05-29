@@ -7,7 +7,7 @@ use bitbybit::{bitenum, bitfield};
 use bitvec::prelude::*;
 use safe::clade1::Clade1;
 use std::process::exit;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use styx_core::{
     arch::{
         hexagon::{
@@ -20,13 +20,16 @@ use styx_core::{
     errors::UnknownError,
     event_controller::{ActivateIRQnError, InterruptExecuted, Peripherals},
     hooks::CoreHandle,
+    macros::peripheral_shared_state,
     memory::{MemoryOperation, MemoryType, Mmu},
     prelude::{
         log::{error, info, trace, warn},
-        ArchRegister, BasicArchRegister, Context, EventControllerImpl, ExceptionNumber, Peripheral,
+        ArchRegister, BasicArchRegister, Context, ExceptionNumber, Peripheral,
     },
 };
 use styx_hexagon_sys::clade;
+
+use crate::shared_state_hooks::{peripheral_shared_state_read, peripheral_shared_state_write};
 
 mod safe;
 
@@ -58,11 +61,19 @@ pub enum Clade1Register {
 }
 
 /// Get the corresponding page for the address, extract it, mark as extracted.
-fn clade_extract(proc: CoreHandle, addr: u64, mem_type: MemoryType) -> Result<(), UnknownError> {
+fn clade_extract(
+    proc: CoreHandle,
+    addr: u64,
+    mem_type: MemoryType,
+    clade_state: Arc<Mutex<CladeSharedState>>,
+) -> Result<(), UnknownError> {
     // We should not fail on a clade address that isn't mapped, so we can just silently bail out here.
     // Page fault handler should add a mapping and this will inevitably be called again.
 
-    let periph = proc.event_controller.peripherals.get::<Clade>().unwrap();
+    let mut periph = clade_state
+        .lock()
+        .expect("Couldn't get CLADE peripheral shared state");
+
     if let Ok(real_addr) = proc
         .mmu
         .translate_va(addr, MemoryOperation::Read, mem_type, proc.cpu)
@@ -71,12 +82,14 @@ fn clade_extract(proc: CoreHandle, addr: u64, mem_type: MemoryType) -> Result<()
         let chunk_num = (real_addr as usize - periph.output_addr as usize) / CLADE_CHUNK_SIZE;
         if !periph.extracted[chunk_num] {
             info!("CLADE extract, mem_type {mem_type:?} real_addr {real_addr:x}, output_addr {:x}, chunk num {chunk_num:x}", periph.output_addr);
+
             info!("CLADE request for chunk 0x{chunk_num:x}, extracting");
-            periph.engine.extract(
-                proc.mmu,
-                periph.output_addr + (chunk_num * CLADE_CHUNK_SIZE) as u64,
-                CLADE_CHUNK_SIZE,
-            )?;
+
+            let clade_chunk_output_addr =
+                periph.output_addr + (chunk_num * CLADE_CHUNK_SIZE) as u64;
+            periph
+                .engine
+                .extract(proc.mmu, clade_chunk_output_addr, CLADE_CHUNK_SIZE)?;
             periph.extracted.set(chunk_num, true);
         }
     } else {
@@ -91,15 +104,24 @@ fn clade_mmio_write_hook(
     address: u64,
     size: u32,
     data: &[u8],
+    clade_state: Arc<Mutex<CladeSharedState>>,
 ) -> Result<(), UnknownError> {
-    let periph = proc.event_controller.peripherals.get::<Clade>().unwrap();
+    // Needed so we can pass clade_state to the mem read hooks later.
+    let state_clone_read_hook = clade_state.clone();
+    let state_clone_code_hook = clade_state.clone();
+
+    let mut periph = clade_state
+        .lock()
+        .expect("Couldn't get CLADE peripheral shared state");
     let register = Clade1Register::new_with_raw_value((address - CLADE_BASE) as u16);
     let value = u32::from_le_bytes(data.try_into().unwrap()); //  .expect("couldn't unwrap clade value");
 
     match register {
         Ok(Clade1Register::OutputAddr) => {
-            periph.output_addr = (value as u64) << 0x1d;
-            periph.engine.set_output_addr(periph.output_addr);
+            let periph_output_addr = (value as u64) << 0x1d;
+
+            periph.output_addr = periph_output_addr;
+            periph.engine.set_output_addr(periph_output_addr);
 
             info!("CLADE: setting output to {:x}", periph.output_addr);
 
@@ -110,8 +132,13 @@ fn clade_mmio_write_hook(
                     periph.output_addr,
                     periph.output_addr + CLADE_REGION_SIZE as u64,
                     Box::new(
-                        |proc: CoreHandle, address: u64, size: u32, data: &mut [u8]| {
-                            clade_extract(proc, address, MemoryType::Data)
+                        move |proc: CoreHandle, address: u64, size: u32, data: &mut [u8]| {
+                            clade_extract(
+                                proc,
+                                address,
+                                MemoryType::Data,
+                                state_clone_read_hook.clone(),
+                            )
                         },
                     ),
                 )
@@ -120,9 +147,14 @@ fn clade_mmio_write_hook(
             proc.cpu
                 .add_hook(styx_core::hooks::StyxHook::Code(
                     (periph.output_addr..(periph.output_addr + CLADE_REGION_SIZE as u64)).into(),
-                    Box::new(|mut proc: CoreHandle| {
+                    Box::new(move |mut proc: CoreHandle| {
                         let pc_addr = proc.pc().expect("Couldn't get PC for extracting clade");
-                        clade_extract(proc, pc_addr, MemoryType::Code)
+                        clade_extract(
+                            proc,
+                            pc_addr,
+                            MemoryType::Code,
+                            state_clone_code_hook.clone(),
+                        )
                     }),
                 ))
                 .with_context(|| "couldn't add code hooks for clade")?;
@@ -158,9 +190,7 @@ fn clade_mmio_write_hook(
                 )
                 .unwrap();
 
-            periph
-                .engine
-                .set_dict_section(&mut periph.dictionary_section);
+            periph.update_engine_dict_section();
         }
         Err(val) => {
             trace!(
@@ -178,6 +208,7 @@ fn clade_mmio_read_hook(
     address: u64,
     size: u32,
     data: &mut [u8],
+    _clade_state: Arc<Mutex<CladeSharedState>>,
 ) -> Result<(), UnknownError> {
     // stupid hack that hexagon-sim seems to do.
     if address == CLADE2_BASE && size == 4 {
@@ -192,22 +223,41 @@ fn clade_mmio_read_hook(
     Ok(())
 }
 
+#[peripheral_shared_state]
 pub struct Clade {
+    #[shared]
     engine: Clade1,
+    #[shared]
     output_addr: u64,
+    #[shared]
     dictionary_section: Vec<u8>,
+    #[shared]
     exc_hi_section: Vec<u8>,
+    #[shared]
     extracted: CladeExtractedBitvec,
+}
+
+// Used for fixing up ownership issues
+impl CladeSharedState {
+    /// Using the set dictionary section, update
+    /// the internal Clade engine's dictionary.
+    /// Called once the clade dictionary is finished
+    ///  being set through MMIO.
+    fn update_engine_dict_section(&mut self) {
+        self.engine.set_dict_section(&mut self.dictionary_section);
+    }
 }
 
 impl Default for Clade {
     fn default() -> Self {
         Self {
-            engine: Clade1::new(),
-            output_addr: 0,
-            dictionary_section: vec![0; 0x6000],
-            exc_hi_section: vec![0; 0x2000],
-            extracted: bitarr![0; CLADE_NO_CHUNKS],
+            inner: Arc::new(Mutex::new(CladeSharedState {
+                engine: Clade1::new(),
+                output_addr: 0,
+                dictionary_section: vec![0; 0x6000],
+                exc_hi_section: vec![0; 0x2000],
+                extracted: bitarr![0; CLADE_NO_CHUNKS],
+            })),
         }
     }
 }
@@ -223,14 +273,24 @@ impl Peripheral for Clade {
     ) -> Result<(), styx_core::prelude::UnknownError> {
         unsafe { clade::clade_set_trace(0xff) };
 
-        proc.core
+        proc.vcpus[0]
             .cpu
             .mem_write_hook(
                 CLADE_BASE,
                 CLADE_BASE + 0x8000,
-                Box::new(clade_mmio_write_hook),
+                peripheral_shared_state_write(clade_mmio_write_hook, self.inner.clone()),
             )
             .with_context(|| "couldn't add MMIO hooks for clade")?;
+
+        proc.vcpus[0]
+            .cpu
+            .mem_read_hook(
+                CLADE_BASE,
+                CLADE_BASE + 0x8000,
+                peripheral_shared_state_read(clade_mmio_read_hook, self.inner.clone()),
+            )
+            .with_context(|| "couldn't add MMIO hooks for clade")?;
+
         /*proc.core
         .cpu
         .mem_write_hook(
@@ -239,21 +299,12 @@ impl Peripheral for Clade {
             Box::new(clade_mmio_write_hook),
         )
         .with_context(|| "couldn't add MMIO hooks for clade")?;*/
-
-        proc.core
-            .cpu
-            .mem_read_hook(
-                CLADE_BASE,
-                CLADE_BASE + 0x8000,
-                Box::new(clade_mmio_read_hook),
-            )
-            .with_context(|| "couldn't add MMIO hooks for clade")?;
-        proc.core
+        proc.vcpus[0]
             .cpu
             .mem_read_hook(
                 CLADE2_BASE,
                 CLADE2_BASE + 0x8000,
-                Box::new(clade_mmio_read_hook),
+                peripheral_shared_state_read(clade_mmio_read_hook, self.inner.clone()),
             )
             .with_context(|| "couldn't add MMIO hooks for clade")?;
         Ok(())

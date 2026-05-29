@@ -7,6 +7,8 @@ use std::{
 };
 
 use derivative::Derivative;
+use styx_core::event_controller::{PeripheralTickCtx, RaisedIrqs};
+use styx_core::hooks::MemoryWriteHook;
 use styx_core::prelude::*;
 use timer::*;
 use tokio::time;
@@ -23,7 +25,7 @@ pub struct TimerLoopStatus {
 
 #[derive(Derivative)]
 pub struct Timers {
-    timers: TimerContainer,
+    timers: Arc<TimerContainer>,
     loop_status: TimerLoopStatus,
     running: bool,
 }
@@ -39,7 +41,7 @@ async fn timer_loop(status: TimerLoopStatus) {
 impl Timers {
     pub fn new(system: SicHandle) -> Self {
         Self {
-            timers: TimerContainer::new(system),
+            timers: Arc::new(TimerContainer::new(system)),
             loop_status: TimerLoopStatus::default(),
             running: false,
         }
@@ -58,10 +60,12 @@ impl Peripheral for Timers {
             .handle()
             .spawn(async move { timer_loop(status).await });
 
-        proc.core.cpu.mem_write_hook(
+        proc.vcpus[0].cpu.mem_write_hook(
             sys::TIMER0_CONFIG as u64,
             sys::TIMER_STATUS as u64,
-            Box::new(timer_register_write_hook),
+            Box::new(TimerRegisterWriteHook {
+                timers: self.timers.clone(),
+            }),
         )?;
 
         Ok(())
@@ -71,43 +75,59 @@ impl Peripheral for Timers {
         "blackfin timers"
     }
 
-    fn tick(
-        &mut self,
-        _cpu: &mut dyn CpuBackend,
-        mmu: &mut Mmu,
-        ev: &mut dyn EventControllerImpl,
-        _delta: &styx_core::prelude::Delta,
-    ) -> Result<(), UnknownError> {
+    fn tick(&mut self, ctx: &PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
+        let mut raised = RaisedIrqs::none();
         if self.running && self.loop_status.triggered.load(Ordering::Relaxed) {
             self.loop_status.triggered.store(false, Ordering::Relaxed);
             for enabled_timer in self.timers.enabled_timers() {
-                // timer_went_off will latch proper peripheral
-                self.timers.timer_went_off(mmu, ev, enabled_timer);
+                // timer_went_off latches the proper peripheral and returns the core interrupt
+                if let Some(irq) = self.timers.timer_went_off(ctx.memory, enabled_timer) {
+                    raised.push(irq);
+                }
             }
         }
-        Ok(())
+        Ok(raised)
+    }
+}
+
+/// Memory write hook for the timer registers.
+///
+/// Holds a clone of the shared [`TimerContainer`] so register writes mutate the same state the
+/// peripheral ticks against.
+struct TimerRegisterWriteHook {
+    timers: Arc<TimerContainer>,
+}
+
+impl MemoryWriteHook for TimerRegisterWriteHook {
+    fn call(
+        &mut self,
+        proc: CoreHandle,
+        address: u64,
+        size: u32,
+        data: &[u8],
+    ) -> Result<(), UnknownError> {
+        timer_register_write_hook(&self.timers, proc, address, size, data)
     }
 }
 
 fn timer_register_write_hook(
-    proc: CoreHandle,
+    timers: &TimerContainer,
+    _proc: CoreHandle,
     address: u64,
     _size: u32,
     data: &[u8],
 ) -> Result<(), UnknownError> {
-    let timers = proc.event_controller.peripherals.get_expect::<Timers>()?;
-
     match address as u32 {
-        sys::TIMER_ENABLE => timers.timers.timer_enable(data[0]),
-        sys::TIMER_DISABLE => timers.timers.timer_disable(data[0]),
+        sys::TIMER_ENABLE => timers.timer_enable(data[0]),
+        sys::TIMER_DISABLE => timers.timer_disable(data[0]),
 
         sys::TIMER0_CONFIG | sys::TIMER1_CONFIG => {
             let mut buf = [0u8; 2];
             buf.copy_from_slice(data);
             let data_u16 = u16::from_le_bytes(buf);
             match address as u32 {
-                sys::TIMER0_CONFIG => timers.timers.timer_config(TimerId::Zero, data_u16),
-                sys::TIMER1_CONFIG => timers.timers.timer_config(TimerId::One, data_u16),
+                sys::TIMER0_CONFIG => timers.timer_config(TimerId::Zero, data_u16),
+                sys::TIMER1_CONFIG => timers.timer_config(TimerId::One, data_u16),
                 _ => {
                     warn!("unhandled 16bit register write: 0x{address:X}")
                 }
@@ -122,11 +142,11 @@ fn timer_register_write_hook(
             buf.copy_from_slice(data);
             let data_u32 = u32::from_le_bytes(buf);
             match address as u32 {
-                sys::TIMER0_PERIOD => timers.timers.timer_period(TimerId::Zero, data_u32),
-                sys::TIMER1_PERIOD => timers.timers.timer_period(TimerId::One, data_u32),
-                sys::TIMER0_WIDTH => timers.timers.timer_width(TimerId::Zero, data_u32),
-                sys::TIMER1_WIDTH => timers.timers.timer_width(TimerId::One, data_u32),
-                sys::TIMER_STATUS => timers.timers.timer_status(data_u32),
+                sys::TIMER0_PERIOD => timers.timer_period(TimerId::Zero, data_u32),
+                sys::TIMER1_PERIOD => timers.timer_period(TimerId::One, data_u32),
+                sys::TIMER0_WIDTH => timers.timer_width(TimerId::Zero, data_u32),
+                sys::TIMER1_WIDTH => timers.timer_width(TimerId::One, data_u32),
+                sys::TIMER_STATUS => timers.timer_status(data_u32),
                 _ => {
                     warn!("unhandled 16bit register write: 0x{address:X}")
                 }

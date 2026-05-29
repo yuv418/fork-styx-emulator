@@ -68,7 +68,7 @@ impl Peripheral for Timers {
         let mut current_instruction = 0;
 
         log::debug!("timers initialized");
-        proc.core.cpu.code_hook(
+        proc.vcpus[0].cpu.code_hook(
             u64::MIN,
             u64::MAX,
             Box::new(move |proc: CoreHandle| {

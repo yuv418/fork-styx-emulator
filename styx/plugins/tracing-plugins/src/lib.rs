@@ -272,7 +272,9 @@ impl UninitPlugin for JsonPcTracePlugin {
         proc: &mut BuildingProcessor,
     ) -> Result<Box<dyn Plugin>, UnknownError> {
         // add event hook
-        proc.core.cpu.add_hook(StyxHook::code(.., pc_trace_hook))?;
+        proc.vcpus[0]
+            .cpu
+            .add_hook(StyxHook::code(.., pc_trace_hook))?;
 
         // enable the logging
         TRACING_LAYERS.push(Box::new(
@@ -339,7 +341,7 @@ impl UninitPlugin for JsonMemoryWritePlugin {
         proc: &mut BuildingProcessor,
     ) -> Result<Box<dyn Plugin>, UnknownError> {
         // add event hook
-        proc.core
+        proc.vcpus[0]
             .cpu
             .add_hook(StyxHook::memory_write(.., write_memory_hook))?;
 
@@ -405,7 +407,7 @@ impl UninitPlugin for JsonMemoryReadPlugin {
         proc: &mut BuildingProcessor,
     ) -> Result<Box<dyn Plugin>, UnknownError> {
         // add event hook
-        proc.core
+        proc.vcpus[0]
             .cpu
             .add_hook(StyxHook::memory_read(.., read_memory_hook))?;
 

@@ -8,21 +8,33 @@
 //!
 //! Along with the "Generic Timer" documentation in the ArmV7A/ArmV7R architecture reference manual.
 
-use std::array;
+use std::{
+    array,
+    sync::{Arc, Mutex},
+};
 
 use styx_core::{
+    core::VCpuCore,
+    cpu::CpuBackend,
     errors::UnknownError,
+    event_controller::{
+        EventControllerImpl, PeripheralTickCtx, PrimaryEventControllerImpl, RaisedIrqs,
+    },
     hooks::CoreHandle,
-    memory::Mmu,
+    macros::peripheral_shared_state,
+    memory::{MemoryBackend, Mmu},
     prelude::{
         log::{debug, info, trace},
-        Context, EventControllerImpl, ExceptionNumber, Peripheral,
+        Context, ExceptionNumber, Peripheral,
     },
 };
 
 use bitbybit::{bitenum, bitfield};
 
-use crate::config::HexagonProcessorConfig;
+use crate::{
+    config::HexagonProcessorConfig,
+    shared_state_hooks::{peripheral_shared_state_read, peripheral_shared_state_write},
+};
 
 /// Each "frame" is a 4k page (0x1000 bytes). The first frame contains
 /// general config information. The registers in this frame are
@@ -98,32 +110,43 @@ pub enum QTimerCNTBaseNFrame {
     CntpCtl = 0x2c,
 }
 
+#[peripheral_shared_state]
 pub struct QTimer {
     /// Used to keep track of things.
+    #[shared]
     total_pcycles: u64,
     /// Used to keep track of pcycles until it is time to tick,
     /// then things are cleared
+    #[shared]
     pcycles_since_last_tick: u64,
     /// If a bit in this is set, then the nth timer at that bit
     /// is now accessible without secure. See D5.7.5 of the ARM manual.
+    #[shared]
     frame_secure: u32,
+    #[shared]
     control_access_registers: [u32; QTIMER_NUM_TIMERS as usize],
+    #[shared]
     timer_frames: [QTimerFrame; QTIMER_NUM_TIMERS as usize],
 
     /// Information that is only recieved during init() from the processor config.
 
     /// Base address of peripheral.
+    #[shared]
     qtimer_base: Option<u64>,
     /// What IRQ number to latch to on the L2Vic?
+    #[shared]
     irq: Option<ExceptionNumber>,
+    #[shared]
     pcycles_per_packet: Option<u64>,
     /// Frequency of the timer. At the end of 1 second, the
     /// timer value should go up by this much (if I understand
     /// it correctly). This is fixed by the hardware, seemingly.
     /// See D5.2.1.
+    #[shared]
     freq: Option<u32>,
     /// After how many pcycles should we tick the timer?
     /// Equal to QDSP_FREQ / QTIMER_FREQ
+    #[shared]
     pcycles_per_tick: Option<u64>,
 }
 
@@ -178,11 +201,11 @@ impl QTimerFrame {
         qtimer_base: u64,
         timer_frequency: u32,
     ) -> Result<(), styx_core::prelude::UnknownError> {
-        proc.core.mmu.write_u32_le_phys_data(
+        proc.vcpus[0].mmu.write_u32_le_phys_data(
             self.timers_frame_base(qtimer_base) + QTimerCNTBaseNFrame::CntFrq as u64,
             timer_frequency,
         )?;
-        proc.core.mmu.write_u32_le_phys_data(
+        proc.vcpus[0].mmu.write_u32_le_phys_data(
             self.timers_frame_base(qtimer_base) + QTimerCNTBaseNFrame::CntpCtl as u64,
             QTimerCNTPCTL::DEFAULT
                 .with_enable(self.enabled)
@@ -198,19 +221,19 @@ impl QTimerFrame {
         &mut self,
         qtimer_base: u64,
         irq_base: ExceptionNumber,
-        event_controller: &mut dyn EventControllerImpl,
         tick_amount: u64,
-        mmu: &mut Mmu,
+        mem: &MemoryBackend,
+        raised_irqs: &mut RaisedIrqs,
     ) -> Result<(), UnknownError> {
         // Using a read hook here would mean that when accessing memory
         // from a debugger, the hooks are not triggered. Instead, we keep
         // the value in physical memory in sync when the value needs to be updated.
 
         // Update the counter, setting memory in the process.
-        self.increment_counter(qtimer_base, mmu, tick_amount)?;
+        self.increment_counter(qtimer_base, mem, tick_amount)?;
 
         // Decrement TimerValue, setting memory in progress.
-        self.write_timer_value(qtimer_base, mmu, tick_amount)?;
+        self.write_timer_value(qtimer_base, mem, tick_amount)?;
 
         trace!(
             "(tick inner) timer number is {} counter is {} compare value is {} enable is {} istatus is {}",
@@ -234,8 +257,10 @@ impl QTimerFrame {
             // See D5.7.6 and the ISTATUS bit.
             self.istatus = true;
 
-            // The frame number corresponds to the IRQ. We latch this.
-            event_controller.latch(self.frame_number as ExceptionNumber + irq_base)?;
+            // The frame number corresponds to the IRQ. We add this to the list of
+            // IRQs to be raised.
+            raised_irqs.push(self.frame_number as ExceptionNumber + irq_base);
+
             debug!(
                 "Ring ring, I am timer number {}, my and we latched {}.",
                 self.frame_number,
@@ -250,20 +275,20 @@ impl QTimerFrame {
     fn increment_counter(
         &mut self,
         qtimer_base: u64,
-        mmu: &mut Mmu,
+        mem: &MemoryBackend,
         tick_amount: u64,
     ) -> Result<(), UnknownError> {
         // Update the counter, setting memory in the process.
         self.counter = self.counter.wrapping_add(tick_amount);
 
-        let mut write_counter_to_mem = |lo_off: u64, hi_off: u64| -> Result<(), UnknownError> {
-            mmu.write_u32_le_phys_data(
+        let write_counter_to_mem = |lo_off: u64, hi_off: u64| -> Result<(), UnknownError> {
+            mem.write_data(
                 self.timers_frame_base(qtimer_base) + lo_off,
-                self.counter as u32,
+                &(self.counter as u32).to_le_bytes(),
             )?;
-            mmu.write_u32_le_phys_data(
+            mem.write_data(
                 self.timers_frame_base(qtimer_base) + hi_off,
-                (self.counter >> 32) as u32,
+                &((self.counter >> 32) as u32).to_le_bytes(),
             )?;
             Ok(())
         };
@@ -294,12 +319,12 @@ impl QTimerFrame {
     fn write_timer_value(
         &mut self,
         qtimer_base: u64,
-        mmu: &mut Mmu,
+        mem: &MemoryBackend,
         _tick_amount: u64,
     ) -> Result<(), UnknownError> {
-        mmu.write_u32_le_phys_data(
+        mem.write_data(
             self.timers_frame_base(qtimer_base) + QTimerCNTBaseNFrame::CntpTval as u64,
-            self.timer_value(),
+            &self.timer_value().to_le_bytes(),
         )?;
 
         Ok(())
@@ -342,24 +367,26 @@ impl QTimerFrame {
 impl Default for QTimer {
     fn default() -> Self {
         Self {
-            // The DSP clock speed seemingly is equal to the number of pcycles.
-            // QEMU has 1 packet equal to 3 pcycles, but it could also be 4 pcycles.
-            // We will do 4 pcycles.
-            //
-            // Now, to find out how often to tick, we can take the DSP clock speed (
-            // ?? representing number of pcycles per second) and divide it by the
-            // timer frequency, which tells us how often to tick.
-            total_pcycles: 0,
-            pcycles_since_last_tick: 0,
-            frame_secure: Default::default(),
-            control_access_registers: Default::default(),
-            timer_frames: array::from_fn(QTimerFrame::new),
-            // Information that is only recieved during init() from the processor config.
-            irq: None,
-            pcycles_per_packet: None,
-            pcycles_per_tick: None,
-            freq: None,
-            qtimer_base: None,
+            inner: Arc::new(Mutex::new(QTimerSharedState {
+                // The DSP clock speed seemingly is equal to the number of pcycles.
+                // QEMU has 1 packet equal to 3 pcycles, but it could also be 4 pcycles.
+                // We will do 4 pcycles.
+                //
+                // Now, to find out how often to tick, we can take the DSP clock speed (
+                // ?? representing number of pcycles per second) and divide it by the
+                // timer frequency, which tells us how often to tick.
+                total_pcycles: 0,
+                pcycles_since_last_tick: 0,
+                frame_secure: Default::default(),
+                control_access_registers: Default::default(),
+                timer_frames: array::from_fn(QTimerFrame::new),
+                // Information that is only recieved during init() from the processor config.
+                irq: None,
+                pcycles_per_packet: None,
+                pcycles_per_tick: None,
+                freq: None,
+                qtimer_base: None,
+            })),
         }
     }
 }
@@ -369,6 +396,7 @@ fn qtimer_mmio_read_hook(
     _address: u64,
     _size: u32,
     _data: &mut [u8],
+    _timer_state: Arc<Mutex<QTimerSharedState>>,
 ) -> Result<(), UnknownError> {
     // Nothing should happen as qtimer data is written to the backing memory.
     // unimplemented!("I read an mmio (:");
@@ -381,11 +409,15 @@ fn qtimer_mmio_write_hook(
     address: u64,
     size: u32,
     data: &[u8],
+    timer_state_mutex: Arc<Mutex<QTimerSharedState>>,
 ) -> Result<(), UnknownError> {
     let pc = proc.cpu.pc().unwrap();
 
-    let timer_periph = proc.event_controller.peripherals.get::<QTimer>().unwrap();
-    let qtimer_base = timer_periph
+    let mut timer_state = timer_state_mutex
+        .lock()
+        .expect("couldn't lock QTimerSharedState");
+
+    let qtimer_base = timer_state
         .qtimer_base
         .expect("expected qtimer base to be filled in during peripheral init");
     let offset = address - qtimer_base;
@@ -406,11 +438,11 @@ fn qtimer_mmio_write_hook(
         match qtimer_register {
             Ok(QTimerCNTCTLBaseFrame::CntFrq) => debug!(
                 "the system set the frequency to {data_u32:x}, system frequency is {:x}",
-                timer_periph
+                timer_state
                     .freq
                     .expect("freq expected to be set during qtimer init")
             ),
-            Ok(QTimerCNTCTLBaseFrame::CntNsar) => timer_periph.frame_secure = data_u32,
+            Ok(QTimerCNTCTLBaseFrame::CntNsar) => timer_state.frame_secure = data_u32,
             // One of the "Control access control registers," between 0 and 6.
             Err(matched_off) => {
                 if (CNT_ACR_START..=CNT_ACR_END).contains(&matched_off) {
@@ -418,7 +450,7 @@ fn qtimer_mmio_write_hook(
                     // TODO enforce secure acces to this based on the secure register stuff. (based on frame_secure?)
                     let cntacr_num = (matched_off - CNT_ACR_START) / 4;
                     debug!("writing to CNT ACR number {cntacr_num}");
-                    timer_periph.control_access_registers[cntacr_num as usize] =
+                    timer_state.control_access_registers[cntacr_num as usize] =
                         u32::from_le_bytes(data.try_into().with_context(|| {
                             "couldn't get control access register values as u32"
                         })?)
@@ -459,10 +491,13 @@ fn qtimer_mmio_write_hook(
                 // the TimerValue.
                 //
                 // data_u32 is the starting timer value.
-                timer_periph.timer_frames[base_n].set_compare_value(
+                let new_counter =
+                    timer_state.timer_frames[base_n].counter + ((data_u32 as i64) as u64);
+
+                timer_state.timer_frames[base_n].set_compare_value(
                     qtimer_base,
                     proc.mmu,
-                    timer_periph.timer_frames[base_n].counter + ((data_u32 as i64) as u64),
+                    new_counter,
                 )?;
             }
             // This is a compare value, so we wait for the timer count to reach the compare value, then trigger
@@ -480,8 +515,8 @@ fn qtimer_mmio_write_hook(
                     Ok(QTimerCNTBaseNFrame::CntpCvalLo) => {
                         // According to the write case in hex_timer_write for CNTP_CVAL_LO,
                         // writing this register should reset the timer.
-                        timer_periph.timer_frames[base_n].istatus = false;
-                        timer_periph.timer_frames[base_n].counter = 0;
+                        timer_state.timer_frames[base_n].istatus = false;
+                        timer_state.timer_frames[base_n].counter = 0;
 
                         let lo_data = data_u32 as u64;
                         (lo_data, 0xffffffff00000000)
@@ -489,18 +524,17 @@ fn qtimer_mmio_write_hook(
                     _ => unreachable!(),
                 };
 
-                let new_compare_value = (timer_periph.timer_frames[base_n].compare_value
-                    & data_mask)
-                    | new_data_replace;
+                let new_compare_value =
+                    (timer_state.timer_frames[base_n].compare_value & data_mask) | new_data_replace;
                 debug!(
                     "writing new Compare Value as {new_compare_value:x}, old was {:x}",
-                    timer_periph.timer_frames[base_n].compare_value
+                    timer_state.timer_frames[base_n].compare_value
                 );
 
                 // Consistency: we want to keep the physical memory data in sync with the values here.
                 // We don't have to set memory here, since during the memory write for this register
                 // (the write that triggers this hook), the memory corresponding to this register will be set.
-                timer_periph.timer_frames[base_n].set_compare_value(
+                timer_state.timer_frames[base_n].set_compare_value(
                     qtimer_base,
                     proc.mmu,
                     new_compare_value,
@@ -510,9 +544,9 @@ fn qtimer_mmio_write_hook(
                 let register_value = QTimerCNTPCTL::new_with_raw_value(data_u32);
                 debug!("the control value was set to {register_value:?}");
 
-                timer_periph.timer_frames[base_n].enabled = register_value.enable();
-                timer_periph.timer_frames[base_n].imask = register_value.imask();
-                timer_periph.timer_frames[base_n].istatus = register_value.istatus();
+                timer_state.timer_frames[base_n].enabled = register_value.enable();
+                timer_state.timer_frames[base_n].imask = register_value.imask();
+                timer_state.timer_frames[base_n].istatus = register_value.istatus();
             }
             _ => todo!(),
         }
@@ -555,31 +589,37 @@ impl Peripheral for QTimer {
 
         let qtimer_base = proc_cfg.subsystem_base + QTIMER_OFFSET;
 
-        self.pcycles_per_packet = Some(timer_cfg.pcycles_per_packet);
-        self.pcycles_per_tick = Some((proc_cfg.dsp_freq / timer_cfg.timer_frequency) as u64);
-        self.irq = Some(timer_cfg.irq);
-        self.freq = Some(timer_cfg.timer_frequency);
-        self.qtimer_base = Some(qtimer_base);
+        // Separate scope to release the lock at the end.
+        {
+            let mut state = self.lock();
 
-        for timer in self.timer_frames.iter_mut() {
-            timer.init(proc, qtimer_base, timer_cfg.timer_frequency)?
+            state.pcycles_per_packet = Some(timer_cfg.pcycles_per_packet);
+            state.pcycles_per_tick = Some((proc_cfg.dsp_freq / timer_cfg.timer_frequency) as u64);
+            state.irq = Some(timer_cfg.irq);
+            state.freq = Some(timer_cfg.timer_frequency);
+            state.qtimer_base = Some(qtimer_base);
+
+            for timer in state.timer_frames.iter_mut() {
+                timer.init(proc, qtimer_base, timer_cfg.timer_frequency)?
+            }
         }
 
-        proc.core
+        // shouldn't it be all of them..
+        proc.vcpus[0]
             .cpu
             .mem_write_hook(
                 qtimer_base,
                 qtimer_base + 0x1000 + (0x1000 * QTIMER_NUM_TIMERS),
-                Box::new(qtimer_mmio_write_hook),
+                peripheral_shared_state_write(qtimer_mmio_write_hook, self.inner.clone()),
             )
             .with_context(|| "couldn't add MMIO hooks for qtimer")?;
 
-        proc.core
+        proc.vcpus[0]
             .cpu
             .mem_read_hook(
                 qtimer_base,
                 qtimer_base + 0x1000 + (0x1000 * QTIMER_NUM_TIMERS),
-                Box::new(qtimer_mmio_read_hook),
+                peripheral_shared_state_read(qtimer_mmio_read_hook, self.inner.clone()),
             )
             .with_context(|| "couldn't add MMIO hooks for qtimer")?;
 
@@ -590,7 +630,7 @@ impl Peripheral for QTimer {
 
     fn reset(
         &mut self,
-        _cpu: &mut dyn styx_core::prelude::CpuBackend,
+        _cpu: &mut dyn CpuBackend,
         _mmu: &mut styx_core::prelude::Mmu,
     ) -> Result<(), styx_core::prelude::UnknownError> {
         info!("QTimer was reset.");
@@ -603,50 +643,48 @@ impl Peripheral for QTimer {
 
     fn post_event_hook(
         &mut self,
-        _cpu: &mut dyn styx_core::prelude::CpuBackend,
-        _mmu: &mut styx_core::prelude::Mmu,
-        _event_controller: &mut dyn styx_core::prelude::EventControllerImpl,
-        _irqn: styx_core::prelude::ExceptionNumber,
+        _cpu: &mut dyn CpuBackend,
+        _mmu: &mut Mmu,
+        _event_controller: &mut dyn PrimaryEventControllerImpl,
+        _irqn: ExceptionNumber,
     ) -> Result<(), styx_core::prelude::UnknownError> {
         Ok(())
     }
 
     fn on_processor_start(
         &mut self,
-        _cpu: &mut dyn styx_core::prelude::CpuBackend,
-        _mmu: &mut styx_core::prelude::Mmu,
-        _event_controller: &mut dyn styx_core::prelude::EventControllerImpl,
+        _vcpus: &mut [VCpuCore],
+        _event_controller: &mut dyn PrimaryEventControllerImpl,
     ) -> Result<(), styx_core::prelude::UnknownError> {
         Ok(())
     }
 
     fn on_processor_stop(
         &mut self,
-        _cpu: &mut dyn styx_core::prelude::CpuBackend,
-        _mmu: &mut styx_core::prelude::Mmu,
-        _event_controller: &mut dyn styx_core::prelude::EventControllerImpl,
+        _vcpus: &mut [VCpuCore],
+        _event_controller: &mut dyn PrimaryEventControllerImpl,
     ) -> Result<(), styx_core::prelude::UnknownError> {
         Ok(())
     }
 
     fn tick(
         &mut self,
-        _cpu: &mut dyn styx_core::prelude::CpuBackend,
-        mmu: &mut styx_core::prelude::Mmu,
-        event_controller: &mut dyn EventControllerImpl,
-        delta: &styx_core::prelude::Delta,
-    ) -> Result<(), styx_core::prelude::UnknownError> {
+        ctx: &PeripheralTickCtx<'_>,
+    ) -> Result<RaisedIrqs, styx_core::prelude::UnknownError> {
+        let mut raised_irqs = RaisedIrqs::default();
+        let mut state = self.lock();
+
         // The delta is the number of packets; there is a fixed number of
         // pcycles per packet. Basically the idae is that the pcycles since
         // last tick keeps track of pcycles, and the clock gets 1 tick
         // every "pcycles_per_tick."
         //
-        self.pcycles_since_last_tick += delta.count
-            * self
+        state.pcycles_since_last_tick += ctx.delta.simulated_time
+            * state
                 .pcycles_per_packet
                 .expect("Expected pcycles_per_packet set during initialization");
-        self.total_pcycles += delta.count
-            * self
+        state.total_pcycles += ctx.delta.simulated_time
+            * state
                 .pcycles_per_packet
                 .expect("Expected pcycles_per_packet set during initialization");
 
@@ -660,38 +698,39 @@ impl Peripheral for QTimer {
         // the pcycles to 7 and wait till the pcycles goes up to past 10 again, then
         // tick, then continue.
 
-        let pcycles_per_tick = self.pcycles_per_tick.expect("couldn't get pcycles_per_tick which should have been initialized in the qtimer init function");
-        let timer_ticks = self.pcycles_since_last_tick / pcycles_per_tick;
+        let pcycles_per_tick = state.pcycles_per_tick.expect("couldn't get pcycles_per_tick which should have been initialized in the qtimer init function");
+        let timer_ticks = state.pcycles_since_last_tick / pcycles_per_tick;
 
         trace!(
             "TIMER tick: pcycles_since_last_tick {}, timer_ticks {}, pcycles_per_tick {}",
-            self.pcycles_since_last_tick,
+            state.pcycles_since_last_tick,
             timer_ticks,
             pcycles_per_tick,
         );
 
         if timer_ticks > 0 {
-            for timer in self.timer_frames.iter_mut() {
-                timer.tick(
-                    self.qtimer_base
-                        .expect("qtimer base expected to be set during qtimer init"),
-                    self.irq.expect("IRQ expected to be set during qtimer init"),
-                    event_controller,
-                    timer_ticks,
-                    mmu,
-                )?;
+            // These come from the processor config
+            let qtimer_base = state
+                .qtimer_base
+                .expect("qtimer base expected to be set during qtimer init");
+            let irq = state
+                .irq
+                .expect("IRQ expected to be set during qtimer init");
+
+            for timer in state.timer_frames.iter_mut() {
+                timer.tick(qtimer_base, irq, timer_ticks, ctx.memory, &mut raised_irqs)?;
             }
 
             // After ticking the qtimer, we remove the "pcycles" that were consumed by the tick
             // from this variable.
-            let pcycles_per_tick = self.pcycles_per_tick.expect("couldn't get pcycles_per_tick which should have been initialized in the qtimer init function");
-            self.pcycles_since_last_tick -= timer_ticks * pcycles_per_tick;
+            let pcycles_per_tick = state.pcycles_per_tick.expect("couldn't get pcycles_per_tick which should have been initialized in the qtimer init function");
+            state.pcycles_since_last_tick -= timer_ticks * pcycles_per_tick;
             trace!(
                 "TIMERs ticked, now pcycles_since_last_tick is {}",
-                self.pcycles_since_last_tick
+                state.pcycles_since_last_tick
             );
         }
 
-        Ok(())
+        Ok(raised_irqs)
     }
 }

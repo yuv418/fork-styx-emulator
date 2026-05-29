@@ -3,25 +3,29 @@
 mod dummy;
 mod peripheral;
 mod peripherals;
+mod single_vcpu_ec;
 
-use std::{any::type_name, borrow::Cow, fmt::Display};
+use std::borrow::Cow;
+use std::fmt::Display;
+use std::{any::type_name, sync::Arc};
 
 use as_any::AsAny;
-pub use dummy::DummyEventController;
-pub use peripheral::{DummyPeripheral, Peripheral};
-pub use peripherals::Peripherals;
-
+pub use dummy::{DummyEventController, DummyEventDistributor};
 use log::trace;
+pub use peripheral::{DummyPeripheral, Peripheral, PeripheralTickCtx, RaisedIrqs};
+pub use peripherals::Peripherals;
+pub use single_vcpu_ec::SingleVcpuEventController;
+use smallvec::SmallVec;
 use static_assertions::assert_obj_safe;
-use styx_errors::{
-    anyhow::{anyhow, Context},
-    UnknownError,
-};
+use styx_errors::anyhow::Context;
+use styx_errors::UnknownError;
 use thiserror::Error;
 
+use crate::core::VcpuId;
 use crate::{
+    core::VcpuCore,
     cpu::CpuBackend,
-    executor::Delta,
+    executor::{time::GlobalDelta, Delta},
     memory::{MemoryBackend, Mmu},
     processor::Config,
 };
@@ -43,13 +47,18 @@ pub enum ActivateIRQnError {
 }
 
 assert_obj_safe!(EventControllerImpl);
+
+/// Per-vCPU interrupt controller interface.
+///
+/// Handles the interrupt lifecycle for a single virtual CPU: queuing, executing,
+/// and completing interrupts. Does not own peripherals which are managed by
+/// the [`EventDistributor`].
 pub trait EventControllerImpl: AsAny + Send {
     /// retrieve and execute the highest priority interrupt
     fn next(
         &mut self,
         cpu: &mut dyn CpuBackend,
         mmu: &mut Mmu,
-        peripherals: &mut Peripherals,
     ) -> Result<InterruptExecuted, UnknownError>;
 
     /// queue an interrupt to be executed
@@ -80,7 +89,12 @@ pub trait EventControllerImpl: AsAny + Send {
     }
 
     /// Update state of the event controller.
-    fn tick(&mut self, _cpu: &mut dyn CpuBackend, _mmu: &mut Mmu) -> Result<(), UnknownError> {
+    fn tick(
+        &mut self,
+        _cpu: &mut dyn CpuBackend,
+        _mmu: &mut Mmu,
+        _delta: &Delta,
+    ) -> Result<(), UnknownError> {
         Ok(())
     }
 
@@ -123,6 +137,12 @@ pub enum OptionalFeatureError {
     Unsupported,
 }
 
+/// Debug/Introspection representation of an Exception.
+///
+/// Returned by [`EventController::current_exception()`] to show the currently
+/// running exception.
+///
+/// Used by gdbserver to report running exception via a monitor command.
 #[derive(Clone)]
 pub struct Exception {
     pub name: Cow<'static, str>,
@@ -135,34 +155,91 @@ impl Display for Exception {
     }
 }
 
-/// The event controller is responsible for owning all of the peripherals
-/// attached to a processor and for handling events.
+assert_obj_safe!(EventDistributorImpl);
+
+/// Processor-level interrupt controller interface.
+///
+/// Handles processor-wide lifecycle events and routes peripheral interrupts to
+/// the appropriate vCPU. Peripheral ownership and dispatch is managed by
+/// [`EventDistributor`].
+pub trait EventDistributorImpl: AsAny + Send {
+    fn on_processor_start(&mut self, _vcpus: &mut [VcpuCore]) -> Result<(), UnknownError> {
+        Ok(())
+    }
+
+    fn on_processor_stop(&mut self, _vcpus: &mut [VcpuCore]) -> Result<(), UnknownError> {
+        Ok(())
+    }
+
+    /// Update state of the event controller.
+    ///
+    /// Called once per emulation round after all peripherals have been ticked.
+    /// `delta` has processor level timekeeping information that peripherals and
+    /// the event distributor schedule against.
+    ///
+    /// `pending_irqs` contains exception numbers returned by peripheral ticks.
+    /// Route them to the appropriate vCPU's event controller.
+    /// The pending irqs are assumed to be handled after this tick.
+    #[allow(unused_variables)]
+    fn tick(
+        &mut self,
+        delta: &GlobalDelta,
+        pending_irqs: &[ExceptionNumber],
+        vcpus: &mut [VcpuCore],
+    ) -> Result<(), UnknownError> {
+        Ok(())
+    }
+
+    #[allow(unused_variables)]
+    fn init(
+        &mut self,
+        vcpus: &mut [VcpuCore],
+        memory: &Arc<MemoryBackend>,
+        config: &mut Config,
+    ) -> Result<(), UnknownError> {
+        Ok(())
+    }
+
+    fn reset(&mut self, _cpu: &mut dyn CpuBackend, _mmu: &mut Mmu) -> Result<(), UnknownError> {
+        Ok(())
+    }
+}
+
+/// Wraps a [`EventControllerImpl`] and delegates all per-vCPU interrupt operations to it.
+///
+/// Does not own peripherals. Peripheral management is the responsibility of [`EventDistributor`].
+///
+/// The dummy implementation provides a dummy event controller on vcpu 0. Good for tests.
 pub struct EventController {
-    /// Processor specific event controller implementation
+    /// Inner, cpu specific implementation of the event controller.
     pub inner: Box<dyn EventControllerImpl>,
-    pub peripherals: Peripherals,
+    /// Which vcpu does this event controller belong to.
+    pub vcpu_index: VcpuId,
 }
 
 impl Default for EventController {
     fn default() -> Self {
-        Self::new(Box::new(DummyEventController::default()))
+        Self::new(Box::new(DummyEventController::default()), 0)
     }
 }
 
 impl EventController {
-    pub fn new(event_controller: Box<dyn EventControllerImpl + Send>) -> Self {
-        Self {
-            inner: event_controller,
-            peripherals: Peripherals::default(),
-        }
+    pub fn new(inner: Box<dyn EventControllerImpl>, vcpu_index: VcpuId) -> Self {
+        Self { inner, vcpu_index }
     }
+
+    /// Provides a dummy event controller on vcpu 0. Good for tests.
+    pub fn dummy() -> Self {
+        Self::new(Box::new(DummyEventController::default()), 0)
+    }
+
     pub fn next(
         &mut self,
         cpu: &mut dyn CpuBackend,
         mmu: &mut Mmu,
     ) -> Result<InterruptExecuted, UnknownError> {
-        trace!("event controller next");
-        self.inner.next(cpu, mmu, &mut self.peripherals)
+        trace!("secondary event controller next");
+        self.inner.next(cpu, mmu)
     }
 
     pub fn latch(&mut self, event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
@@ -178,61 +255,13 @@ impl EventController {
         self.inner.execute(irq, cpu, mmu)
     }
 
-    /// Called to indicate the currently executing interrupt is finished, typically called by
-    /// instructions like `rfi` (return from interrupt).
-    ///
-    /// This calls the post_event_hook for the peripheral that triggered the event, if one exists.
-    pub fn finish_interrupt(&mut self, cpu: &mut dyn CpuBackend, mmu: &mut Mmu) {
-        if let Some(irqn) = self.inner.finish_interrupt(cpu, mmu) {
-            if let Ok(p) = self.peripherals.get_peripheral_by_exception(irqn) {
-                p.post_event_hook(cpu, mmu, self.inner.as_mut(), irqn)
-                    .unwrap();
-            }
-        }
-    }
-
-    pub fn reset(
-        &mut self,
-        cpu: &mut dyn CpuBackend,
-        memory: &mut Mmu,
-    ) -> Result<(), UnknownError> {
-        self.inner.reset(cpu, memory)?;
-        for peripheral in self.peripherals.peripherals.iter_mut() {
-            peripheral.reset(cpu, memory)?;
-        }
-        Ok(())
-    }
-
     pub fn on_processor_start(
         &mut self,
         cpu: &mut dyn CpuBackend,
         mmu: &mut Mmu,
     ) -> Result<(), UnknownError> {
-        trace!("processor_start event controller");
-        // error buffer
-        let mut errors = Vec::new();
-
-        // tick impl
-        let res = self.inner.on_processor_start(cpu, mmu);
-        if let Err(err) = res {
-            errors.push(err)
-        }
-
-        // tick peripherals
-        for peripheral in self.peripherals.peripherals.iter_mut() {
-            let result = peripheral.on_processor_start(cpu, mmu, self.inner.as_mut());
-            if let Err(err) = result {
-                errors.push(err)
-            }
-        }
-
-        if !errors.is_empty() {
-            Err(anyhow!(
-                "multiple errors while running processor_start: {errors:?}"
-            ))
-        } else {
-            Ok(())
-        }
+        trace!("secondary event controller processor_start");
+        self.inner.on_processor_start(cpu, mmu)
     }
 
     pub fn on_processor_stop(
@@ -240,68 +269,36 @@ impl EventController {
         cpu: &mut dyn CpuBackend,
         mmu: &mut Mmu,
     ) -> Result<(), UnknownError> {
-        trace!("processor_stop event controller");
-        // error buffer
-        let mut errors = Vec::new();
-
-        // tick impl
-        let res = self.inner.on_processor_stop(cpu, mmu);
-        if let Err(err) = res {
-            errors.push(err)
-        }
-
-        // tick peripherals
-        for peripheral in self.peripherals.peripherals.iter_mut() {
-            let result = peripheral.on_processor_stop(cpu, mmu, self.inner.as_mut());
-            if let Err(err) = result {
-                errors.push(err)
-            }
-        }
-
-        if !errors.is_empty() {
-            Err(anyhow!(
-                "multiple errors while running processor_stop: {errors:?}"
-            ))
-        } else {
-            Ok(())
-        }
+        trace!("secondary event controller processor_stop");
+        self.inner.on_processor_stop(cpu, mmu)
     }
 
-    // Runs event controller impl tick and all peripheral ticks, collects errors to return later
     pub fn tick(
         &mut self,
         cpu: &mut dyn CpuBackend,
         mmu: &mut Mmu,
         delta: &Delta,
     ) -> Result<(), UnknownError> {
-        trace!("ticking event controller");
-        // error buffer
-        let mut errors = Vec::new();
-
-        // tick impl
-        let res = self.inner.tick(cpu, mmu);
-        if let Err(err) = res {
-            errors.push(err)
-        }
-
-        // tick peripherals
-        for peripheral in self.peripherals.peripherals.iter_mut() {
-            let result = peripheral.tick(cpu, mmu, self.inner.as_mut(), delta);
-            if let Err(err) = result {
-                errors.push(err)
-            }
-        }
-
-        if !errors.is_empty() {
-            Err(anyhow!("multiple errors while ticking: {errors:?}"))
-        } else {
-            Ok(())
-        }
+        trace!("ticking secondary event controller");
+        self.inner.tick(cpu, mmu, delta)
     }
 
-    pub fn add_peripheral(&mut self, peripheral: Box<dyn Peripheral>) -> Result<(), UnknownError> {
-        self.peripherals.insert_peripheral(peripheral)?;
-        Ok(())
+    pub fn reset(&mut self, cpu: &mut dyn CpuBackend, mmu: &mut Mmu) -> Result<(), UnknownError> {
+        self.inner.reset(cpu, mmu)
+    }
+
+    /// What is the current running exception?
+    ///
+    /// Intended for debugging and introspection (e.g. the gdbserver `event info` monitor
+    /// command); this is not used to drive interrupt dispatch. For controllers that support
+    /// preemption or nested exceptions, implementations return the top of the active
+    /// exception stack.
+    ///
+    /// - `Ok(None)` indicates no exception is running.
+    /// - `Err(OptionalFeatureError::Unsupported)` indicates this feature is not available on this
+    ///   event controller.
+    pub fn current_exception(&mut self) -> Result<Option<Exception>, OptionalFeatureError> {
+        self.inner.current_exception()
     }
 
     pub fn get_impl<T: EventControllerImpl + 'static>(&mut self) -> Result<&mut T, UnknownError> {
@@ -311,7 +308,105 @@ impl EventController {
             .downcast_mut()
             .with_context(|| {
                 format!(
-                    "could not downcast event controller impl to {:?}",
+                    "could not downcast secondary event controller impl to {:?}",
+                    type_name::<T>()
+                )
+            })
+    }
+}
+
+/// The event distributor owns all peripherals attached to a processor and handles
+/// processor-level lifecycle events.
+pub struct EventDistributor {
+    /// Processor-level event controller implementation.
+    pub inner: Box<dyn EventDistributorImpl>,
+    pub peripherals: Peripherals,
+}
+
+impl Default for EventDistributor {
+    fn default() -> Self {
+        Self::new(Box::new(DummyEventDistributor::default()))
+    }
+}
+
+impl EventDistributor {
+    pub fn new(inner: Box<dyn EventDistributorImpl>) -> Self {
+        Self {
+            inner,
+            peripherals: Peripherals::default(),
+        }
+    }
+
+    pub fn on_processor_start(&mut self, vcpus: &mut [VcpuCore]) -> Result<(), UnknownError> {
+        trace!("processor_start event distributor");
+        self.inner.on_processor_start(vcpus)?;
+        for peripheral in self.peripherals.peripherals.iter_mut() {
+            peripheral.on_processor_start(vcpus, self.inner.as_mut())?;
+        }
+        Ok(())
+    }
+
+    pub fn on_processor_stop(&mut self, vcpus: &mut [VcpuCore]) -> Result<(), UnknownError> {
+        trace!("processor_stop event distributor");
+        self.inner.on_processor_stop(vcpus)?;
+        for peripheral in self.peripherals.peripherals.iter_mut() {
+            peripheral.on_processor_stop(vcpus, self.inner.as_mut())?;
+        }
+        Ok(())
+    }
+
+    pub fn reset(&mut self, cpu: &mut dyn CpuBackend, mmu: &mut Mmu) -> Result<(), UnknownError> {
+        self.inner.reset(cpu, mmu)?;
+        for peripheral in self.peripherals.peripherals.iter_mut() {
+            peripheral.reset(cpu, mmu)?;
+        }
+        Ok(())
+    }
+
+    pub fn add_peripheral(&mut self, peripheral: Box<dyn Peripheral>) -> Result<(), UnknownError> {
+        self.peripherals.insert_peripheral(peripheral)
+    }
+
+    /// Tick all peripherals and route their interrupts.
+    ///
+    /// Called once per emulation round (after all vCPUs have strided).
+    /// Builds a [`PeripheralTickCtx`] (sharing the physical memory backend
+    /// from `vcpus[0]`, since all vCPUs share the same `Arc<MemoryBackend>`),
+    /// iterates peripherals, collects returned IRQs, then delegates
+    /// routing to the inner [`EventDistributorImpl`].
+    ///
+    /// If `vcpus` is empty, peripherals are not ticked this round. The
+    /// inner routing call is still made with an empty `pending_irqs`
+    /// slice, preserving previous behavior.
+    pub fn tick(
+        &mut self,
+        delta: &GlobalDelta,
+        vcpus: &mut [VcpuCore],
+    ) -> Result<(), UnknownError> {
+        let mut pending_irqs = SmallVec::<[ExceptionNumber; 16]>::new();
+
+        // Scope the immutable borrow of `vcpus` so it ends before we hand
+        // `vcpus` mutably to `self.inner.tick` below.
+        if let Some(vcpu) = vcpus.first() {
+            let memory: &MemoryBackend = &vcpu.mmu.memory;
+            let ctx = PeripheralTickCtx::new(delta, memory);
+            for peripheral in &mut self.peripherals.peripherals {
+                let raised = peripheral.tick(&ctx)?;
+                pending_irqs.extend(raised);
+            }
+        }
+
+        self.inner.tick(delta, &pending_irqs, vcpus)
+    }
+
+    pub fn get_impl<T: EventDistributorImpl + 'static>(&mut self) -> Result<&mut T, UnknownError> {
+        self.inner
+            .as_mut()
+            .as_any_mut()
+            .downcast_mut()
+            .with_context(|| {
+                format!(
+                    "could not downcast event distributor impl to {:?}",
                     type_name::<T>()
                 )
             })

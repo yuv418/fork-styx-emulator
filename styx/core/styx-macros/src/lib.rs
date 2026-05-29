@@ -5,6 +5,7 @@ mod build_with;
 mod enum_mirror;
 mod processor_config;
 mod styx_manifest;
+mod peripheral_shared_state;
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
@@ -82,7 +83,10 @@ pub fn styx_event(args: TokenStream, item: TokenStream) -> TokenStream {
             #[doc="Event type"]
             pub etype: TraceEventType,
 
-            #(#input_struct_fields),*
+            #(#input_struct_fields),*,
+
+            #[doc="Vcpu id"]
+            pub vcpu_id: u16,
         }
 
         impl From<BaseTraceEvent> for #input_struct_name {
@@ -101,7 +105,6 @@ pub fn styx_event(args: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
         }
-
     })
 }
 
@@ -177,13 +180,11 @@ pub fn derive_traceable(item: TokenStream) -> TokenStream {
     let event_name = parse_macro_input!(item as DeriveInput).ident;
     quote! {
         impl Traceable for #event_name {
-
             /// Get the event type
             #[inline(always)]
             fn event_type(&self) -> TraceEventType {
                 self.etype
             }
-
 
             /// Get the event number for the event
             #[inline(always)]
@@ -196,7 +197,6 @@ pub fn derive_traceable(item: TokenStream) -> TokenStream {
             fn json(&self) -> String {
                 serde_json::to_string(&self).unwrap()
             }
-
 
             /// Convert to text - but really just the derived `Debug` impl
             #[inline(always)]
@@ -996,4 +996,64 @@ pub fn enum_mirror(attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_derive(ProcessorConfig)]
 pub fn derive_processor_config(input: TokenStream) -> TokenStream {
     processor_config::derive_processor_config(input.into()).into()
+}
+
+/// Move a struct's fields behind a shared, lockable handle.
+///
+/// Applied to `StructName`, this macro:
+/// - moves the original fields into a generated `StructNameState` struct,
+/// - rewrites `StructName` to hold a single `inner: Arc<Mutex<StructNameState>>`
+///   field,
+/// - generates, for each original field, a getter (`field()`) returning a clone
+///   of the value and a setter (`set_field(value)`), each inheriting the field's
+///   visibility,
+/// - adds `new(state)`, `lock()`, and `shared()` helpers.
+///
+/// The struct's own attributes (derives, docs, etc.) are forwarded to the
+/// generated state struct, since that is what holds the data. The wrapper
+/// derives [`Clone`], so cloning it yields another handle to the same state.
+///
+/// # Example
+///
+/// ```ignore
+/// use styx_macros::peripheral_shared_state;
+///
+/// #[peripheral_shared_state]
+/// #[derive(Debug, Default)]
+/// pub struct Uart {
+///     pub baud: u32,
+///     status: u8,
+/// }
+/// ```
+///
+/// Expands (roughly) to:
+///
+/// ```ignore
+/// #[derive(Debug, Default)]
+/// pub struct UartState {
+///     pub baud: u32,
+///     status: u8,
+/// }
+///
+/// #[derive(Clone)]
+/// pub struct Uart {
+///     inner: ::std::sync::Arc<::std::sync::Mutex<UartState>>,
+/// }
+///
+/// impl Uart {
+///     pub fn new(state: UartState) -> Self { /* ... */ }
+///     pub fn lock(&self) -> ::std::sync::MutexGuard<'_, UartState> { /* ... */ }
+///     pub fn shared(&self) -> ::std::sync::Arc<::std::sync::Mutex<UartState>> { /* ... */ }
+///
+///     pub fn baud(&self) -> u32 { /* ... */ }
+///     pub fn set_baud(&self, value: u32) { /* ... */ }
+///     fn status(&self) -> u8 { /* ... */ }
+///     fn set_status(&self, value: u8) { /* ... */ }
+/// }
+/// ```
+#[proc_macro_attribute]
+pub fn peripheral_shared_state(attr: TokenStream, item: TokenStream) -> TokenStream {
+    peripheral_shared_state::peripheral_shared_state(attr.into(), item.into())
+        .unwrap_or_else(|e| e.into_compile_error())
+        .into()
 }

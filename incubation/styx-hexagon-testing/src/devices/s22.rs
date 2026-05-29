@@ -6,7 +6,7 @@ use styx_emulator::{
     hooks::{CoreHandle, StyxHook},
     prelude::{
         log::{info, trace},
-        Processor,
+        Processor, WriteExt,
     },
     processors::hexagon::hexagon::{HexagonConfigTable, HexagonProcessorConfig, QTimerConfig},
 };
@@ -53,7 +53,7 @@ impl HexagonDevice for S22 {
             StyxHook::CodeVirtual(
                 0xbc499670u64.into(),
                 Box::new(|proc: CoreHandle| {
-                    trace!("playing with pc for long insn");
+                    info!("playing with pc for long insn");
                     // update r0 to equal r7, since this
                     // packet breaks its loop after r7 is equal to r0
                     let r7 = proc.cpu.read_register::<u32>(HexagonRegister::R7).unwrap();
@@ -124,6 +124,7 @@ impl HexagonDevice for S22 {
     }
 
     fn post_init(&self, proc: &mut Processor) -> Result<(), UnknownError> {
+        let memory = proc.memory().data();
         // Mystery peripheral
         proc.core.mmu.write_u32_le_phys_data(0x10c2004, 1).unwrap();
         proc.core.mmu.write_u32_le_phys_data(0x10c2000, 1).unwrap();

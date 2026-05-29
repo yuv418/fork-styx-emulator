@@ -12,6 +12,9 @@ use std::sync::Arc;
 
 use arbitrary_int::*;
 use bitbybit::{bitenum, bitfield};
+use styx_core::core::VCpuCore;
+use styx_core::event_controller::{EventControllerImpl, PrimaryEventControllerImpl};
+use styx_core::prelude::GlobalDelta;
 use styx_core::processor::Config;
 use styx_core::sync::styx_async::sync::broadcast;
 use styx_core::{
@@ -26,7 +29,7 @@ use styx_core::{
     memory::{MemoryBackend, Mmu},
     prelude::{
         log::{error, info, trace, warn},
-        Context, EventControllerImpl, ExceptionNumber,
+        Context, ExceptionNumber,
     },
 };
 
@@ -37,6 +40,35 @@ const FASTL2VIC_CFGTABLE_OFFSET: u64 = 0x28;
 const L2VIC_OFFSET: u64 = 0x10000;
 const L2VIC_NUM_SLOTS: u64 = 32;
 const L2VIC_CONFIG_START: u64 = 0x100;
+
+/// Routes IRQs returned by peripheral ticks to the single vCPU's GIC.
+pub(crate) struct SingleVcpuIrqRouter;
+
+impl PrimaryEventControllerImpl for SingleVcpuIrqRouter {
+    fn latch(&mut self, _event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
+        Ok(())
+    }
+
+    fn tick(
+        &mut self,
+        _delta: &GlobalDelta,
+        pending_irqs: &[ExceptionNumber],
+        vcpus: &mut [VCpuCore],
+    ) -> Result<(), UnknownError> {
+        for &irq in pending_irqs {
+            vcpus[0].event_controller.latch(irq)?;
+        }
+        Ok(())
+    }
+
+    fn init(
+        &mut self,
+        _cpu: &mut dyn CpuBackend,
+        _mmu: &mut MemoryBackend,
+    ) -> Result<(), UnknownError> {
+        Ok(())
+    }
+}
 
 /// The l2vic can handle 32 interrupts.
 /// Each of these interrupts are configured
@@ -444,7 +476,6 @@ impl EventControllerImpl for L2Vic {
         &mut self,
         cpu: &mut dyn CpuBackend,
         mmu: &mut Mmu,
-        _peripherals: &mut Peripherals,
     ) -> Result<InterruptExecuted, UnknownError> {
         trace!("l2vic next called, vid is 0x{:x}", self.vid);
         // Update the VID, since the register write hook won't work
@@ -649,7 +680,8 @@ impl EventControllerImpl for L2Vic {
         _cpu: &mut dyn CpuBackend,
         _mmu: &mut Mmu,
     ) -> Option<ExceptionNumber> {
-        todo!()
+        trace!("finish_interrupt not implemented..");
+        None
     }
 
     fn init(

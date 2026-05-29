@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: BSD-2-Clause
 use std::sync::atomic::{AtomicBool, Ordering};
-use styx_core::{
-    arch::{
-        ppc32::{gdb_targets::Ppc4xxTargetDescription, variants::Ppc405},
-        RegisterValue,
-    },
-    core::builder::BuildProcessorImplArgs,
-    prelude::*,
-};
+
+use styx_core::arch::ppc32::gdb_targets::Ppc4xxTargetDescription;
+use styx_core::arch::ppc32::variants::Ppc405;
+use styx_core::arch::RegisterValue;
+use styx_core::core::builder::BuildProcessorImplArgs;
+use styx_core::core::VcpuBundle;
+use styx_core::event_controller::DummyEventDistributor;
+use styx_core::event_controller::EventControllerImpl;
+use styx_core::prelude::*;
 use styx_plugins::gdb::StepIRQs;
 
 /// Dummy Event Controller impl that stores if `next()` was called.
@@ -17,7 +18,6 @@ impl EventControllerImpl for DidNextEventController {
         &mut self,
         _cpu: &mut dyn CpuBackend,
         _mmu: &mut Mmu,
-        _peripherals: &mut styx_core::event_controller::Peripherals,
     ) -> Result<styx_core::event_controller::InterruptExecuted, UnknownError> {
         self.0.store(true, Ordering::SeqCst);
         Ok(styx_core::event_controller::InterruptExecuted::NotExecuted)
@@ -145,8 +145,12 @@ fn test_step_irqs() {
     let proc = ProcessorBuilder::default().with_builder(move |_: &BuildProcessorImplArgs| {
         let event_controller = DidNextEventController(did_tick);
         let bundle = ProcessorBundle {
-            event_controller: Box::new(event_controller),
-            cpu: Box::new(DummyCpu),
+            event_distributor: Box::new(DummyEventDistributor::default()),
+            vcpus: vec![VcpuBundle {
+                cpu: Box::new(DummyCpu),
+                event_controller: Box::new(event_controller),
+                ..Default::default()
+            }],
             ..Default::default()
         };
         Ok(bundle)

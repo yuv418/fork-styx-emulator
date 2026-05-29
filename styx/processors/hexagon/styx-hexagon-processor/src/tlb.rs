@@ -2,10 +2,12 @@
 use arbitrary_int::*;
 use bitbybit::bitfield;
 use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex};
 use styx_core::{
     arch::hexagon::{register_fields::Ssr, HexagonRegister},
     cpu::{CpuBackendExt, HexagonInterruptCause, HexagonInterruptType},
     errors::{anyhow::anyhow, UnknownError},
+    macros::peripheral_shared_state,
     memory::{
         MemoryOperation, MemoryType, TlbImpl, TlbProcessor, TlbTranslateError, TlbTranslateResult,
     },
@@ -68,10 +70,14 @@ pub struct HexagonTlbCacheEntry {
     asid: u7,
 }
 
+#[peripheral_shared_state]
 pub struct HexagonTlb {
+    #[shared]
     entries: [Pte; MAX_TLB_ENTRIES],
     // mapping of u64 entry to u64 entry
+    #[shared]
     cache: BTreeMap<HexagonTlbCacheEntry, u64>,
+    #[shared]
     enable_translation: bool,
 }
 
@@ -120,6 +126,24 @@ impl Pte {
     }
 }
 
+// Wrappers help prevent borrowing issues.
+impl HexagonTlbSharedState {
+    fn invalidate_entry(&mut self, idx: usize) {
+        // Cache is passed to invalidate the entry in the cache as well.
+        self.entries[idx].invalidate(&mut self.cache);
+    }
+
+    fn invalidate_all(&mut self, probe_field: TLBProbeField) -> Result<(), UnknownError> {
+        for ent in self.entries.iter_mut() {
+            if ent.asid() == probe_field.asid() && !ent.g() {
+                // Set the valid bit to false and invalidate in cache.
+                ent.invalidate(&mut self.cache);
+            }
+        }
+        Ok(())
+    }
+}
+
 /// N.B. It appears that Hexagon uses the words MMU and TLB interchangeably,
 /// as the the TLB-related instructions (tlbw, tlbr, etc.) store the page tables,
 /// translate, and presumably cache as well.
@@ -128,9 +152,11 @@ impl Pte {
 impl HexagonTlb {
     pub fn new() -> Self {
         Self {
-            enable_translation: false,
-            entries: [Pte::new_with_raw_value(0); MAX_TLB_ENTRIES],
-            cache: BTreeMap::new(),
+            inner: Arc::new(Mutex::new(HexagonTlbSharedState {
+                enable_translation: false,
+                entries: [Pte::new_with_raw_value(0); MAX_TLB_ENTRIES],
+                cache: BTreeMap::new(),
+            })),
         }
     }
 
@@ -150,28 +176,28 @@ impl TlbImpl for HexagonTlb {
     /// This seems to be a von Neumann architecture and not Harvard architecture,
     /// so enabling data translation will also enable code address translation.
     fn enable_data_address_translation(&mut self) -> Result<(), UnknownError> {
-        self.enable_translation = true;
+        self.lock().enable_translation = true;
         Ok(())
     }
 
     /// This seems to be a von Neumann architecture and not Harvard architecture,
     /// so disabling data translation will also disable code address translation.
     fn disable_data_address_translation(&mut self) -> Result<(), UnknownError> {
-        self.enable_translation = false;
+        self.lock().enable_translation = false;
         Ok(())
     }
 
     /// This seems to be a von Neumann architecture and not Harvard architecture,
     /// so enabling code translation will also enable data address translation.
     fn enable_code_address_translation(&mut self) -> Result<(), UnknownError> {
-        self.enable_translation = true;
+        self.lock().enable_translation = true;
         Ok(())
     }
 
     /// This seems to be a von Neumann architecture and not Harvard architecture,
     /// so disabling code translation will also disable cata address translation.
     fn disable_code_address_translation(&mut self) -> Result<(), UnknownError> {
-        self.enable_translation = false;
+        self.lock().enable_translation = false;
         Ok(())
     }
 
@@ -256,10 +282,11 @@ impl TlbImpl for HexagonTlb {
                 })?,
         );
 
-        if !self.enable_translation {
+        let mut inner = self.lock();
+        if !inner.enable_translation {
             // Physical memory mode
             Ok(virt_addr)
-        } else if let Some(&ppn_addr) = self.cache.get(&HexagonTlbCacheEntry {
+        } else if let Some(&ppn_addr) = inner.cache.get(&HexagonTlbCacheEntry {
             vpn_page_masked,
             asid: ssr.asid(),
         }) {
@@ -270,7 +297,7 @@ impl TlbImpl for HexagonTlb {
         } else {
             let virt_addr = virt_addr as u32;
 
-            for ent in &self.entries {
+            for ent in &inner.entries {
                 trace!("pte {ent:x?}");
                 if !ent.v() || (ent.asid() != ssr.asid() && !ent.g()) {
                     trace!("skipping pte");
@@ -357,7 +384,7 @@ impl TlbImpl for HexagonTlb {
                     // If there were already an entry in the cache, this overwrites it.
                     // In other cases (eg. removing an entry from the TLB), the cache is
                     // also invalidated.
-                    self.cache.insert(
+                    inner.cache.insert(
                         HexagonTlbCacheEntry {
                             vpn_page_masked,
                             asid: ssr.asid(),
@@ -424,7 +451,7 @@ impl TlbImpl for HexagonTlb {
         }
 
         let pte = Pte::new_with_raw_value(data);
-        self.entries[idx] = pte;
+        self.lock().entries[idx] = pte;
         info!(
             "tlb {data:x} inserted at {idx} was {pte:x?} PA 0x{:x} VA 0x{:x} page size bits {:?}",
             (pte.ppd() >> 1).overflowing_shl(12).0,
@@ -442,7 +469,7 @@ impl TlbImpl for HexagonTlb {
                 "specified tlb entry at index {idx} doesn't exist, cannot read"
             ))))
         } else {
-            Ok(self.entries[idx].raw_value())
+            Ok(self.lock().entries[idx].raw_value())
         }
     }
 
@@ -458,13 +485,7 @@ impl TlbImpl for HexagonTlb {
         let probe_field = TLBProbeField::new_with_raw_value(flags);
 
         trace!("tlbinvasid invalidate for asid {:x}", probe_field.asid());
-        for ent in self.entries.iter_mut() {
-            if ent.asid() == probe_field.asid() && !ent.g() {
-                // Set the valid bit to false and invalidate in cache.
-                ent.invalidate(&mut self.cache);
-            }
-        }
-        Ok(())
+        self.lock().invalidate_all(probe_field)
     }
 
     fn invalidate(&mut self, idx: usize) -> Result<(), UnknownError> {
@@ -475,8 +496,8 @@ impl TlbImpl for HexagonTlb {
                 "specified tlb entry at index {idx} doesn't exist, cannot invalidate"
             )))
         } else {
-            // Cache is passed to invalidate the entry in the cache as well.
-            self.entries[idx].invalidate(&mut self.cache);
+            self.lock().invalidate_entry(idx);
+
             Ok(())
         }
     }
@@ -493,7 +514,8 @@ impl TlbImpl for HexagonTlb {
             );
 
             // match on VPN and ASID
-            for (i, ent) in self.entries.iter().enumerate() {
+
+            for (i, ent) in self.lock().entries.iter().enumerate() {
                 trace!(
                     "probe_field vpn {:x} entry vpn {:x}",
                     probe_field.vpn(),
@@ -527,7 +549,7 @@ impl TlbImpl for HexagonTlb {
             // check the valid bit or global bit.
             trace!("tlb_search on input entry {input_entry:x?}");
 
-            for (i, entry) in self.entries.iter().enumerate() {
+            for (i, entry) in self.lock().entries.iter().enumerate() {
                 trace!("checking against entry {entry:x?}");
                 if !entry.v() || entry.asid() != input_entry.asid() {
                     continue;

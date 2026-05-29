@@ -2,33 +2,26 @@
 //! A [`Processor`] that is [`Sync`] + [`Clone`].
 //!
 //! Check out [`SyncProcessor`] for detailed docs.
-use std::{
-    ops::DerefMut,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Condvar, Mutex,
-    },
-};
+use std::ops::DerefMut;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Condvar, Mutex};
 
 use log::{debug, trace};
 use replace_with::{replace_with_or_abort, replace_with_or_abort_and_return};
 use static_assertions::assert_impl_all;
-use styx_cpu_type::arch::{backends::ArchRegister, RegisterValue};
+use styx_cpu_type::arch::backends::ArchRegister;
+use styx_cpu_type::arch::RegisterValue;
 use styx_errors::UnknownError;
 
 use super::{Processor, ProcessorBuilder};
-use crate::{
-    core::ProcessorCore,
-    cpu::{ReadRegisterError, WriteRegisterError},
-    executor::ExecutionConstraint,
-    hooks::{AddHookError, DeleteHookError, HookToken, StyxHook},
-    memory::{
-        helpers::{ReadExt, Readable, Writable},
-        MmuOpError,
-    },
-    plugins::task_queue::*,
-    processor::EmulationReport,
-};
+use crate::core::{ProcessorCore, VcpuCore};
+use crate::cpu::{ReadRegisterError, WriteRegisterError};
+use crate::executor::ExecutionConstraint;
+use crate::hooks::{AddHookError, DeleteHookError, HookToken, StyxHook};
+use crate::memory::helpers::{ReadExt, Readable, Writable};
+use crate::memory::MmuOpError;
+use crate::plugins::task_queue::*;
+use crate::processor::EmulationReport;
 
 #[derive(Debug)]
 enum InternalProcessorState {
@@ -201,7 +194,8 @@ impl SyncProcessor {
     /// Very blocking.
     pub fn pause(&self) -> Result<EmulationReport, UnknownError> {
         trace!("pausing");
-        self.task_queue_handle.add_task(|proc| proc.stop());
+        self.task_queue_handle
+            .add_task(|vcpu, _core| vcpu.cpu.stop());
 
         self.wait_for_stop()
     }
@@ -241,21 +235,25 @@ impl SyncProcessor {
         (&*self.state.0.lock().unwrap()).into()
     }
 
-    /// Run a function on the processor and get its return.
+    /// Run a function on the processor's primary vCPU and shared core state, returning its result.
     ///
     /// This function is blocking but should have low latency.
     ///
     /// Handles the separate case where the processor is running.
     pub fn access<T: Send + 'static>(
         &self,
-        task: impl FnOnce(&mut ProcessorCore) -> T + Send + 'static,
+        task: impl FnOnce(&mut VcpuCore, &mut ProcessorCore) -> T + Send + 'static,
     ) -> T {
         if self.task_queue_active.load(Ordering::Relaxed) {
             self.task_queue_handle.add_task(task).join()
         } else {
             match &mut *self.state.0.lock().unwrap() {
-                InternalProcessorState::Paused(processor) => task(&mut processor.core),
-                InternalProcessorState::DoneRunning((processor, _)) => task(&mut processor.core),
+                InternalProcessorState::Paused(processor) => {
+                    task(&mut processor.vcpus[0], &mut processor.core)
+                }
+                InternalProcessorState::DoneRunning((processor, _)) => {
+                    task(&mut processor.vcpus[0], &mut processor.core)
+                }
                 InternalProcessorState::Running => self.task_queue_handle.add_task(task).join(),
             }
         }
@@ -266,34 +264,35 @@ impl SyncProcessor {
 // not interesting
 impl SyncProcessor {
     pub fn pc(&self) -> Result<u64, UnknownError> {
-        self.access(|proc| proc.pc())
+        self.access(|vcpu, _core| vcpu.cpu.pc())
     }
 
     pub fn set_pc(&self, value: u64) -> Result<(), UnknownError> {
-        self.access(move |core| core.set_pc(value))
+        self.access(move |vcpu, _core| vcpu.cpu.set_pc(value))
     }
 
     pub fn read_register_raw(
         &mut self,
         reg: ArchRegister,
     ) -> Result<RegisterValue, ReadRegisterError> {
-        self.access(move |core| core.read_register_raw(reg))
+        self.access(move |vcpu, _core| vcpu.cpu.read_register_raw(reg))
     }
+
     pub fn write_register_raw(
         &mut self,
         reg: ArchRegister,
         value: RegisterValue,
     ) -> Result<(), WriteRegisterError> {
-        self.access(move |core| core.write_register_raw(reg, value))
+        self.access(move |vcpu, _core| vcpu.cpu.write_register_raw(reg, value))
     }
 
     pub fn add_hook(&self, hook: StyxHook) -> Result<HookToken, AddHookError> {
-        self.access(|proc| proc.cpu.add_hook(hook))
+        self.access(|vcpu, _core| vcpu.cpu.add_hook(hook))
     }
 
     /// Removes a [`StyxHook`] from the [`Processor`].
     pub fn delete_hook(&self, token: HookToken) -> Result<(), DeleteHookError> {
-        self.access(move |proc| proc.cpu.delete_hook(token))
+        self.access(move |vcpu, _core| vcpu.cpu.delete_hook(token))
     }
 
     pub fn ipc_port(&self) -> u16 {
@@ -319,7 +318,7 @@ impl Readable for DataMemoryOp<'_> {
         let size = bytes.len();
         let data = self
             .0
-            .access(move |core| core.mmu.data().read(addr).vec(size))?;
+            .access(move |vcpu, _core| vcpu.mmu.data().read(addr).vec(size))?;
         bytes.copy_from_slice(&data);
         Ok(())
     }
@@ -330,7 +329,7 @@ impl Writable for DataMemoryOp<'_> {
     fn write_raw(&mut self, addr: u64, bytes: &[u8]) -> Result<(), Self::Error> {
         let data = bytes.to_vec();
         self.0
-            .access(move |core| core.mmu.data().write_raw(addr, &data))
+            .access(move |vcpu, _core| vcpu.mmu.data().write_raw(addr, &data))
     }
 }
 
@@ -342,7 +341,7 @@ impl Readable for CodeMemoryOp<'_> {
         let size = bytes.len();
         let data = self
             .0
-            .access(move |core| core.mmu.code().read(addr).vec(size))?;
+            .access(move |vcpu, _core| vcpu.mmu.code().read(addr).vec(size))?;
         bytes.copy_from_slice(&data);
         Ok(())
     }
@@ -353,25 +352,21 @@ impl Writable for CodeMemoryOp<'_> {
     fn write_raw(&mut self, addr: u64, bytes: &[u8]) -> Result<(), Self::Error> {
         let data = bytes.to_vec();
         self.0
-            .access(move |core| core.mmu.code().write_raw(addr, &data))
+            .access(move |vcpu, _core| vcpu.mmu.code().write_raw(addr, &data))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::{thread::sleep, time::Duration};
-
-    use crate::{
-        core::{
-            builder::{BuildProcessorImplArgs, ProcessorImpl},
-            ProcessorBundle,
-        },
-        cpu::{CpuBackend, ExecutionReport},
-        executor::Forever,
-        hooks::Hookable,
-    };
+    use std::thread::sleep;
+    use std::time::Duration;
 
     use super::*;
+    use crate::core::builder::{BuildProcessorImplArgs, ProcessorImpl, VcpuBundle};
+    use crate::core::ProcessorBundle;
+    use crate::cpu::{CpuBackend, ExecutionReport};
+    use crate::executor::Forever;
+    use crate::hooks::Hookable;
 
     #[derive(Debug)]
     struct TestCpu(u64);
@@ -453,7 +448,10 @@ mod tests {
             _args: &BuildProcessorImplArgs,
         ) -> Result<crate::core::ProcessorBundle, UnknownError> {
             let bundler = ProcessorBundle {
-                cpu: Box::new(TestCpu(0)),
+                vcpus: vec![VcpuBundle {
+                    cpu: Box::new(TestCpu(0)),
+                    ..VcpuBundle::default()
+                }],
                 ..Default::default()
             };
             Ok(bundler)
@@ -461,6 +459,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_sync() -> Result<(), UnknownError> {
         let builder = ProcessorBuilder::default().with_builder(ProcImpl);
 

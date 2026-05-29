@@ -100,16 +100,6 @@ impl Peripheral for ClockManager {
         Ok(())
     }
 
-    fn post_event_hook(
-        &mut self,
-        _cpu: &mut dyn CpuBackend,
-        _mmu: &mut styx_core::prelude::Mmu,
-        _event_controller: &mut dyn styx_core::prelude::EventControllerImpl,
-        _irqn: styx_core::prelude::ExceptionNumber,
-    ) -> Result<(), UnknownError> {
-        Ok(())
-    }
-
     fn init(
         &mut self,
         _proc: &mut styx_core::prelude::BuildingProcessor,

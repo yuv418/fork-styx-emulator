@@ -4,16 +4,18 @@
 #[cfg(feature = "hexagon-clade")]
 use clade::Clade;
 
-use l2vic::L2Vic;
+use l2vic::{L2Vic, SingleVcpuIrqRouter};
 use qtimer::QTimer;
 use styx_core::arch::hexagon::HexagonRegister;
+use styx_core::core::builder::VcpuBundleBuilder;
 use styx_core::cpu::arch::hexagon::HexagonVariants;
 use styx_core::cpu::{Arch, Backend, CpuBackend, CpuBackendExt, PcodeBackendConfiguration};
+use styx_core::hooks::MemoryReadHook;
 use styx_core::loader::LoaderHints;
 use styx_core::memory::physical::PhysicalMemoryVariant;
 use styx_core::memory::{MemoryBackend, MemoryPermissions, Mmu};
 use styx_core::prelude::log::info;
-use styx_core::prelude::{Context, Peripheral};
+use styx_core::prelude::{Context, Peripheral, PrimaryEventController};
 use styx_core::{
     core::{
         builder::{BuildProcessorImplArgs, ProcessorImpl},
@@ -34,6 +36,7 @@ mod clade;
 mod config;
 mod l2vic;
 mod qtimer;
+mod shared_state_hooks;
 mod tlb;
 
 pub use cfgtable::*;
@@ -64,7 +67,7 @@ impl ProcessorImpl for HexagonBuilder {
             .hardware_threads;
 
         let mut cpu = if let Backend::Pcode = args.backend {
-            Box::new(HexagonPcodeBackend::new_engine_config(
+            HexagonPcodeBackend::new_engine_config(
                 self.variant.clone(),
                 ArchEndian::LittleEndian,
                 /*&PcodeBackendConfiguration {
@@ -74,7 +77,7 @@ impl ProcessorImpl for HexagonBuilder {
                 },*/
                 &args.into(),
                 Some(thread_count),
-            ))
+            )
         } else {
             return Err(anyhow::anyhow!(
                 "hexagon processor only supports pcode backend"
@@ -100,14 +103,14 @@ impl ProcessorImpl for HexagonBuilder {
 
         // Set subsystem base
         write_cfgtable_field(
-            cpu.as_mut(),
+            &mut cpu,
             &mut memory,
             SUBSYSTEM_CFGTABLE_OFFSET,
             (proc_config.subsystem_base >> 16) as u32,
         );
 
         write_cfgtable_field(
-            cpu.as_mut(),
+            &mut cpu,
             &mut memory,
             JTLB_ENTRIES_CFGTABLE_OFFSET,
             proc_config.tlb_entries,
@@ -115,7 +118,7 @@ impl ProcessorImpl for HexagonBuilder {
 
         // Setup cfgtable (cfgbase is written in HexagonBuilder)
         for (cfgbase_entry, value) in proc_config.config_table.iter() {
-            write_cfgtable_field(cpu.as_mut(), &mut memory, *cfgbase_entry as u64, *value);
+            write_cfgtable_field(&mut cpu, &mut memory, *cfgbase_entry as u64, *value);
         }
 
         // Peripherals may use this
@@ -123,7 +126,7 @@ impl ProcessorImpl for HexagonBuilder {
             .memory_map(0x100000000, 0x40000000, MemoryPermissions::all())
             .with_context(|| "couldn't add memory region for peripherals")?;
 
-        let l2vic = Box::new(L2Vic::default());
+        let l2vic = L2Vic::default();
 
         let peripherals: Vec<Box<dyn Peripheral>> = vec![
             Box::new(QTimer::default()),
@@ -137,10 +140,13 @@ impl ProcessorImpl for HexagonBuilder {
         hints.insert("arch".to_string().into_boxed_str(), Box::new(Arch::Hexagon));
 
         Ok(ProcessorBundle {
-            cpu,
-            tlb: Box::new(HexagonTlb::new()),
+            vcpus: vec![VcpuBundleBuilder::new()
+                .with_cpu(cpu)
+                .with_tlb(HexagonTlb::new())
+                .with_event_controller(l2vic)
+                .build()],
             memory,
-            event_controller: l2vic,
+            primary_event_controller: Box::new(SingleVcpuIrqRouter),
             peripherals,
             loader_hints: hints,
         })

@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
+use std::ops::Range;
+
 use serde::Deserialize;
 use styx_errors::anyhow::anyhow;
+use styx_errors::UnknownError;
 use thiserror::Error;
 
-use super::{
-    atomic_word::CompareExchangeResult, region::RegionStore, MemoryArchitecture, MemoryPermissions,
-};
+use super::atomic_word::CompareExchangeResult;
+use super::region::RegionStore;
+use super::{MemoryArchitecture, MemoryPermissions};
 use crate::memory::memory_region::MemoryRegion;
-
-use styx_errors::UnknownError;
 
 #[derive(Error, Debug)]
 pub enum MemoryOperationError {
@@ -216,6 +217,12 @@ impl MemoryBackend {
                 memory: RegionStore::empty(),
             },
         }
+    }
+
+    /// Returns the range made up of the min and max addresses supported
+    /// by the physical memory backend.
+    pub fn valid_memory_range(&self) -> MemoryArchitecture<Range<u64>> {
+        self.min_address().with(self.max_address(), |a, b| a..b)
     }
 
     /// Equivalent to [`MemoryBackend::new(PhysicalMemoryVariant::RegionStore)`]
@@ -486,6 +493,7 @@ impl MemoryBackend {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Data<'a>(&'a MemoryBackend);
 impl super::helpers::Readable for Data<'_> {
     type Error = MemoryOperationError;
@@ -502,6 +510,7 @@ impl super::helpers::Writable for Data<'_> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Code<'a>(&'a MemoryBackend);
 impl super::helpers::Readable for Code<'_> {
     type Error = MemoryOperationError;

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //! Functions/structs/enums to assist in running hexagon binaries. Used by the tester harness and main (command line).
 
+use log::info;
 use styx_emulator::cpu::arch::hexagon::gdb_targets::HexagonHvxCpuTargetDescription;
 use styx_emulator::prelude::gdb::{GDBOptions, GdbExecutor, GdbPluginParams, StepIRQs};
 use styx_emulator::prelude::styx_async::sync::broadcast;
@@ -46,7 +47,7 @@ pub fn setup_load_hexagon(
 
     if let Some(debug) = debug {
         let gdb_params = GdbPluginParams::tcp("0.0.0.0", debug.gdb_remote_port, true);
-        proc = proc.with_executor(
+        proc = proc.with_custom_executor(
             GdbExecutor::<HexagonHvxCpuTargetDescription>::new(gdb_params)?.with_options(
                 GDBOptions {
                     step_irqs: StepIRQs::Enabled,
@@ -64,7 +65,13 @@ pub fn setup_load_hexagon(
 
     // Setup hooks
     for hook in device.hooks().expect("couldn't get hexagon hooks") {
-        proc.add_hook(hook).expect("Couldn't add hexagon hook");
+        // TODO: this should add the hooks to all vcpus,
+        // but StyxHook !impl Clone so maybe the device hooks
+        // need to have a hook factory closure or similar.
+        proc.vcpus[0]
+            .cpu
+            .add_hook(hook)
+            .expect("Couldn't add hexagon hook");
     }
 
     device.post_init(&mut proc)?;
