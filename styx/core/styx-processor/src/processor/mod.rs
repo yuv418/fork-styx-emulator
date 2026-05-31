@@ -17,7 +17,7 @@ use std::sync::Arc;
 pub use builder::*;
 
 mod sync;
-use styx_errors::anyhow::anyhow;
+use styx_errors::anyhow::{anyhow, Context};
 pub use sync::*;
 
 mod emulation_report;
@@ -150,9 +150,24 @@ impl Processor {
         Ok(())
     }
 
-    /// Shortcut to `self.core.memory`
+    /// Shortcut to `self.core.memory`.
     pub fn memory(&self) -> &Arc<MemoryBackend> {
         &self.core.memory
+    }
+
+    /// Perform an action on each vcpu.
+    ///
+    /// Fails early if one of the closures returns `Err()` with a descriptive error context.
+    ///
+    /// Use `proc.vpus.iter_mut()` do any any other complex operations on all vcpus.
+    pub fn for_vcpu(
+        &mut self,
+        mut f: impl FnMut(&mut VcpuCore) -> Result<(), UnknownError>,
+    ) -> Result<(), UnknownError> {
+        for (i, vcpu) in self.vcpus.iter_mut().enumerate() {
+            f(vcpu).with_context(|| format!("for_vcpus failed on vcpu {i}"))?;
+        }
+        Ok(())
     }
 }
 
