@@ -2,13 +2,14 @@
 //! # Styx-Processors
 
 use std::borrow::BorrowMut;
+use std::sync::{Arc, Mutex};
 
 #[cfg(feature = "hexagon-clade")]
 use clade::Clade;
 
-use l2vic::{L2Vic, SingleVcpuIrqRouter};
+use l2vic::L2Vic;
 use qtimer::QTimer;
-use styx_core::arch::hexagon::GlobalHexagonRegister;
+use styx_core::arch::hexagon::{GlobalHexagonRegister, HexagonRegister};
 use styx_core::core::builder::VcpuBundleBuilder;
 use styx_core::cpu::arch::hexagon::HexagonVariants;
 use styx_core::cpu::{Arch, Backend, CpuBackend, CpuBackendExt, PcodeBackendConfiguration};
@@ -18,6 +19,7 @@ use styx_core::memory::physical::PhysicalMemoryVariant;
 use styx_core::memory::{MemoryBackend, MemoryPermissions, Mmu};
 use styx_core::prelude::log::info;
 use styx_core::prelude::{BuildingProcessor, Context, Peripheral, EventDistributor};
+use styx_core::prelude::{BuildingProcessor, Config, Context, Peripheral, PrimaryEventController};
 use styx_core::{
     core::{
         builder::{BuildProcessorImplArgs, ProcessorImpl},
@@ -26,7 +28,7 @@ use styx_core::{
     cpu::{ArchEndian, HexagonPcodeBackend},
     errors::{anyhow, UnknownError},
 };
-use tlb::HexagonTlb;
+use tlb::{HexagonTlb, HexagonTlbSharedState};
 
 mod angel;
 mod cfgtable;
@@ -40,9 +42,11 @@ mod l2vic;
 mod qtimer;
 mod shared_state_hooks;
 mod tlb;
+mod vcpu_event_controller;
 
 pub use cfgtable::*;
 pub use config::*;
+use vcpu_event_controller::HexagonVcpuEventController;
 
 const SUBSYSTEM_CFGTABLE_OFFSET: u64 = 0x8;
 const JTLB_ENTRIES_CFGTABLE_OFFSET: u64 = 0x2c;
@@ -68,23 +72,57 @@ impl ProcessorImpl for HexagonBuilder {
             .with_context(|| "expected hexagon processor config")?
             .hardware_threads;
 
-        let mut cpu = if let Backend::Pcode = args.backend {
-            HexagonPcodeBackend::new_engine_config(
-                self.variant.clone(),
-                ArchEndian::LittleEndian,
-                /*&PcodeBackendConfiguration {
-                    register_read_hooks: true,
-                    register_write_hooks: true,
-                    exception: args.exception,
-                },*/
-                &args.into(),
-                Some(thread_count),
-            )
-        } else {
-            return Err(anyhow::anyhow!(
-                "hexagon processor only supports pcode backend"
-            ));
-        };
+        // One shared state for all tlbs
+
+        let tlb_shared_state = Arc::new(Mutex::new(HexagonTlbSharedState::default()));
+        let mut vcpus = vec![];
+        for i in 0..thread_count {
+            let mut cpu = if let Backend::Pcode = args.backend {
+                HexagonPcodeBackend::new_engine_config(
+                    self.variant.clone(),
+                    ArchEndian::LittleEndian,
+                    /*&PcodeBackendConfiguration {
+                        register_read_hooks: true,
+                        register_write_hooks: true,
+                        exception: args.exception,
+                    },*/
+                    &args.into(),
+                    Some(thread_count),
+                )
+            } else {
+                return Err(anyhow::anyhow!(
+                    "hexagon processor only supports pcode backend"
+                ));
+            };
+
+            cpu.write_register(HexagonRegister::Htid, i as u32)
+                .with_context(|| "couldn't write Htid for thread")?;
+
+            // Only the first hardware thread starts as "started."
+            // The rest are by default false.
+            if i == 0 {
+                cpu.set_running(true)
+            }
+
+            let vcpu_ec = HexagonVcpuEventController::default();
+
+            let mut vcpu_builder = VcpuBundleBuilder::new();
+            vcpus.push(
+                vcpu_builder
+                    .with_cpu(cpu)
+                    .with_tlb(HexagonTlb::with_shared_state(tlb_shared_state.clone()))
+                    .with_event_controller(vcpu_ec)
+                    .build(),
+            );
+        }
+
+        let peripherals: Vec<Box<dyn Peripheral>> = vec![
+            Box::new(QTimer::default()),
+            #[cfg(feature = "hexagon-clade")]
+            {
+                Box::new(Clade::default())
+            },
+        ];
 
         let mut memory = match self.variant {
             HexagonVariants::QDSP6V62 => MemoryBackend::new(PhysicalMemoryVariant::FlatMemory),
@@ -100,73 +138,68 @@ impl ProcessorImpl for HexagonBuilder {
             .memory_map(0x100000000, 0x40000000, MemoryPermissions::all())
             .with_context(|| "couldn't add memory region for peripherals")?;
 
-        let l2vic = L2Vic::default();
-
-        let peripherals: Vec<Box<dyn Peripheral>> = vec![
-            Box::new(QTimer::default()),
-            #[cfg(feature = "hexagon-clade")]
-            {
-                Box::new(Clade::default())
-            },
-        ];
-
         let mut hints = LoaderHints::new();
         hints.insert("arch".to_string().into_boxed_str(), Box::new(Arch::Hexagon));
 
         Ok(ProcessorBundle {
-            vcpus: vec![VcpuBundleBuilder::new()
-                .with_cpu(cpu)
-                .with_tlb(HexagonTlb::new())
-                .with_event_controller(l2vic)
-                .build()],
+            vcpus,
             memory,
-            event_distributor: Box::new(SingleVcpuIrqRouter),
+            event_distributor: Box::new(L2Vic::default()),
             peripherals,
             loader_hints: hints,
         })
     }
 
     // Wait for global regs to be initialized before writing CfgBase.
-    fn init(&self, proc: &mut BuildingProcessor) -> Result<(), UnknownError> {
+    fn post_shared_state_setup(
+        &self,
+        cpu: &mut dyn CpuBackend,
+        memory: &mut MemoryBackend,
+        config: &mut Config,
+    ) -> Result<(), UnknownError> {
         // Set cfgbase
-
         info!("init");
-        let proc_config = proc
-            .config
+        let proc_config = config
             .get::<HexagonProcessorConfig>()
             .expect("expected Hexagon processor config during build");
 
-        proc.vcpus[0]
-            .cpu
-            .write_register(
-                GlobalHexagonRegister::CfgBase,
-                (proc_config.cfgbase >> 16) as u32,
-            )
-            .expect("Couldn't write config table for hexagon");
-
-        let mut cpu = &mut proc.vcpus[0].cpu;
+        cpu.write_register(
+            GlobalHexagonRegister::CfgBase,
+            (proc_config.cfgbase >> 16) as u32,
+        )
+        .expect("Couldn't write config table for hexagon");
 
         // Set subsystem base
         write_cfgtable_field(
-            &mut **cpu,
-            &proc.core.memory,
+            cpu,
+            memory,
             SUBSYSTEM_CFGTABLE_OFFSET,
             (proc_config.subsystem_base >> 16) as u32,
         );
 
         write_cfgtable_field(
-            &mut **cpu,
-            &proc.core.memory,
+            cpu,
+            memory,
             JTLB_ENTRIES_CFGTABLE_OFFSET,
             proc_config.tlb_entries,
         );
 
         // Setup cfgtable (cfgbase is written in HexagonBuilder)
         for (cfgbase_entry, value) in proc_config.config_table.iter() {
-            write_cfgtable_field(&mut **cpu, &proc.core.memory, *cfgbase_entry as u64, *value);
+            write_cfgtable_field(cpu, memory, *cfgbase_entry as u64, *value);
         }
 
         info!("init end");
+        Ok(())
+    }
+
+    fn init(&self, proc: &mut BuildingProcessor) -> Result<(), UnknownError> {
+        // Setup htid registers.
+        for (i, vcpu) in proc.vcpus.iter_mut().enumerate() {
+            vcpu.cpu
+                .write_register(HexagonRegister::Htid, i as u32)
+                .unwrap();
+        }
         Ok(())
     }
 }

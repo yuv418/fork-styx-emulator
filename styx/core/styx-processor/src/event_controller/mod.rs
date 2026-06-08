@@ -10,8 +10,8 @@ use std::fmt::Display;
 use std::{any::type_name, sync::Arc};
 
 use as_any::AsAny;
-pub use dummy::{DummyEventController, DummyEventDistributor};
-use log::trace;
+pub use dummy::{DummyEventController, DummyPrimaryEventController};
+use log::{info, trace};
 pub use peripheral::{DummyPeripheral, Peripheral, PeripheralTickCtx, RaisedIrqs};
 pub use peripherals::Peripherals;
 pub use single_vcpu_ec::SingleVcpuEventController;
@@ -192,13 +192,13 @@ pub trait EventDistributorImpl: AsAny + Send {
 
     #[allow(unused_variables)]
     fn init(
-        &mut self,
-        vcpus: &mut [VcpuCore],
-        memory: &Arc<MemoryBackend>,
-        config: &mut Config,
-    ) -> Result<(), UnknownError> {
-        Ok(())
-    }
+         &mut self,
+         vcpus: &mut [VcpuCore],
+         memory: &Arc<MemoryBackend>,
+         config: &mut Config,
+     ) -> Result<(), UnknownError> {
+         Ok(())
+     }
 
     fn reset(&mut self, _cpu: &mut dyn CpuBackend, _mmu: &mut Mmu) -> Result<(), UnknownError> {
         Ok(())
@@ -258,6 +258,7 @@ impl EventController {
         vcpu_idx: usize,
     ) -> Result<(), ActivateIRQnError> {
         self.irqs_to.push((vcpu_idx, event));
+        info!("adding to IRQ, {:?}", self.irqs_to);
         Ok(())
     }
 

@@ -230,3 +230,11 @@ pub struct Stid {
     #[bits(16..=23, rw)]
     prio: u8,
 }
+
+#[bitfield(u32)]
+pub struct ModeCtl {
+    #[bits(0..=15, rw)]
+    enable_mask: u16,
+    #[bits(16..=31, rw)]
+    wait_mask: u16,
+}

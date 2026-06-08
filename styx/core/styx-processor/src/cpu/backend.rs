@@ -9,7 +9,7 @@ use styx_cpu_type::{ArchEndian, TargetExitReason};
 use styx_errors::UnknownError;
 use thiserror::Error;
 
-use crate::event_controller::EventController;
+use crate::event_controller::{EventController, ExceptionNumber};
 use crate::hooks::Hookable;
 use crate::memory::Mmu;
 
@@ -153,4 +153,11 @@ pub trait CpuBackend: Debug + Hookable + Send {
 
     /// Set the current value of the current `pc` register.
     fn set_pc(&mut self, value: u64) -> Result<(), UnknownError>;
+
+    /// Handle an event. Can be derived from an interrupt number.
+    /// The EventController could use this to do "CPU-specific" things
+    /// during the interrupt (eg. wake up a thread)>
+    fn handle_event(&mut self, mmu: &mut Mmu, number: ExceptionNumber) -> Result<(), UnknownError> {
+        Ok(())
+    }
 }

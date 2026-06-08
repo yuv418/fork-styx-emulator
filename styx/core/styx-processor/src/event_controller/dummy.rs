@@ -2,11 +2,11 @@
 use log::{debug, warn};
 use styx_errors::UnknownError;
 
- use crate::{
-     cpu::CpuBackend,
+use crate::{
+    cpu::CpuBackend,
     memory::{MemoryBackend, Mmu},
-     processor::Config,
- };
+    processor::Config,
+};
 
 use super::{
     ActivateIRQnError, EventControllerImpl, EventDistributorImpl, ExceptionNumber,
@@ -85,6 +85,26 @@ impl EventDistributorImpl for DummyEventDistributor {
             warn!("DummyEventDistributor has pending irqs which will be lost. \
                 For a single vCPU system you want the SingleVcpuEventController to route irqs to vCPU 0.");
         }
+        Ok(())
+    }
+}
+
+/// A placeholder primary (processor-level) event controller, does nothing.
+#[derive(Default)]
+pub struct DummyPrimaryEventController {}
+
+impl PrimaryEventControllerImpl for DummyPrimaryEventController {
+    fn latch(&mut self, event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
+        debug!("dummy primary event controller latched with {event:?}");
+        Ok(())
+    }
+
+    fn init(
+        &mut self,
+        _cpu: &mut dyn CpuBackend,
+        _mmu: &mut MemoryBackend,
+        _config: &mut Config,
+    ) -> Result<(), UnknownError> {
         Ok(())
     }
 }

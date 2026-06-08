@@ -143,6 +143,15 @@ impl HexagonTlbSharedState {
         Ok(())
     }
 }
+impl Default for HexagonTlbSharedState {
+    fn default() -> Self {
+        Self {
+            enable_translation: false,
+            entries: [Pte::new_with_raw_value(0); MAX_TLB_ENTRIES],
+            cache: BTreeMap::new(),
+        }
+    }
+}
 
 /// N.B. It appears that Hexagon uses the words MMU and TLB interchangeably,
 /// as the the TLB-related instructions (tlbw, tlbr, etc.) store the page tables,
@@ -152,12 +161,12 @@ impl HexagonTlbSharedState {
 impl HexagonTlb {
     pub fn new() -> Self {
         Self {
-            inner: Arc::new(Mutex::new(HexagonTlbSharedState {
-                enable_translation: false,
-                entries: [Pte::new_with_raw_value(0); MAX_TLB_ENTRIES],
-                cache: BTreeMap::new(),
-            })),
+            inner: Arc::new(Mutex::new(HexagonTlbSharedState::default())),
         }
+    }
+
+    pub fn with_shared_state(state: Arc<Mutex<HexagonTlbSharedState>>) -> Self {
+        Self { inner: state }
     }
 
     // https://github.com/quic/qemu/blob/3921c6eed6bd7c670eff633fe829e18607125969/hw/hexagon/hexagon_tlb.c#L100

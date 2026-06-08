@@ -8,13 +8,14 @@
 //! It appears that the l2vic (QEMU) describes that
 //! all interrupts go to VID 0, which is IRQ 2.
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use arbitrary_int::*;
 use bitbybit::{bitenum, bitfield};
 use styx_core::arch::hexagon::GlobalHexagonRegister;
 use styx_core::core::VcpuCore;
 use styx_core::event_controller::{EventControllerImpl, EventDistributorImpl};
+use styx_core::macros::peripheral_shared_state;
 use styx_core::prelude::GlobalDelta;
 use styx_core::processor::Config;
 use styx_core::sync::styx_async::sync::broadcast;
@@ -34,6 +35,7 @@ use styx_core::{
     },
 };
 
+use crate::shared_state_hooks::{peripheral_shared_state_read, peripheral_shared_state_write};
 use crate::write_cfgtable_field;
 use crate::{angel, config::HexagonProcessorConfig};
 
@@ -41,32 +43,6 @@ const FASTL2VIC_CFGTABLE_OFFSET: u64 = 0x28;
 const L2VIC_OFFSET: u64 = 0x10000;
 const L2VIC_NUM_SLOTS: u64 = 32;
 const L2VIC_CONFIG_START: u64 = 0x100;
-
-/// Routes IRQs returned by peripheral ticks to the single vCPU's GIC.
-pub(crate) struct SingleVcpuIrqRouter;
-
-impl EventDistributorImpl for SingleVcpuIrqRouter {
-    fn tick(
-        &mut self,
-        _delta: &GlobalDelta,
-        pending_irqs: &[ExceptionNumber],
-        vcpus: &mut [VcpuCore],
-    ) -> Result<(), UnknownError> {
-        for &irq in pending_irqs {
-            vcpus[0].event_controller.latch(irq)?;
-        }
-        Ok(())
-    }
-
-    fn init(
-        &mut self,
-        _cpu: &mut [VcpuCore],
-        _mmu: &Arc<MemoryBackend>,
-        _config: &mut Config
-    ) -> Result<(), UnknownError> {
-        Ok(())
-    }
-}
 
 /// The l2vic can handle 32 interrupts.
 /// Each of these interrupts are configured
@@ -180,8 +156,10 @@ fn fastl2vic_mmio_write_hook(
     address: u64,
     size: u32,
     data: &[u8],
+    l2vic: Arc<Mutex<L2VicSharedState>>,
 ) -> Result<(), UnknownError> {
-    let l2vic = proc.event_controller.get_impl::<L2Vic>()?;
+    let mut l2vic = l2vic.lock().unwrap();
+
     let fastl2vic_control = FastL2VicControl::new_with_raw_value(u32::from_le_bytes(
         data.try_into()
             .with_context(|| "couldn't convert fastl2vic access into u32")?,
@@ -225,11 +203,13 @@ fn l2vic_mmio_read_hook(
     address: u64,
     size: u32,
     data: &mut [u8],
+    l2vic: Arc<Mutex<L2VicSharedState>>,
 ) -> Result<(), UnknownError> {
-    let l2vic = proc.event_controller.get_impl::<L2Vic>()?;
+    let mut l2vic = l2vic.lock().unwrap();
+
     let (register, slot) = l2vic_get_register_slot(l2vic.l2vic_base(), address);
 
-    error!(
+    info!(
          "l2vic base reading at 0x{address:x} and size 0x{size:x} with data {data:x?}, register {register:?} slot {slot} pc is {:x?}",
          proc.cpu.pc()
      );
@@ -261,8 +241,10 @@ fn l2vic_mmio_write_hook(
     address: u64,
     size: u32,
     data: &[u8],
+    l2vic: Arc<Mutex<L2VicSharedState>>,
 ) -> Result<(), UnknownError> {
-    let l2vic = proc.event_controller.get_impl::<L2Vic>()?;
+    let mut l2vic = l2vic.lock().unwrap();
+
     let (register, slot) = l2vic_get_register_slot(l2vic.l2vic_base(), address);
 
     // All the values are 32 bits, see QEMU l2vic.c and
@@ -300,28 +282,33 @@ fn l2vic_get_register_slot(l2vic_base: u64, address: u64) -> (Result<L2VicRegist
     (register, slot)
 }
 
+#[peripheral_shared_state]
 pub struct L2Vic {
+    #[shared]
     slots: [L2VicSlot; L2VIC_NUM_SLOTS as usize],
+    #[shared]
     vid: u32,
     /// Only initialized during init() when we have the processor config.
+    #[shared]
     l2vic_base: Option<u64>,
+    #[shared]
     vid_irq_base: Option<u64>,
+    #[shared]
     fastl2vic_base: Option<u64>,
-    // Convenience for semihosting interface
-    semihosting_tx: Option<Arc<broadcast::Sender<u8>>>,
 }
 
 impl Default for L2Vic {
     fn default() -> Self {
         Self {
-            slots: Default::default(),
-            vid: u32::MAX,
+            inner: Arc::new(Mutex::new(L2VicSharedState {
+                slots: Default::default(),
+                vid: u32::MAX,
 
-            // Only initialized during init() when we have the processor config.
-            l2vic_base: None,
-            vid_irq_base: None,
-            fastl2vic_base: None,
-            semihosting_tx: None,
+                // Only initialized during init() when we have the processor config.
+                l2vic_base: None,
+                vid_irq_base: None,
+                fastl2vic_base: None,
+            })),
         }
     }
 }
@@ -383,16 +370,16 @@ impl L2VicSlot {
     pub fn irqn_int_type(&self, n: usize) -> bool {
         ((self.int_type >> n) & 1) == 1
     }
+    pub fn irqn_status(&self, n: usize) -> bool {
+        ((self.status >> n) & 1) == 1
+    }
 }
 
-impl L2Vic {
-    fn semihosting_tx(&self) -> Arc<broadcast::Sender<u8>> {
-        self.semihosting_tx
-            .as_ref()
-            .expect("l2vic doesn't have semihosting tx!! check proc config")
-            .clone()
+impl L2VicSharedState {
+    fn vid_irq_base(&self) -> u64 {
+        self.vid_irq_base
+            .expect("couldn't get vid_irq_base base, expected to be set in init")
     }
-
     fn l2vic_base(&self) -> u64 {
         self.l2vic_base
             .expect("couldn't get l2vic base, expected to be set in init")
@@ -401,9 +388,21 @@ impl L2Vic {
         self.fastl2vic_base
             .expect("couldn't get fastl2vic base, expected to be set in init")
     }
-    fn vid_irq_base(&self) -> u64 {
-        self.vid_irq_base
-            .expect("couldn't get vid_irq_base base, expected to be set in init")
+
+    /// This will effectively set this IRQ to pending, and put it in the
+    /// IRQ queue.
+    ///
+    /// This means when the next event are checked and executed,
+    /// in `next`, this event an be considered.
+    ///
+    /// TODO Priority and use a queue to avoid performance issues
+    fn latch(&mut self, event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
+        let slot = event as usize / L2VIC_NUM_SLOTS as usize;
+        let slot_offset = (event as usize) % (L2VIC_NUM_SLOTS as usize);
+        trace!("l2vic latch slot {slot} offset {slot_offset}");
+
+        self.slots[slot].set_irqn_pending(slot_offset, true);
+        Ok(())
     }
 
     fn handle_register_write(
@@ -418,7 +417,7 @@ impl L2Vic {
             L2VicRegister::Enable => {
                 self.slots[slot].enable = data;
             }
-            // self_write in hw/intc/l2vic.c:
+            // l2vic_write in hw/intc/self.c:
             // is similar to Enable, but sets the bits in data in the
             // current enabled field instead of overwriting the enable field with the bits.
             L2VicRegister::EnableSet => {
@@ -462,136 +461,33 @@ impl L2Vic {
     }
 }
 
-impl EventControllerImpl for L2Vic {
-    /// See l2vic_update_all for more details
-    /// in hw/intc/l2vic.c.
-    ///
-    /// This function will retrieve and execute the latest interrupt
-    /// based on which interrupts are currently pending.
-    ///
-    /// TODO: optimization as needed.
-    fn next(
-        &mut self,
-        cpu: &mut dyn CpuBackend,
-        mmu: &mut Mmu,
-    ) -> Result<InterruptExecuted, UnknownError> {
-        trace!("l2vic next called, vid is 0x{:x}", self.vid);
-        // Update the VID, since the register write hook won't work
-        // from the CIAD instruction, so just take the "register" VID
-        // and if they're not equal set to whatever it is.
-
-        let vid = cpu
-            .read_register::<u32>(GlobalHexagonRegister::Vid)
-            .with_context(|| "Couldn't read VID register")?;
-        if self.vid != vid {
-            info!("l2vic: vid was set in code or by ciad, updating to 0x{vid:x}.");
-            self.vid = vid;
-        }
-
-        // We aren't going to do anything until
-        // VID is cleared - see l2vic_updated in hw/intc/l2vic.c QEMU.
-        //
-        // VID seemingly holds the value of the current IRQ that was raised.
-        //
-        // As an example, msee qemu-hexagon-testing's "levelint.c" test.
-        // Also see hexagon-l2vic.rst in QUIC QEMU
-        //
-        // WARN: The QUIC implementation seems to use the
-        // first bit set to find if any int_statuses are enabled.
-        //
-        // Is this not equivalent?
-        //
-        // -1 is "invalid" vid
-        if self.vid != u32::MAX {
-            // ------- TEST
-            let mut int_statuses = false;
-            for slot in &self.slots {
-                if slot.status != 0 {
-                    int_statuses = true;
-                    break;
-                }
-            }
-            assert_eq!(int_statuses, self.vid != 0);
-            // --------- END TEST
-
-            return Ok(InterruptExecuted::NotExecuted);
-        }
-
-        // Now also fail if any sort of exception is being serviced (
-        // eg. synchronous exceptions).
-        let ssr = Ssr::new_with_raw_value(
-            cpu.read_register::<u32>(HexagonRegister::Ssr)
-                .with_context(|| "couldn't read the Ssr register")?,
-        );
-        if ssr.ex() {
-            trace!("interrupt not executed because SSR.EX = {}, maybe synchronous exception is happening", ssr.ex());
-
-            return Ok(InterruptExecuted::NotExecuted);
-        }
-
-        // Hexagon Programmer's Reference Manual:
-        //
-        // 11.9.2 SYSTEM MONITOR - "highest-priority interrupt 0... lowest-
-        // priority interrupt 31"
-        //
-        // Go through IRQ numbers from lowest to highest priority,
-        // and raise the highest-priority IRQ.
-
-        let mut irq = None;
-        for (slot_no, slot) in self.slots.iter().enumerate() {
-            // Now go through the IRQs
-            // As each slot is 32 bits, the IRQ is 32 bits
-            for i in 0..32 {
-                trace!(
-                    "l2vic irqn_enable {} irqn_pending {}",
-                    slot.irqn_enable(i),
-                    slot.irqn_pending(i)
-                );
-                // This means the IRQ must be executed, as it
-                // was latched.
-                if slot.irqn_enable(i) && slot.irqn_pending(i) {
-                    trace!("the first IRQ set was {i}");
-                    irq = Some(i + (slot_no * L2VIC_NUM_SLOTS as usize));
-                    break;
-                }
-            }
-        }
-
-        match irq {
-            Some(irq) => {
-                info!("l2vic next - executing irqn {irq}");
-                self.execute(irq as i32, cpu, mmu)
-                    .with_context(|| "couldn't execute pending interrupt")
-            }
-
-            None => Ok(InterruptExecuted::NotExecuted),
-        }
-    }
-
-    /// This will effectively set this IRQ to pending, and put it in the
-    /// IRQ queue.
-    ///
-    /// This means when the next event are checked and executed,
-    /// in `next`, this event an be considered.
-    ///
-    /// TODO Priority and use a queue to avoid performance issues
-    fn latch(&mut self, event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
-        let slot = event as usize / L2VIC_NUM_SLOTS as usize;
-        let slot_offset = (event as usize) % (L2VIC_NUM_SLOTS as usize);
-        trace!("l2vic latch slot {slot} offset {slot_offset}");
-
-        self.slots[slot].set_irqn_pending(slot_offset, true);
-        Ok(())
-    }
-
+impl L2Vic {
     /// See l2vic_update for more details
     /// in hw/intc/l2vic.c.
-    fn execute(
+    /// TODO: need to use this for synchronous interrupts, don't do all this Vid logic stuff for that
+    /// This logic should probably be moved to the PrimaryEventController.
+    fn execute_async(
         &mut self,
-        irq_n: ExceptionNumber,
-        cpu: &mut dyn CpuBackend,
-        mmu: &mut Mmu,
-    ) -> Result<InterruptExecuted, ActivateIRQnError> {
+        l2vic_irq_n: ExceptionNumber,
+        vcpu: &mut VCpuCore,
+    ) -> Result<(), ActivateIRQnError> {
+        let mut l2vic = self.lock();
+
+        // Don't execute if we are currently servicing something.
+        // NOTE: this is slow.
+        // TODO: optimize.
+        // NOTE: does this mean the l2vic can only handle one interrupt a time?
+        for slot in 0..(L2VIC_NUM_SLOTS as usize) {
+            info!("slot slots {:x?}", l2vic.slots[slot].status);
+            // Each L2Vic slot is 32 bits; means one slot has 32 IRQs
+            for irq in 0..32 {
+                if l2vic.slots[slot].irqn_status(irq) {
+                    info!("execute_async not taken, IRQ being serviced.");
+                    return Ok(());
+                }
+            }
+        }
+
         // The VID is found by looking at interrupt groups
         // Each group has an IRQ encoded for each slot and some
         // other magic..
@@ -617,12 +513,16 @@ impl EventControllerImpl for L2Vic {
         // It looks like we only have one VID
         // in use since no other VIDs are setup in FW,
         // So we shall trigger the IRQ
-        let irq = irq_n as usize;
-        let slot = &mut self.slots[irq / L2VIC_NUM_SLOTS as usize];
+        let irq = l2vic_irq_n as usize;
+        let slot = &mut l2vic.slots[irq / L2VIC_NUM_SLOTS as usize];
 
         slot.set_irqn_status(irq, true);
         slot.set_irqn_enable(irq, false);
         slot.set_irqn_pending(irq, false);
+
+        for slot in 0..(L2VIC_NUM_SLOTS as usize) {
+            info!("post slot slots {:x?}", l2vic.slots[slot].status);
+        }
 
         // The L2vic has four signals (VID0-3) to interrupt the CPU,
         // and each IRQ handled by the L2vic is signaled by
@@ -632,17 +532,20 @@ impl EventControllerImpl for L2Vic {
         // It looks like we only have one VID in use
         // since no other VIDs are setup in FW, so we shall trigger the IRQ
         // on the one VID.
-        self.vid = irq as u32;
+        l2vic.vid = irq as u32;
         // Update the backing register store
-        cpu.write_register(GlobalHexagonRegister::Vid, self.vid)
+        vcpu.cpu
+            .write_register(GlobalHexagonRegister::Vid, l2vic.vid)
             .with_context(|| "couldn't update vid register")?;
 
         // We also need to set the SSR cause to the VID
         // See qemu_irq_pulse in hw/intc/l2vic.c in QUIC QEMU
-        let irq_base_offset = self.vid_irq_base() + vid_n;
-        let ssr = Ssr::new_with_raw_value(cpu.read_register::<u32>(HexagonRegister::Ssr).unwrap())
-            .with_cause(irq_base_offset as u8);
-        cpu.write_register(HexagonRegister::Ssr, ssr.raw_value())
+        let irq_base_offset = l2vic.vid_irq_base() + vid_n;
+        let ssr =
+            Ssr::new_with_raw_value(vcpu.cpu.read_register::<u32>(HexagonRegister::Ssr).unwrap())
+                .with_cause(irq_base_offset as u8);
+        vcpu.cpu
+            .write_register(HexagonRegister::Ssr, ssr.raw_value())
             .unwrap();
 
         // Actual irq number of the 16 irqs here.
@@ -651,11 +554,13 @@ impl EventControllerImpl for L2Vic {
 
         // Set the irq pending
         let mut ipendad = Ipendad::new_with_raw_value(
-            cpu.read_register::<u32>(GlobalHexagonRegister::Ipendad)
+            vcpu.cpu
+                .read_register::<u32>(GlobalHexagonRegister::Ipendad)
                 .with_context(|| "couldn't read r0 in interrupt")?,
         );
         ipendad.set_ipend(ipendad.ipend() | (1 << hex_irq_number));
-        cpu.write_register(GlobalHexagonRegister::Ipendad, ipendad.raw_value())
+        vcpu.cpu
+            .write_register(GlobalHexagonRegister::Ipendad, ipendad.raw_value())
             .with_context(|| "couldn't write ipendad")?;
 
         // NOTE: the interrupt number is dependent on the VID. Right now there is only
@@ -667,19 +572,163 @@ impl EventControllerImpl for L2Vic {
         //
         // As the VID base offset is 0x2, we can add the base Int0 (0x10) to compute this.
         // TODO: should probably use the ipend reg write to trigger this.
-        async_interrupt_handler(cpu, mmu, hex_irq_number)?;
-        Ok(InterruptExecuted::Executed)
+        vcpu.event_controller.latch(hex_irq_number)?;
+        Ok(())
 
         // todo!("l2vic execute")
     }
+}
 
-    fn finish_interrupt(
+impl EventDistributorImpl for L2Vic {
+    /// See l2vic_update_all for more details
+    /// in hw/intc/l2vic.c.
+    ///
+    /// This function will retrieve and execute the latest interrupt
+    /// based on which interrupts are currently pending.
+    ///
+    /// TODO: optimization as needed.
+    fn tick(
         &mut self,
-        _cpu: &mut dyn CpuBackend,
-        _mmu: &mut Mmu,
-    ) -> Option<ExceptionNumber> {
-        trace!("finish_interrupt not implemented..");
-        None
+        delta: &GlobalDelta,
+        pending_irqs: &[ExceptionNumber],
+        vcpus: &mut [VCpuCore],
+    ) -> Result<(), UnknownError> {
+        trace!("l2vic tick called, vid is 0x{:x}", self.lock().vid);
+        // Update the VID, since the register write hook won't work
+        // from the CIAD instruction, so just take the "register" VID
+        // and if they're not equal set to whatever it is.
+
+        // Latch the pending IRQs from peripherals.
+        for pending_irq in pending_irqs {
+            self.latch(*pending_irq)?;
+        }
+
+        let selected_l2vic_irq = {
+            let mut l2vic = self.lock();
+
+            let vid = vcpus[0]
+                .cpu
+                .read_register::<u32>(GlobalHexagonRegister::Vid)
+                .with_context(|| "Couldn't read VID register")?;
+
+            // Ciad handling
+            // WARN: this is how we "clear vid and re-enable l2vic operation."
+            // The latter is supposed to only happen when ciad is written, but
+            // it could also happen now when VID is written. It doesn't look like that ever happens,
+            // but still.
+            if l2vic.vid != vid {
+                let clear_slot = (l2vic.vid / L2VIC_NUM_SLOTS as u32) as usize;
+                let clear_off = (l2vic.vid % L2VIC_NUM_SLOTS as u32) as usize;
+
+                info!("l2vic: vid was set in code or by ciad, new vid {vid:x} updating to 0x{vid:x} and clearing int {:x} (slot {:x} slot offset {:x}).", l2vic.vid, clear_slot, clear_off);
+
+                // Only update if the VID was cleared to 0xffffffff
+                if vid as i32 == -1 {
+                    l2vic.slots[clear_slot].set_irqn_status(clear_off, false);
+                }
+
+                l2vic.vid = vid;
+            }
+
+            // We aren't going to do anything until
+            // VID is cleared - see l2vic_updated in hw/intc/l2vic.c QEMU.
+            //
+            // VID seemingly holds the value of the current IRQ that was raised.
+            //
+            // As an example, msee qemu-hexagon-testing's "levelint.c" test.
+            // Also see hexagon-l2vic.rst in QUIC QEMU
+            //
+            // WARN: The QUIC implementation seems to use the
+            // first bit set to find if any int_statuses are enabled.
+            //
+            // Is this not equivalent?
+            //
+            // -1 is "invalid" vid
+            if l2vic.vid != u32::MAX {
+                // ------- TEST
+                let mut int_statuses = false;
+                for slot in &l2vic.slots {
+                    if slot.status != 0 {
+                        int_statuses = true;
+                        break;
+                    }
+                }
+                assert_eq!(int_statuses, l2vic.vid != 0);
+                // --------- END TEST
+
+                // Interrupt not executed.
+                return Ok(());
+            }
+
+            // Now also fail if any sort of exception is being serviced (
+            // eg. synchronous exceptions).
+            let ssr = Ssr::new_with_raw_value(
+                vcpus[0]
+                    .cpu
+                    .read_register::<u32>(HexagonRegister::Ssr)
+                    .with_context(|| "couldn't read the Ssr register")?,
+            );
+            if ssr.ex() {
+                trace!("interrupt not executed because SSR.EX = {}, maybe synchronous exception is happening", ssr.ex());
+
+                // Interrupt not executed.
+                return Ok(());
+            }
+
+            // Hexagon Programmer's Reference Manual:
+            //
+            // 11.9.2 SYSTEM MONITOR - "highest-priority interrupt 0... lowest-
+            // priority interrupt 31"
+            //
+            // Go through IRQ numbers from lowest to highest priority,
+            // and raise the highest-priority IRQ.
+
+            let mut irq = None;
+            for (slot_no, slot) in l2vic.slots.iter().enumerate() {
+                // Now go through the IRQs
+                // As each slot is 32 bits, the IRQ is 32 bits
+                for i in 0..32 {
+                    trace!(
+                        "l2vic irqn_enable {} irqn_pending {}",
+                        slot.irqn_enable(i),
+                        slot.irqn_pending(i)
+                    );
+                    // This means the IRQ must be executed, as it
+                    // was latched.
+                    if slot.irqn_enable(i) && slot.irqn_pending(i) {
+                        trace!("the first IRQ set was {i}");
+                        irq = Some(i + (slot_no * L2VIC_NUM_SLOTS as usize));
+                        break;
+                    }
+                }
+            }
+
+            irq
+
+            // Releases shared state lock
+        };
+
+        // This is the l2vic irq.
+        // TODO: steering. This always executes on cpu[0]
+        if let Some(irq) = selected_l2vic_irq {
+            info!("l2vic next - latching irqn {irq}");
+            self.execute_async(irq as i32, &mut vcpus[0])
+                .with_context(|| "couldn't execute pending interrupt")?;
+        }
+
+        Ok(())
+    }
+
+    /// This will effectively set this IRQ to pending, and put it in the
+    /// IRQ queue.
+    ///
+    /// This means when the next event are checked and executed,
+    /// in `next`, this event an be considered.
+    ///
+    /// TODO Priority and use a queue to avoid performance issues
+    fn latch(&mut self, event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
+        trace!("l2vic latch called with event {event}");
+        self.lock().latch(event)
     }
 
     fn init(
@@ -701,148 +750,35 @@ impl EventControllerImpl for L2Vic {
             (fastl2vic_base >> 16) as u32,
         );
 
-        self.l2vic_base = Some(l2vic_base);
-        self.fastl2vic_base = Some(fastl2vic_base);
-        self.vid_irq_base = Some(l2vic_cfg.vid_irq_base);
+        let mut l2vic = self.lock();
+        l2vic.l2vic_base = Some(l2vic_base);
+        l2vic.fastl2vic_base = Some(fastl2vic_base);
+        l2vic.vid_irq_base = Some(l2vic_cfg.vid_irq_base);
 
-        self.semihosting_tx = proc_cfg.semihosting_tx.as_ref().map(|tx| tx.clone());
-        cpu.add_hook(StyxHook::interrupt(|proc: CoreHandle, interrupt: i32| {
-            // L2Vic contains the TX channel
-            let semihosting_tx = proc
-                .event_controller
-                .get_impl::<L2Vic>()
-                .with_context(|| "couldn't get l2vic in Styx syncrhonous interrupt handler")?
-                .semihosting_tx();
-
-            interrupt_handler(proc.cpu, proc.mmu, interrupt, Some(semihosting_tx))
-        }))?;
+        info!(
+            "l2vic initializing with l2vic_base {l2vic_base:x} fastl2vic_base {fastl2vic_base:x}"
+        );
 
         cpu.mem_write_hook(
             l2vic_base,
             l2vic_base + 0x1000,
-            Box::new(l2vic_mmio_write_hook),
+            peripheral_shared_state_write(l2vic_mmio_write_hook, self.inner.clone()),
         )?;
 
         cpu.mem_read_hook(
             l2vic_base,
             l2vic_base + 0x1000,
-            Box::new(l2vic_mmio_read_hook),
+            peripheral_shared_state_read(l2vic_mmio_read_hook, self.inner.clone()),
         )?;
 
         cpu.mem_write_hook(
             fastl2vic_base,
             fastl2vic_base + 0x4,
-            Box::new(fastl2vic_mmio_write_hook),
+            peripheral_shared_state_write(fastl2vic_mmio_write_hook, self.inner.clone()),
         )?;
 
         info!("the hexagon l2vic has started");
 
         Ok(())
     }
-}
-
-pub fn async_interrupt_handler(
-    cpu: &mut dyn CpuBackend,
-    mmu: &mut Mmu,
-    interrupt_number: ExceptionNumber,
-) -> Result<(), UnknownError> {
-    // bail if the interrupt is not pending or disabled
-    let mut ipendad = Ipendad::new_with_raw_value(
-        cpu.read_register::<u32>(GlobalHexagonRegister::Ipendad)
-            .with_context(|| "couldn't read r0 in interrupt")?,
-    );
-    let iad = (ipendad.iad() >> interrupt_number) & 1;
-    let ipend = (ipendad.ipend() >> interrupt_number) & 1;
-    if iad == 1 || (ipend == 0) {
-        warn!("interrupt not taken, as it is currently disabled/pending");
-        return Ok(());
-    }
-
-    // Now disable the interrupt and make it not pending
-    ipendad.set_iad(ipendad.iad() & !(1 << interrupt_number));
-    ipendad.set_ipend(ipendad.ipend() & !(1 << interrupt_number));
-
-    cpu.write_register(GlobalHexagonRegister::Ipendad, ipendad.raw_value())
-        .with_context(|| "couldn't write ipendad")?;
-
-    interrupt_handler(cpu, mmu, interrupt_number, None)
-}
-
-/// WARN: this should always be triggered at the end of a packet, after the pc has
-/// been incremented, so the Elr should be set to the pc
-///
-/// This should only be done if the interrupt number is 0?
-pub fn interrupt_handler(
-    cpu: &mut dyn CpuBackend,
-    mmu: &mut Mmu,
-    interrupt_number: ExceptionNumber,
-    // Only used for synchronous interrupts, so can be None in asynchronous ones.
-    semihosting_tx: Option<Arc<broadcast::Sender<u8>>>,
-) -> Result<(), UnknownError> {
-    // Get cause, if the cause is 0 with a Trap0 call, then we need to do the angel stuff
-    let ssr = Ssr::new_with_raw_value(
-        cpu.read_register::<u32>(HexagonRegister::Ssr)
-            .with_context(|| "couldn't read ssr in interrupt")?,
-    );
-
-    info!("interrupt number is {interrupt_number}");
-
-    if ssr.cause() == 0 && interrupt_number == HexagonInterruptType::Trap0 as i32 {
-        let swi_no = cpu
-            .read_register::<u32>(HexagonRegister::R0)
-            .with_context(|| "couldn't read r0 in interrupt")?;
-        let arg = cpu
-            .read_register::<u32>(HexagonRegister::R1)
-            .with_context(|| "couldn't read r1 in interrupt")?;
-
-        // Get semihosting tx from event controller
-
-        angel::handle_angel(
-            cpu,
-            mmu,
-            swi_no,
-            arg,
-            semihosting_tx.expect("Expected a semihosting TX for angel calls"),
-        )?;
-
-        // There are some mailboxes in trap0 that are
-        // used depending on the hexagon runtime
-    }
-
-    // get evb which is the interrupt vector base
-    let evb = cpu
-        .read_register::<u32>(GlobalHexagonRegister::Evb)
-        .with_context(|| "couldn't read interrupt vector base")?;
-    let jump_point = evb + (interrupt_number * 4) as u32;
-
-    // inspection of qemu indicates this is required
-    // WARN: is this only required on _some_ synchronous interrupts?
-    // see set_ssr_ex_cause for guess in target/hexagon/hex_interrupts.c
-
-    let new_ssr = Ssr::new_with_raw_value(
-        cpu.read_register::<u32>(HexagonRegister::Ssr)
-            .with_context(|| "couldn't read ssr")?,
-    )
-    .with_ex(true);
-
-    cpu.write_register(HexagonRegister::Ssr, new_ssr.raw_value())
-        .with_context(|| "couldn't set SSR.EX = 1")?;
-
-    info!("interrupt jumping to {jump_point:x}");
-
-    // set elr to pc
-    let pc = cpu
-        .pc()
-        .with_context(|| "couldn't get pc to write to elr")?;
-
-    info!("interrupt setting elr to {pc:x}");
-
-    // Very insidious! PC is u64
-    cpu.write_register(HexagonRegister::Elr, pc as u32)
-        .with_context(|| "couldn't write old pc to elr")?;
-
-    cpu.write_register(HexagonRegister::Pc, jump_point)
-        .with_context(|| "couldn't write interrupt jump point to pc")?;
-
-    Ok(())
 }

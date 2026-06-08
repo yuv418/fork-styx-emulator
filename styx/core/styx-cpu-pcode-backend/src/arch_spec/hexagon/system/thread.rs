@@ -2,14 +2,20 @@
 
 use std::str::FromStr;
 
+use log::info;
+use styx_errors::anyhow::Context;
 use styx_pcode::{pcode::VarnodeData, sla::SlaUserOps};
 use styx_pcode_translator::sla::HexagonUserOps;
-use styx_processor::{cpu::CpuBackend, event_controller::EventController, memory::Mmu};
+use styx_processor::{
+    cpu::CpuBackend,
+    event_controller::{EventController, ExceptionNumber},
+    memory::Mmu,
+};
 
 use crate::{
     arch_spec::ArchSpecBuilder,
     call_other::{CallOtherCallback, CallOtherCpu, CallOtherHandleError},
-    HexagonPcodeBackend, PCodeStateChange,
+    HexagonInterruptType, HexagonPcodeBackend, PCodeStateChange,
 };
 
 /// Handle the Hexagon wait instruction. Stubbed for now.
@@ -39,10 +45,29 @@ impl<T: CpuBackend> CallOtherCallback<T> for StartHandler {
         &mut self,
         cpu: &mut dyn CallOtherCpu<T>,
         _mmu: &mut Mmu,
-        _ev: &mut EventController,
+        ev: &mut EventController,
         inputs: &[VarnodeData],
         _output: Option<&VarnodeData>,
     ) -> Result<PCodeStateChange, CallOtherHandleError> {
+        let thread_mask_vn = &inputs[0];
+        let thread_mask = cpu
+            .read(thread_mask_vn)
+            .with_context(|| "couldn't get thread mask for thread mask")?
+            .to_u64()
+            .with_context(|| "couldn't convert thread mas to u64")?;
+
+        let sz = thread_mask_vn.size * 8;
+        for t in 0..(sz as u32) {
+            // Check thread for mask
+            if thread_mask & (1 << t) != 0 {
+                info!("starting thread {t} pc {:x?}", cpu.pc());
+                ev.execute_to(
+                    HexagonInterruptType::ThreadStart as ExceptionNumber,
+                    t as usize,
+                )
+                .with_context(|| "couldn't send event to cpu to start thread")?;
+            }
+        }
         Ok(PCodeStateChange::Fallthrough)
     }
 }

@@ -59,6 +59,11 @@ pub enum HexagonInterruptType {
     IntE = 0x1e,
     IntF = 0x1f,
     Halt = 0x20,
+    // From QEMU
+    K0Unlock = 0x800,
+    TlbUnlock = 0x2000,
+    // Made this up
+    ThreadStart = 0x4000,
 }
 
 #[repr(u8)]

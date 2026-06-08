@@ -43,7 +43,7 @@ pub use custom_executor::CustomExecutor;
 pub use default::DefaultExecutor;
 pub use execution_constraint::{ExecutionConstraint, ExecutionConstraintConcrete, Forever};
 pub use executor_impl::StrideExecutor;
-use log::trace;
+use log::{info, trace};
 pub use single_step::SingleStepExecutor;
 use std::time::Instant;
 use styx_cpu_type::TargetExitReason;
@@ -375,7 +375,9 @@ pub fn post_stride_processing(
 
     // Get the "latch_to" IRQs to the primary event controller (clears the latched IRQs as well)
     let vcpu_irqs = vcpus[idx].event_controller.vcpu_irqs()?;
+    info!("getting vcpu irqs");
     for (core, irq) in vcpu_irqs {
+        info!("htid {core} irq {irq}");
         vcpus[core].event_controller.execute(
             irq,
             vcpus[core].cpu.as_mut(),
