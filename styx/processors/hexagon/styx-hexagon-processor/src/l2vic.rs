@@ -13,8 +13,8 @@ use std::sync::Arc;
 use arbitrary_int::*;
 use bitbybit::{bitenum, bitfield};
 use styx_core::arch::hexagon::GlobalHexagonRegister;
-use styx_core::core::VCpuCore;
-use styx_core::event_controller::{EventControllerImpl, PrimaryEventControllerImpl};
+use styx_core::core::VcpuCore;
+use styx_core::event_controller::{EventControllerImpl, EventDistributorImpl};
 use styx_core::prelude::GlobalDelta;
 use styx_core::processor::Config;
 use styx_core::sync::styx_async::sync::broadcast;
@@ -45,16 +45,12 @@ const L2VIC_CONFIG_START: u64 = 0x100;
 /// Routes IRQs returned by peripheral ticks to the single vCPU's GIC.
 pub(crate) struct SingleVcpuIrqRouter;
 
-impl PrimaryEventControllerImpl for SingleVcpuIrqRouter {
-    fn latch(&mut self, _event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
-        Ok(())
-    }
-
+impl EventDistributorImpl for SingleVcpuIrqRouter {
     fn tick(
         &mut self,
         _delta: &GlobalDelta,
         pending_irqs: &[ExceptionNumber],
-        vcpus: &mut [VCpuCore],
+        vcpus: &mut [VcpuCore],
     ) -> Result<(), UnknownError> {
         for &irq in pending_irqs {
             vcpus[0].event_controller.latch(irq)?;
@@ -64,8 +60,9 @@ impl PrimaryEventControllerImpl for SingleVcpuIrqRouter {
 
     fn init(
         &mut self,
-        _cpu: &mut dyn CpuBackend,
-        _mmu: &mut MemoryBackend,
+        _cpu: &mut [VcpuCore],
+        _mmu: &Arc<MemoryBackend>,
+        _config: &mut Config
     ) -> Result<(), UnknownError> {
         Ok(())
     }

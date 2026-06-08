@@ -17,7 +17,7 @@ use styx_core::loader::LoaderHints;
 use styx_core::memory::physical::PhysicalMemoryVariant;
 use styx_core::memory::{MemoryBackend, MemoryPermissions, Mmu};
 use styx_core::prelude::log::info;
-use styx_core::prelude::{BuildingProcessor, Context, Peripheral, PrimaryEventController};
+use styx_core::prelude::{BuildingProcessor, Context, Peripheral, EventDistributor};
 use styx_core::{
     core::{
         builder::{BuildProcessorImplArgs, ProcessorImpl},
@@ -120,7 +120,7 @@ impl ProcessorImpl for HexagonBuilder {
                 .with_event_controller(l2vic)
                 .build()],
             memory,
-            primary_event_controller: Box::new(SingleVcpuIrqRouter),
+            event_distributor: Box::new(SingleVcpuIrqRouter),
             peripherals,
             loader_hints: hints,
         })

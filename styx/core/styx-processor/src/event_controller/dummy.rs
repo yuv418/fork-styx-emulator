@@ -2,11 +2,11 @@
 use log::{debug, warn};
 use styx_errors::UnknownError;
 
-use crate::{
-    cpu::CpuBackend,
+ use crate::{
+     cpu::CpuBackend,
     memory::{MemoryBackend, Mmu},
-    processor::Config,
-};
+     processor::Config,
+ };
 
 use super::{
     ActivateIRQnError, EventControllerImpl, EventDistributorImpl, ExceptionNumber,

@@ -401,7 +401,8 @@ where
                             count: cycles.saturating_sub(self.last_tick_cycles[vcpu_idx]),
                         };
                         if let Err(e) = styx_core::executor::post_stride_processing(
-                            &mut self.vcpus[vcpu_idx],
+                            &mut self.vcpus,
+                            vcpu_idx,
                             &delta,
                         ) {
                             error!("post_stride_processing error: {e}");

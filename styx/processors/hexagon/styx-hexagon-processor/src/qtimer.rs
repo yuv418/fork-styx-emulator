@@ -14,11 +14,11 @@ use std::{
 };
 
 use styx_core::{
-    core::VCpuCore,
+    core::VcpuCore,
     cpu::CpuBackend,
     errors::UnknownError,
     event_controller::{
-        EventControllerImpl, PeripheralTickCtx, PrimaryEventControllerImpl, RaisedIrqs,
+        EventControllerImpl, PeripheralTickCtx, EventDistributorImpl, RaisedIrqs,
     },
     hooks::CoreHandle,
     macros::peripheral_shared_state,
@@ -641,28 +641,18 @@ impl Peripheral for QTimer {
         vec![]
     }
 
-    fn post_event_hook(
-        &mut self,
-        _cpu: &mut dyn CpuBackend,
-        _mmu: &mut Mmu,
-        _event_controller: &mut dyn PrimaryEventControllerImpl,
-        _irqn: ExceptionNumber,
-    ) -> Result<(), styx_core::prelude::UnknownError> {
-        Ok(())
-    }
-
     fn on_processor_start(
         &mut self,
-        _vcpus: &mut [VCpuCore],
-        _event_controller: &mut dyn PrimaryEventControllerImpl,
+        _vcpus: &mut [VcpuCore],
+        _event_controller: &mut dyn EventDistributorImpl,
     ) -> Result<(), styx_core::prelude::UnknownError> {
         Ok(())
     }
 
     fn on_processor_stop(
         &mut self,
-        _vcpus: &mut [VCpuCore],
-        _event_controller: &mut dyn PrimaryEventControllerImpl,
+        _vcpus: &mut [VcpuCore],
+        _event_controller: &mut dyn EventDistributorImpl,
     ) -> Result<(), styx_core::prelude::UnknownError> {
         Ok(())
     }

@@ -15,7 +15,7 @@ use crate::{
     memory::{physical::MemoryBackend, Mmu},
     plugins::{Plugin, Plugins},
     processor::{Config, EmulationReport},
-use crate::core::{ProcessorCore, VCpuCore};
+use crate::core::{ProcessorCore, VcpuCore};
 use crate::cpu::DummyBackend;
 use crate::event_controller::{
     processor::Config, DummyPrimaryEventController, EventController, EventControllerImpl,

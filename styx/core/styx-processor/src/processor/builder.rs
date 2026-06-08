@@ -34,9 +34,9 @@ use crate::plugins::UninitPlugin;
 use crate::processor::{config::Config, ProcessorConfig};
 use crate::runtime::ProcessorRuntime;
 
- /// Unpacked components of a [`VCpuBundle`], held pre-`Arc` so ECs can be initialised
+ /// Unpacked components of a [`VcpuBundle`], held pre-`Arc` so ECs can be initialised
  /// before memory is shared.
- type VCpuParts = (
+ type VcpuParts = (
     Box<dyn CpuBackendBuilding>,
     Box<dyn TlbImpl>,
     Box<dyn EventControllerImpl>,
@@ -411,7 +411,7 @@ impl<'a> ProcessorBuilder<'a> {
 
         let memory = Arc::new(memory);
 
-        // Build VCpuCores now that memory is wrapped in Arc.
+        // Build VcpuCores now that memory is wrapped in Arc.
         let mut vcpus: Vec<VcpuCore> = vcpu_data
             .into_iter()
             .enumerate()
