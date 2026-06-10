@@ -25,6 +25,10 @@ use test_case::test_case;
 #[test_case(hexagon_tests::TEST_FASTINT)]
 #[test_case(hexagon_tests::TEST_FASTL2VIC)]
 #[test_case(hexagon_tests::TEST_LEVELINT)]
+#[test_case(hexagon_tests::TEST_K0LOCK)]
+#[test_case(hexagon_tests::TEST_K0LOCK_SYSCFG)]
+#[test_case(hexagon_tests::TEST_TEST_THREAD)]
+#[test_case(hexagon_tests::TEST_TLBLOCK)]
 #[test_case(hexagon_tests::TEST_CIAD_SIAD)]
 #[test_case(hexagon_tests::TEST_PENDALOT)]
 fn test_qemu_hexagon_testing_unittests(test: TestData) {
@@ -59,8 +63,13 @@ fn test_qemu_hexagon_testing_unittests(test: TestData) {
     // This blocks, so retrieving the semihosting buffer populated
     // in the second thread after this is okay since by then the process
     // will have exited
-    let res = proc.run(Forever).expect("Proc did not run properly");
-    assert_eq!(res.exit_reason, TargetExitReason::HostStopRequest);
+    let res = proc.run_multi(Forever).expect("Proc did not run properly");
+    for core_res in res {
+        assert!(
+            core_res.exit_reason == TargetExitReason::OtherCoreExited
+                || core_res.exit_reason == TargetExitReason::HostStopRequest
+        );
+    }
 
     let obuf = output_buffer
         .lock()

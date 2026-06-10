@@ -28,6 +28,11 @@ use crate::{
     HexagonPcodeBackend, PCodeStateChange,
 };
 
+use styx_sync::lazy_static;
+lazy_static! {
+    static ref LLSC_MAP: Arc<Mutex<BTreeMap<u64, Load>>> = Arc::new(Mutex::new(BTreeMap::new()));
+}
+
 /// Handle memw_phys instruction, see 11.9.2 "Load from physical address"
 /// for more information.
 #[derive(Debug)]
@@ -100,7 +105,6 @@ impl<T: CpuBackend> CallOtherCallback<T> for MemHandler {
 
 #[derive(Debug)]
 struct MemLoadlinkedHandler {
-    llsc_map: Arc<Mutex<BTreeMap<u64, Load>>>,
     size: usize,
 }
 
@@ -125,7 +129,7 @@ impl<T: CpuBackend + 'static> CallOtherCallback<T> for MemLoadlinkedHandler {
 
         match mmu.virt_load_linked_data(addr, self.size, cpu) {
             Ok(load_value) => {
-                let mut llsc = self.llsc_map.lock().expect("couldn't lock llsc map");
+                let mut llsc = LLSC_MAP.lock().expect("couldn't lock llsc map");
 
                 // Now write to output varnode
                 let sized_value_write =
@@ -163,9 +167,7 @@ impl<T: CpuBackend + 'static> CallOtherCallback<T> for MemLoadlinkedHandler {
 // Both the slaspec implementations will need to be reworked when we
 // get multicore, since we will then need a global lock across cores
 #[derive(Debug)]
-struct MemLockedHandler {
-    llsc_map: Arc<Mutex<BTreeMap<u64, Load>>>,
-}
+struct MemLockedHandler {}
 
 impl<T: CpuBackend + 'static> CallOtherCallback<T> for MemLockedHandler {
     fn handle(
@@ -200,7 +202,7 @@ impl<T: CpuBackend + 'static> CallOtherCallback<T> for MemLockedHandler {
         // Look up load information for store conditional
 
         // Predicate result of our operation
-        let mut llsc_map = self.llsc_map.lock().expect("couldn't lock LLSC map");
+        let mut llsc_map = LLSC_MAP.lock().expect("couldn't lock LLSC map");
         let store_result = match llsc_map.remove(&rs_val) {
             Some(load) => {
                 trace!(
@@ -248,44 +250,26 @@ pub fn add_mem_callothers<S: SlaUserOps<UserOps: FromStr>>(
         .add_handler_other_sla(HexagonUserOps::MemwPhys, MemHandler {})
         .unwrap();
 
-    let llsc_map = Arc::new(Mutex::new(BTreeMap::new()));
-
     // Load linked
     spec.call_other_manager
         .add_handler_other_sla(
             HexagonUserOps::MemwLoadlinked,
-            MemLoadlinkedHandler {
-                llsc_map: llsc_map.clone(),
-                size: 4,
-            },
+            MemLoadlinkedHandler { size: 4 },
         )
         .unwrap();
     spec.call_other_manager
         .add_handler_other_sla(
             HexagonUserOps::MemdLoadlinked,
-            MemLoadlinkedHandler {
-                llsc_map: llsc_map.clone(),
-                size: 8,
-            },
+            MemLoadlinkedHandler { size: 8 },
         )
         .unwrap();
 
     // Store conditional
     spec.call_other_manager
-        .add_handler_other_sla(
-            HexagonUserOps::MemwLocked,
-            MemLockedHandler {
-                llsc_map: llsc_map.clone(),
-            },
-        )
+        .add_handler_other_sla(HexagonUserOps::MemwLocked, MemLockedHandler {})
         .unwrap();
 
     spec.call_other_manager
-        .add_handler_other_sla(
-            HexagonUserOps::MemdLocked,
-            MemLockedHandler {
-                llsc_map: llsc_map.clone(),
-            },
-        )
+        .add_handler_other_sla(HexagonUserOps::MemdLocked, MemLockedHandler {})
         .unwrap();
 }
