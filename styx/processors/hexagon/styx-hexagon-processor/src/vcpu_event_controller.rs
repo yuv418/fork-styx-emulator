@@ -109,8 +109,8 @@ impl EventControllerImpl for HexagonVcpuEventController {
         mmu: &mut Mmu,
     ) -> Result<InterruptExecuted, ActivateIRQnError> {
         // These should hapen with the CPU
-        if (irq == HexagonInterruptType::Sleep as i32
-            || irq == HexagonInterruptType::Wake as i32
+        if (irq == HexagonInterruptType::LockSleep as i32
+            || irq == HexagonInterruptType::LockWake as i32
             || irq == HexagonInterruptType::ThreadStart as i32
             || irq == HexagonInterruptType::ThreadStop as i32)
         {

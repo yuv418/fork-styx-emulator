@@ -22,12 +22,6 @@ use styx_processor::{
 };
 use styx_sync::lazy_static;
 
-// TODO: hexagon max threads
-lazy_static! {
-    static ref LOCK_STATE: Mutex<SmallVec<[HexagonLockState; 16]>> =
-        Mutex::new(smallvec![HexagonLockState::Unlocked; 16]);
-}
-
 use crate::{
     arch_spec::ArchSpecBuilder,
     call_other::{CallOtherCallback, CallOtherCpu, CallOtherHandleError},
@@ -40,15 +34,6 @@ use super::interrupt::HexagonInterruptType;
 pub enum HexagonLockType {
     K0,
     Tlb,
-}
-
-/// QEMU target/hexagon/op_helper.c I think.
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
-pub enum HexagonLockState {
-    Unlocked,
-    LockHeld,
-    Queued,
-    Waiting,
 }
 
 #[derive(Debug)]
@@ -64,86 +49,17 @@ impl<T: CpuBackend> CallOtherCallback<T> for HardwareLock {
         _inputs: &[VarnodeData],
         _output: Option<&VarnodeData>,
     ) -> Result<PCodeStateChange, CallOtherHandleError> {
-        let syscfg = Syscfg::new_with_raw_value(
-            cpu.read_register::<u32>(GlobalHexagonRegister::SysCfg)
-                .with_context(|| "couldn't read Syscfg register")?,
-        );
-
-        let lock = match self.lock_type {
-            HexagonLockType::K0 => syscfg.k0lock(),
-            HexagonLockType::Tlb => syscfg.tlblock(),
-        };
-
-        let htid = cpu
-            .read_register::<u32>(HexagonRegister::Htid)
-            .with_context(|| "couldn't read htid register")?;
-
-        let lock_state_this_thread = {
-            let lock_state = LOCK_STATE.lock().unwrap();
-            lock_state[htid as usize]
-        };
-
-        let mut give_lock = || -> Result<PCodeStateChange, CallOtherHandleError> {
-            let mut lock_state = LOCK_STATE.lock().unwrap();
-
-            // The lock is acquired
-            cpu.write_register(
-                GlobalHexagonRegister::SysCfg,
-                match self.lock_type {
-                    HexagonLockType::K0 => syscfg.with_k0lock(true),
-                    HexagonLockType::Tlb => syscfg.with_tlblock(true),
-                }
-                .raw_value(),
-            )
-            .with_context(|| "couldn't write syscfg")?;
-
-            lock_state[htid as usize] = HexagonLockState::LockHeld;
-            Ok(PCodeStateChange::Fallthrough)
-        };
-
-        // Already locked... according to hexagon QEMU in target/hexagon/op_helper.c,
-        // must halt if double locked.
-        //
-        // TODO: queuing when multithread. When the thread is unlocked, we take the thread to unlock
-        // and set its lock status to queued. Then the waiting thread is awoken.
-        if lock {
-            match lock_state_this_thread {
-                HexagonLockState::LockHeld => {
-                    // Halting interrupt. According to qemu, the same thread that holds the lock locking itself
-                    // would be a double interrupt. (deadlocks?)
-                    warn!("htid {htid} tried to lock twice");
-
-                    cpu.handle_event(mmu, HexagonInterruptType::Sleep as ExceptionNumber)?;
-                    Ok(PCodeStateChange::Exit(
-                        TargetExitReason::InstructionCountComplete,
-                    ))
-                }
-                // We need to queue the lock.
-                HexagonLockState::Unlocked => {
-                    let mut lock_state = LOCK_STATE.lock().unwrap();
-                    lock_state[htid as usize] = HexagonLockState::Waiting;
-
-                    info!("lock held but {htid} wants it, halting {htid} till lock released");
-
-                    cpu.handle_event(mmu, HexagonInterruptType::Sleep as ExceptionNumber)?;
-                    Ok(PCodeStateChange::Exit(
-                        TargetExitReason::InstructionCountComplete,
-                    ))
-                }
-                // If we are running the instruction with this, then we
-                // need to give it the lock now.
-                HexagonLockState::Queued => {
-                    debug!("lock was held but {htid} was queued, giving lock to thread {htid}");
-                    give_lock()
-                }
-                _ => unreachable!(),
-            }
-        }
-        // No one else
-        else {
-            debug!("lock not held by anyone, giving lock to thread {htid}");
-            give_lock()
-        }
+        ev.execute_primary(
+            match self.lock_type {
+                HexagonLockType::K0 => HexagonInterruptType::K0lockInstruction,
+                HexagonLockType::Tlb => HexagonInterruptType::TlblockInstruction,
+            } as i32,
+            0,
+        )
+        .with_context(|| "couldn't execute instruction to primary EC")?;
+        Ok(PCodeStateChange::ExitRerun(
+            TargetExitReason::InstructionCountComplete,
+        ))
     }
 }
 
@@ -160,82 +76,17 @@ impl<T: CpuBackend> CallOtherCallback<T> for HardwareUnlock {
         _inputs: &[VarnodeData],
         _output: Option<&VarnodeData>,
     ) -> Result<PCodeStateChange, CallOtherHandleError> {
-        let syscfg = Syscfg::new_with_raw_value(
-            cpu.read_register::<u32>(GlobalHexagonRegister::SysCfg)
-                .with_context(|| "couldn't read Syscfg register")?,
-        );
-
-        let lock = match self.lock_type {
-            HexagonLockType::K0 => syscfg.k0lock(),
-            HexagonLockType::Tlb => syscfg.tlblock(),
-        };
-        let htid = cpu
-            .read_register::<u32>(HexagonRegister::Htid)
-            .with_context(|| "couldn't read htid register")?;
-
-        // Never had the lock
-        if !lock {
-            // Halting interrupt. According to qemu, this would be a double interrupt.
-            warn!("{:?} never unlocked", self.lock_type);
-            Ok(PCodeStateChange::Fallthrough)
-        }
-        // According to hexagon QEMU (hex-next quic qemu) in target/hexagon/op_helper.c,
-        // we must use a round-robin method of choosing the next thread to get the lock.
-        // Since we are single-threaded, we can just unlock.
-        else {
-            let mut lock_state = LOCK_STATE.lock().unwrap();
-
-            if lock_state[htid as usize] != HexagonLockState::LockHeld {
-                warn!("htid {htid} tried to unlock a lock that is not held by them!!");
-                Ok(PCodeStateChange::Fallthrough)
-            } else {
-                // The lock is released
-                cpu.write_register(
-                    GlobalHexagonRegister::SysCfg,
-                    match self.lock_type {
-                        HexagonLockType::K0 => syscfg.with_k0lock(false),
-                        HexagonLockType::Tlb => syscfg.with_tlblock(false),
-                    }
-                    .raw_value(),
-                )
-                .with_context(|| "couldn't write syscfg")?;
-
-                // Now figure out if anyone else is getting the lock.
-                for i in 0..lock_state.len() {
-                    // Adjust
-                    let i = (htid as usize + i) % lock_state.len();
-
-                    if let HexagonLockState::Waiting = lock_state[i] {
-                        // Give them the lock
-                        info!("in tlbunlock, giving htid {i} the lock");
-                        let syscfg = Syscfg::new_with_raw_value(
-                            cpu.read_register::<u32>(GlobalHexagonRegister::SysCfg)
-                                .with_context(|| "couldn't read syscfg")?,
-                        );
-
-                        cpu.write_register(
-                            GlobalHexagonRegister::SysCfg,
-                            match self.lock_type {
-                                HexagonLockType::K0 => syscfg.with_k0lock(false),
-                                HexagonLockType::Tlb => syscfg.with_tlblock(false),
-                            }
-                            .raw_value(),
-                        )
-                        .with_context(|| "couldn't write syscfg")?;
-
-                        lock_state[i] = HexagonLockState::Queued;
-
-                        ev.execute_to(HexagonInterruptType::Wake as ExceptionNumber, i as usize)
-                            .with_context(|| "couldn't execute K0 unlock to other vcpu")?;
-
-                        break;
-                        // ipend check that QEMU does
-                    }
-                }
-
-                Ok(PCodeStateChange::Fallthrough)
-            }
-        }
+        ev.execute_primary(
+            match self.lock_type {
+                HexagonLockType::K0 => HexagonInterruptType::K0UnlockInstruction,
+                HexagonLockType::Tlb => HexagonInterruptType::TlbUnlockInstruction,
+            } as i32,
+            0,
+        )
+        .with_context(|| "couldn't execute instruction to primary EC")?;
+        Ok(PCodeStateChange::Exit(
+            TargetExitReason::InstructionCountComplete,
+        ))
     }
 }
 

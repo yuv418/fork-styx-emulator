@@ -59,19 +59,16 @@ impl<T: CpuBackend> CallOtherCallback<T> for StartHandler {
 
         info!("start handler with {thread_mask:x}");
 
-        let sz = thread_mask_vn.size * 8;
-        for t in 0..(sz as u32) {
-            // Check thread for mask
-            if thread_mask & (1 << t) != 0 {
-                info!("starting thread {t} pc {:x?}", cpu.pc());
-                ev.execute_to(
-                    HexagonInterruptType::ThreadStart as ExceptionNumber,
-                    t as usize,
-                )
-                .with_context(|| "couldn't send event to cpu to start thread")?;
-            }
-        }
-        Ok(PCodeStateChange::Fallthrough)
+        // need to make it so that this thread doesn't just switch to a different one with this.
+        ev.execute_primary(
+            HexagonInterruptType::StartInstruction as i32,
+            thread_mask as u64,
+        )
+        .with_context(|| "couldn't execute instruction to primary EC")?;
+
+        Ok(PCodeStateChange::Exit(
+            TargetExitReason::InstructionCountComplete,
+        ))
     }
 }
 

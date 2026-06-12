@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //! `ProcessorBuilder` logic and utilities
 use std::borrow::Cow;
-use std::sync::{Arc, RwLock};
 use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use crate::loader::{Loader, LoaderHints, RawLoader};
 use log::{debug, info};
@@ -17,7 +17,8 @@ use tonic::transport::Server;
 
 use super::{Processor, SyncProcessor};
 use crate::core::builder::{
-    BuildProcessorImplArgs, CpuBackendBuilding, ProcessorImpl, UnimplementedProcessorImpl, VcpuBundle
+    BuildProcessorImplArgs, CpuBackendBuilding, ProcessorImpl, UnimplementedProcessorImpl,
+    VcpuBundle,
 };
 use crate::core::ProcessorBundle;
 use crate::core::{ExceptionBehavior, ProcMeta, ProcessorCore, VcpuCore};
@@ -34,9 +35,9 @@ use crate::plugins::UninitPlugin;
 use crate::processor::{config::Config, ProcessorConfig};
 use crate::runtime::ProcessorRuntime;
 
- /// Unpacked components of a [`VcpuBundle`], held pre-`Arc` so ECs can be initialised
- /// before memory is shared.
- type VcpuParts = (
+/// Unpacked components of a [`VcpuBundle`], held pre-`Arc` so ECs can be initialised
+/// before memory is shared.
+type VcpuParts = (
     Box<dyn CpuBackendBuilding>,
     Box<dyn TlbImpl>,
     Box<dyn EventControllerImpl>,
@@ -359,7 +360,7 @@ impl<'a> ProcessorBuilder<'a> {
         bundle: ProcessorBundle,
         builder: Box<dyn ProcessorImpl>,
     ) -> Result<Processor, UnknownError> {
-	let mut runtime = self.runtime;
+        let mut runtime = self.runtime;
 
         let ipc_resolved_port = runtime
             .handle()
@@ -381,45 +382,41 @@ impl<'a> ProcessorBuilder<'a> {
             )
             .collect();
 
-	// Determine whether we have global registers. If so, initialize a store for them and
-	// share the register store with each Vcpu. 
-	let global_registers_size = vcpu_data[0].0.architecture().registers().global_registers_size();
+        // Determine whether we have global registers. If so, initialize a store for them and
+        // share the register store with each Vcpu.
+        let global_registers_size = vcpu_data[0]
+            .0
+            .architecture()
+            .registers()
+            .global_registers_size();
+
         info!("got global register size: {global_registers_size:x}");
-	if global_registers_size > 0 {
-	    let backing_store = {
-		let mut tmp : Box<dyn GlobalRegisterStore>  = Box::new(RwLock::new(Vec::new()));
-		// Fill in backing store.
-		tmp.initialize(global_registers_size)?;
+        if global_registers_size > 0 {
+            let backing_store = {
+                let mut tmp: Box<dyn GlobalRegisterStore> = Box::new(RwLock::new(Vec::new()));
+                // Fill in backing store.
+                tmp.initialize(global_registers_size)?;
 
-		// Move to Arc
-		Arc::new(tmp)
-	    };
+                // Move to Arc
+                Arc::new(tmp)
+            };
 
-	    // Put the backing store in each vcpu.
-	    // This does nothing if the backing store does not handle global registers.
-	    for (vcpu, _, _ ) in &mut vcpu_data {
-		vcpu.add_global_registers(backing_store.clone())?;
-	    }
-	}
-	
-	
+            // Put the backing store in each vcpu.
+            // This does nothing if the backing store does not handle global registers.
+            for (vcpu, _, _) in &mut vcpu_data {
+                vcpu.add_global_registers(backing_store.clone())?;
+            }
+        }
+
         if let Some((cpu, _, _)) = vcpu_data.first_mut() {
-	    builder.post_shared_state_setup(cpu.as_mut(), &mut memory, &mut self.config)?;
-	}
+            builder.post_shared_state_setup(cpu.as_mut(), &mut memory, &mut self.config)?;
+        }
 
         // Init each secondary EC before memory is moved into Arc.
         for (cpu, _, ec_impl) in &mut vcpu_data {
             ec_impl.init(cpu.as_mut(), &mut memory, &mut self.config)?;
         }
 
-        let mut primary_ec_impl = bundle.primary_event_controller;
-        if let Some((cpu, _, _)) = vcpu_data.first_mut() {
-             primary_ec_impl.init(cpu.as_mut(), &mut memory, &mut self.config)?;
-         } else {
-             let _dummy: Box<dyn CpuBackend> = Box::new(crate::cpu::DummyBackend);
-             // primary_ec_impl.init(dummy.as_mut(), &mut memory)?;
-         }
- 
         let memory = Arc::new(memory);
 
         // Build VcpuCores now that memory is wrapped in Arc.
@@ -471,7 +468,7 @@ impl<'a> ProcessorBuilder<'a> {
                 .context("failed to add initial processor hooks")?;
         }
 
-	let mut building_processor = BuildingProcessor {
+        let mut building_processor = BuildingProcessor {
             vcpus: &mut vcpus,
             core: &mut core,
             runtime: &mut runtime,

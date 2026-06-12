@@ -22,7 +22,9 @@ use self::{
     register_manager::RegisterManager,
 };
 use arch_spec::{build_arch_spec, ArchPcManager, GeneratorHelp, GeneratorHelper, PcManager};
-pub use arch_spec::{HexagonInterruptCause, HexagonInterruptType, HexagonPcodeBackend};
+pub use arch_spec::{
+    HexagonInterruptCause, HexagonInterruptType, HexagonLockType, HexagonPcodeBackend,
+};
 use call_other::CallOtherManager;
 use derivative::Derivative;
 use log::trace;
@@ -75,6 +77,8 @@ pub(crate) enum PCodeStateChange {
     /// Trigger interrupt as soon as possible. This is used for a TLB exception.
     Exception(i32),
     Exit(TargetExitReason),
+    /// Exit and advance the PC
+    ExitRerun(TargetExitReason),
 }
 
 struct MachineState {
@@ -414,6 +418,7 @@ impl BackendHelper<u64, Pcode> for PcodeBackend {
                     return Ok(Ok(bytes_consumed)); // Don't increment PC
                 }
                 PCodeStateChange::Exit(reason) => return Ok(Err(reason)),
+                _ => unimplemented!(),
             }
         }
         let mut pc_manager = self.pc_manager.take().unwrap();

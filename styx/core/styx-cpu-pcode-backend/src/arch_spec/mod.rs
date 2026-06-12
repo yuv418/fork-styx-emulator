@@ -54,7 +54,9 @@ mod generator_helper;
 mod pc_manager;
 
 pub use generator_helper::{GeneratorHelp, GeneratorHelper, CONTEXT_OPTION_LEN};
-pub use hexagon::{backend::HexagonPcodeBackend, HexagonInterruptCause, HexagonInterruptType};
+pub use hexagon::{
+    backend::HexagonPcodeBackend, HexagonInterruptCause, HexagonInterruptType, HexagonLockType,
+};
 pub(crate) use pc_manager::{ArchPcManager, PcManager};
 use styx_pcode::sla::{SlaSpec, SlaUserOps};
 use styx_pcode_translator::sla::SlaRegisters;

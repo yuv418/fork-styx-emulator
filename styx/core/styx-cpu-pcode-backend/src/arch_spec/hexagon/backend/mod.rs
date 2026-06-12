@@ -122,6 +122,7 @@ pub enum HexagonSingleInstructionAction {
     PcChange(u64),
     Rerun,
     None,
+    Exit(TargetExitReason),
 }
 
 #[derive(Clone, Debug)]
@@ -332,6 +333,7 @@ impl BackendHelper<HexagonExecuteSingleInfo, Vec<Pcode>> for HexagonPcodeBackend
     ) -> Result<Result<HexagonExecuteSingleInfo, TargetExitReason>, UnknownError> {
         let mut branched_pc: Option<u64> = None;
         let mut delayed_irqn: Option<i32> = None;
+        let mut delayed_exit: Option<TargetExitReason> = None;
         let mut total_instrs_executed = 0;
         let mut execution_regs_written: SmallVec<[VarnodeData; DEFAULT_REG_ALLOCATION]> =
             smallvec![];
@@ -419,6 +421,7 @@ impl BackendHelper<HexagonExecuteSingleInfo, Vec<Pcode>> for HexagonPcodeBackend
                 Some(i),
                 &fetch_decode_data.load_store_slot_info,
             )? {
+                Ok(HexagonSingleInstructionAction::Exit(reason)) => delayed_exit = Some(reason),
                 Ok(HexagonSingleInstructionAction::DelayedInterrupt(irqn)) => {
                     delayed_irqn = Some(irqn);
                 }
@@ -468,6 +471,7 @@ impl BackendHelper<HexagonExecuteSingleInfo, Vec<Pcode>> for HexagonPcodeBackend
             None,
             &load_store_info_flush,
         )? {
+            Ok(HexagonSingleInstructionAction::Exit(reason)) => delayed_exit = Some(reason),
             // Only handle if there was actually an IRQ request
             Ok(HexagonSingleInstructionAction::DelayedInterrupt(irqn)) => {
                 delayed_irqn = Some(irqn);
@@ -500,6 +504,11 @@ impl BackendHelper<HexagonExecuteSingleInfo, Vec<Pcode>> for HexagonPcodeBackend
         if let Some(irqn) = delayed_irqn {
             trace!("delayed irqn hook");
             HookManager::trigger_interrupt_hook(self, mmu, ev, irqn)?;
+        }
+
+        if let Some(reason) = delayed_exit {
+            info!("exiting hexagon {:x?}", self.pc());
+            return Ok(Err(reason));
         }
 
         Ok(Ok(HexagonExecuteSingleInfo {
@@ -664,10 +673,10 @@ impl CpuBackend for HexagonPcodeBackend {
         number: ExceptionNumber,
     ) -> Result<(), UnknownError> {
         match number {
-            n if (n == HexagonInterruptType::Wake as i32) => {
+            n if (n == HexagonInterruptType::LockWake as i32) => {
                 self.running = true;
             }
-            n if (n == HexagonInterruptType::Sleep as i32) => {
+            n if (n == HexagonInterruptType::LockSleep as i32) => {
                 self.running = false;
             }
             // Don't stop an already stopped thread
@@ -893,6 +902,7 @@ impl HexagonPcodeBackend {
         let total_pcodes = pcodes.len();
 
         let mut delayed_irqn: Option<i32> = None;
+        let mut delayed_exit: Option<TargetExitReason> = None;
 
         while i < total_pcodes {
             let current_pcode = &pcodes[i];
@@ -948,15 +958,26 @@ impl HexagonPcodeBackend {
                     return Ok(Ok(HexagonSingleInstructionAction::Rerun));
                     // Don't increment PC
                 }
-                PCodeStateChange::Exit(reason) => return Ok(Err(reason)),
+                PCodeStateChange::Exit(reason) => {
+                    delayed_exit = Some(reason);
+                    i += 1;
+                }
+                PCodeStateChange::ExitRerun(reason) => {
+                    return Ok(Err(reason));
+                }
             }
         }
 
         // Delayed IRQ should run at the end of a packet, not at the end of
         // an instruction
-        match delayed_irqn {
-            Some(irqn) => Ok(Ok(HexagonSingleInstructionAction::DelayedInterrupt(irqn))),
-            None => Ok(Ok(HexagonSingleInstructionAction::None)),
+
+        match delayed_exit {
+            Some(reason) => return Ok(Ok(HexagonSingleInstructionAction::Exit(reason))),
+            None => match delayed_irqn {
+                Some(irqn) => Ok(Ok(HexagonSingleInstructionAction::DelayedInterrupt(irqn))),
+                None => Ok(Ok(HexagonSingleInstructionAction::None)),
+            },
+            _ => unreachable!(),
         }
     }
 

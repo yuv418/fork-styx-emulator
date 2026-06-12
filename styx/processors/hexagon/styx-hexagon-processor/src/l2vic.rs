@@ -12,8 +12,10 @@ use std::sync::{Arc, Mutex};
 
 use arbitrary_int::*;
 use bitbybit::{bitenum, bitfield};
+use smallvec::{smallvec, SmallVec};
 use styx_core::arch::hexagon::GlobalHexagonRegister;
 use styx_core::core::VcpuCore;
+use styx_core::cpu::HexagonLockType;
 use styx_core::event_controller::{EventControllerImpl, EventDistributorImpl};
 use styx_core::macros::peripheral_shared_state;
 use styx_core::prelude::GlobalDelta;
@@ -36,6 +38,7 @@ use styx_core::{
 };
 
 use crate::shared_state_hooks::{peripheral_shared_state_read, peripheral_shared_state_write};
+use crate::thread_instructions::{self, HexagonLockState};
 use crate::write_cfgtable_field;
 use crate::{angel, config::HexagonProcessorConfig};
 
@@ -295,6 +298,8 @@ pub struct L2Vic {
     vid_irq_base: Option<u64>,
     #[shared]
     fastl2vic_base: Option<u64>,
+    k0lock_state: Mutex<SmallVec<[HexagonLockState; 16]>>,
+    tlblock_state: Mutex<SmallVec<[HexagonLockState; 16]>>,
 }
 
 impl Default for L2Vic {
@@ -309,6 +314,9 @@ impl Default for L2Vic {
                 vid_irq_base: None,
                 fastl2vic_base: None,
             })),
+
+            k0lock_state: Mutex::new(smallvec![HexagonLockState::Unlocked; 16]),
+            tlblock_state: Mutex::new(smallvec![HexagonLockState::Unlocked; 16]),
         }
     }
 }
@@ -729,6 +737,66 @@ impl EventDistributorImpl for L2Vic {
     fn latch(&mut self, event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
         trace!("l2vic latch called with event {event}");
         self.lock().latch(event)
+    }
+
+    fn execute(
+        &mut self,
+        vcpu_idx: usize,
+        value: u64,
+        irq: ExceptionNumber,
+        vcpus: &mut [VCpuCore],
+    ) -> Result<InterruptExecuted, ActivateIRQnError> {
+        let interrupt_type = HexagonInterruptType::from(irq);
+        match interrupt_type {
+            HexagonInterruptType::StartInstruction => {
+                thread_instructions::start(vcpu_idx, irq, value, vcpus)
+            }
+            HexagonInterruptType::K0lockInstruction => {
+                let mut lock_state = self.k0lock_state.lock().unwrap();
+                thread_instructions::lock(
+                    vcpu_idx,
+                    irq,
+                    value,
+                    vcpus,
+                    HexagonLockType::K0,
+                    &mut lock_state,
+                )
+            }
+            HexagonInterruptType::K0UnlockInstruction => {
+                let mut lock_state = self.k0lock_state.lock().unwrap();
+                thread_instructions::unlock(
+                    vcpu_idx,
+                    irq,
+                    value,
+                    vcpus,
+                    HexagonLockType::K0,
+                    &mut lock_state,
+                )
+            }
+            HexagonInterruptType::TlblockInstruction => {
+                let mut lock_state = self.tlblock_state.lock().unwrap();
+                thread_instructions::lock(
+                    vcpu_idx,
+                    irq,
+                    value,
+                    vcpus,
+                    HexagonLockType::Tlb,
+                    &mut lock_state,
+                )
+            }
+            HexagonInterruptType::TlbUnlockInstruction => {
+                let mut lock_state = self.tlblock_state.lock().unwrap();
+                thread_instructions::unlock(
+                    vcpu_idx,
+                    irq,
+                    value,
+                    vcpus,
+                    HexagonLockType::Tlb,
+                    &mut lock_state,
+                )
+            }
+            _ => unreachable!(),
+        }
     }
 
     fn init(

@@ -69,7 +69,7 @@ impl PrimaryEventControllerImpl for Ppc4xxPrimaryEventController {
         &mut self,
         _cpu: &mut dyn CpuBackend,
         _mmu: &mut MemoryBackend,
-	_config: &mut Config,
+        _config: &mut Config,
     ) -> Result<(), UnknownError> {
         Ok(())
     }

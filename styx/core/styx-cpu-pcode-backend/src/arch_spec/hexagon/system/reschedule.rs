@@ -24,7 +24,7 @@ use styx_processor::{
 use crate::{
     arch_spec::ArchSpecBuilder,
     call_other::{CallOtherCallback, CallOtherCpu, CallOtherHandleError},
-    HexagonPcodeBackend, PCodeStateChange,
+    HexagonInterruptType, HexagonPcodeBackend, PCodeStateChange,
 };
 
 fn resched() {}
@@ -39,7 +39,7 @@ impl<T: CpuBackend + 'static> CallOtherCallback<T> for SetprioHandler {
         &mut self,
         cpu: &mut dyn CallOtherCpu<T>,
         mmu: &mut Mmu,
-        _ev: &mut EventController,
+        ev: &mut EventController,
         inputs: &[VarnodeData],
         _output: Option<&VarnodeData>,
     ) -> Result<PCodeStateChange, CallOtherHandleError> {
@@ -70,10 +70,6 @@ impl<T: CpuBackend + 'static> CallOtherCallback<T> for SetprioHandler {
 
         panic!("setprio called with {predicate_thread:x} {priority:x}");
 
-        let pcode_backend = cpu
-            .downcast_mut::<HexagonPcodeBackend>()
-            .with_context(|| "expected a Hexagon pcode backend!")?;
-
         let thread_mask = (1 << pcode_backend.num_hthreads()) - 1;
 
         // Right now, we only have one thread.
@@ -95,7 +91,7 @@ impl<T: CpuBackend + 'static> CallOtherCallback<T> for SetprioHandler {
             .with_context(|| "couldn't write Stid in setprio")?;
 
             // Triger resched
-            resched();
+            ev.execute_primary(HexagonInterruptType::Resched as i32, 0);
 
             Ok(PCodeStateChange::Fallthrough)
         }

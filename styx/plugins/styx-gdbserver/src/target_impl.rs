@@ -402,6 +402,7 @@ where
                         };
                         if let Err(e) = styx_core::executor::post_stride_processing(
                             &mut self.vcpus,
+                            &mut self.core.event_controller,
                             vcpu_idx,
                             &delta,
                         ) {

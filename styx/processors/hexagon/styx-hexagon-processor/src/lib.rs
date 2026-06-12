@@ -18,8 +18,8 @@ use styx_core::loader::LoaderHints;
 use styx_core::memory::physical::PhysicalMemoryVariant;
 use styx_core::memory::{MemoryBackend, MemoryPermissions, Mmu};
 use styx_core::prelude::log::info;
-use styx_core::prelude::{BuildingProcessor, Context, Peripheral, EventDistributor};
 use styx_core::prelude::{BuildingProcessor, Config, Context, Peripheral, PrimaryEventController};
+use styx_core::prelude::{BuildingProcessor, Context, EventDistributor, Peripheral};
 use styx_core::{
     core::{
         builder::{BuildProcessorImplArgs, ProcessorImpl},
@@ -41,6 +41,7 @@ mod config;
 mod l2vic;
 mod qtimer;
 mod shared_state_hooks;
+mod thread_instructions;
 mod tlb;
 mod vcpu_event_controller;
 

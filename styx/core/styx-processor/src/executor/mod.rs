@@ -264,7 +264,7 @@ impl RunnerState {
             });
         }
 
-        post_stride_processing(vcpus, idx, &delta)?;
+        post_stride_processing(vcpus, primary_ev, idx, &delta)?;
 
         let insn_exit = self
             .state
@@ -363,6 +363,7 @@ fn run_round_robin(
 /// ticking happens separately in [`run_round_robin`].
 pub fn post_stride_processing(
     vcpus: &mut [VcpuCore],
+    dist: &mut EventDistributor,
     idx: usize,
     delta: &Delta,
 ) -> Result<(), UnknownError> {
@@ -376,17 +377,19 @@ pub fn post_stride_processing(
     // Get the "latch_to" IRQs to the primary event controller (clears the latched IRQs as well)
     let vcpu_irqs = vcpus[idx].event_controller.vcpu_irqs()?;
     info!("getting vcpu irqs");
-    for (core, irq) in vcpu_irqs {
-        info!("htid {core} irq {irq}");
-        if core < vcpus.len() {
-            vcpus[core].event_controller.execute(
-                irq,
-                vcpus[core].cpu.as_mut(),
-                &mut vcpus[core].mmu,
-            )?;
-        } else {
-            warn!("core event is out of bounds");
-        }
+    for (irq, value) in vcpu_irqs {
+        info!("irq {irq}");
+        // if core < vcpus.len() {
+        dist.execute(idx, value, irq, vcpus)?;
+
+        /*vcpus[core].event_controller.execute(
+            irq,
+            vcpus[core].cpu.as_mut(),
+            &mut vcpus[core].mmu,
+        )?;*/
+        // } else {
+        // warn!("core event is out of bounds");
+        // }
     }
 
     Ok(())

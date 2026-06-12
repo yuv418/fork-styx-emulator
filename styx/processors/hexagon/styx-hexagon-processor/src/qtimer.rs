@@ -17,9 +17,7 @@ use styx_core::{
     core::VcpuCore,
     cpu::CpuBackend,
     errors::UnknownError,
-    event_controller::{
-        EventControllerImpl, PeripheralTickCtx, EventDistributorImpl, RaisedIrqs,
-    },
+    event_controller::{EventControllerImpl, EventDistributorImpl, PeripheralTickCtx, RaisedIrqs},
     hooks::CoreHandle,
     macros::peripheral_shared_state,
     memory::{MemoryBackend, Mmu},

@@ -88,23 +88,3 @@ impl EventDistributorImpl for DummyEventDistributor {
         Ok(())
     }
 }
-
-/// A placeholder primary (processor-level) event controller, does nothing.
-#[derive(Default)]
-pub struct DummyPrimaryEventController {}
-
-impl PrimaryEventControllerImpl for DummyPrimaryEventController {
-    fn latch(&mut self, event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
-        debug!("dummy primary event controller latched with {event:?}");
-        Ok(())
-    }
-
-    fn init(
-        &mut self,
-        _cpu: &mut dyn CpuBackend,
-        _mmu: &mut MemoryBackend,
-        _config: &mut Config,
-    ) -> Result<(), UnknownError> {
-        Ok(())
-    }
-}

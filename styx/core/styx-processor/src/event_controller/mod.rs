@@ -10,7 +10,7 @@ use std::fmt::Display;
 use std::{any::type_name, sync::Arc};
 
 use as_any::AsAny;
-pub use dummy::{DummyEventController, DummyPrimaryEventController};
+pub use dummy::{DummyEventController, DummyEventDistributor};
 use log::{info, trace};
 pub use peripheral::{DummyPeripheral, Peripheral, PeripheralTickCtx, RaisedIrqs};
 pub use peripherals::Peripherals;
@@ -190,15 +190,25 @@ pub trait EventDistributorImpl: AsAny + Send {
         Ok(())
     }
 
+    fn execute(
+        &mut self,
+        _vcpu_idx: usize,
+        _value: u64,
+        _irq: ExceptionNumber,
+        _vcpus: &mut [VcpuCore],
+    ) -> Result<InterruptExecuted, ActivateIRQnError> {
+        Ok(InterruptExecuted::NotExecuted)
+    }
+
     #[allow(unused_variables)]
     fn init(
-         &mut self,
-         vcpus: &mut [VcpuCore],
-         memory: &Arc<MemoryBackend>,
-         config: &mut Config,
-     ) -> Result<(), UnknownError> {
-         Ok(())
-     }
+        &mut self,
+        vcpus: &mut [VcpuCore],
+        memory: &Arc<MemoryBackend>,
+        config: &mut Config,
+    ) -> Result<(), UnknownError> {
+        Ok(())
+    }
 
     fn reset(&mut self, _cpu: &mut dyn CpuBackend, _mmu: &mut Mmu) -> Result<(), UnknownError> {
         Ok(())
@@ -216,7 +226,7 @@ pub struct EventController {
     /// Which vcpu does this event controller belong to.
     pub vcpu_index: VcpuId,
     /// IRQs to latch on other vcpus
-    pub irqs_to: SmallVec<[(usize, ExceptionNumber); 4]>,
+    pub irqs_to: SmallVec<[(ExceptionNumber, u64); 4]>,
 }
 
 impl Default for EventController {
@@ -252,19 +262,22 @@ impl EventController {
         self.inner.latch(event)
     }
 
-    pub fn execute_to(
+    /// This is used for when you want to execute an event on the primary event controller.
+    /// Since the primary event controller can see every Vcpu, events that need shared state
+    /// or information from all CPUs should be executed here.
+    pub fn execute_primary(
         &mut self,
         event: ExceptionNumber,
-        vcpu_idx: usize,
+        value: u64,
     ) -> Result<(), ActivateIRQnError> {
-        self.irqs_to.push((vcpu_idx, event));
+        self.irqs_to.push((event, value));
         info!("adding to IRQ, {:?}", self.irqs_to);
         Ok(())
     }
 
     pub fn vcpu_irqs(
         &mut self,
-    ) -> Result<SmallVec<[(usize, ExceptionNumber); 4]>, ActivateIRQnError> {
+    ) -> Result<SmallVec<[(ExceptionNumber, u64); 4]>, ActivateIRQnError> {
         let irqs = self.irqs_to.clone();
         self.irqs_to.clear();
 
@@ -425,6 +438,18 @@ impl EventDistributor {
         }
 
         self.inner.tick(delta, &pending_irqs, vcpus)
+    }
+
+    /// Run an interrupt synchronously.
+    /// Used for handling instructions and whatnot.
+    pub fn execute(
+        &mut self,
+        vcpu_idx: usize,
+        value: u64,
+        irq: ExceptionNumber,
+        vcpus: &mut [VcpuCore],
+    ) -> Result<InterruptExecuted, ActivateIRQnError> {
+        self.inner.execute(vcpu_idx, value, irq, vcpus)
     }
 
     pub fn get_impl<T: EventDistributorImpl + 'static>(&mut self) -> Result<&mut T, UnknownError> {

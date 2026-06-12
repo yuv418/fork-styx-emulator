@@ -13,7 +13,7 @@ use styx_pcode::{
 use styx_pcode_translator::sla::HexagonUserOps;
 use styx_processor::{
     cpu::{CpuBackend, CpuBackendExt},
-    event_controller::EventController,
+    event_controller::{EventController, ExceptionNumber},
     memory::Mmu,
 };
 
@@ -61,10 +61,68 @@ pub enum HexagonInterruptType {
     Halt = 0x20,
     // Made this up, inspired by QEMU. The difference is ThreadStop will set ModeCtl/ThreadStart will jump to Reset,
     // but sleep/wake just pause the thread.
-    Sleep = 0x1000,
-    Wake = 0x2000,
-    ThreadStart = 0x4000,
+    StartInstruction = 0x1000,
+    StopInstruction = 0x2000,
+    K0lockInstruction = 0x3000,
+    K0UnlockInstruction = 0x3001,
+    TlblockInstruction = 0x4000,
+    TlbUnlockInstruction = 0x4001,
+    // Not an instruction, just an action. Should be dispatched
+    // out to the secondary event controller and then to handle_event.
+    ThreadStart = 0x5000,
     ThreadStop = 0x6000,
+    LockSleep = 0x7000,
+    LockWake = 0x8000,
+    Resched = 0x9000,
+}
+
+impl From<ExceptionNumber> for HexagonInterruptType {
+    fn from(value: ExceptionNumber) -> Self {
+        match value {
+            -1 => Self::None,
+            0 => Self::Reset,
+            1 => Self::Imprecise,
+            0x2 => Self::Precise,
+            0x4 => Self::TlbMissX,
+            0x6 => Self::TlbMissRw,
+            0x8 => Self::Trap0,
+            0x9 => Self::Trap1,
+            0xb => Self::Fptrap,
+            0xc => Self::Debug,
+            0x10 => Self::Int0,
+            0x11 => Self::Int1,
+            0x12 => Self::Int2,
+            0x13 => Self::Int3,
+            0x14 => Self::Int4,
+            0x15 => Self::Int5,
+            0x16 => Self::Int6,
+            0x17 => Self::Int7,
+            0x18 => Self::Int8,
+            0x19 => Self::Int9,
+            0x1a => Self::IntA,
+            0x1b => Self::IntB,
+            0x1c => Self::IntC,
+            0x1d => Self::IntD,
+            0x1e => Self::IntE,
+            0x1f => Self::IntF,
+            0x20 => Self::Halt,
+            // Made this up, inspired by QEMU. The difference is ThreadStop will set ModeCtl/ThreadStart will jump to Reset,
+            // but sleep/wake just pause the thread.
+            0x1000 => Self::StartInstruction,
+            0x2000 => Self::StopInstruction,
+            0x3000 => Self::K0lockInstruction,
+            0x3001 => Self::K0UnlockInstruction,
+            0x4000 => Self::TlblockInstruction,
+            0x4001 => Self::TlbUnlockInstruction,
+            // Not an instruction, just an action. Should be dispatched
+            // out to the secondary event controller and then to handle_event.
+            0x5000 => Self::ThreadStart,
+            0x6000 => Self::ThreadStop,
+            0x7000 => Self::LockSleep,
+            0x8000 => Self::LockWake,
+            _ => panic!("Invalid interrupt number"),
+        }
+    }
 }
 
 #[repr(u8)]

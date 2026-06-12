@@ -15,14 +15,7 @@ use crate::{
     memory::{physical::MemoryBackend, Mmu},
     plugins::{Plugin, Plugins},
     processor::{Config, EmulationReport},
-use crate::core::{ProcessorCore, VcpuCore};
-use crate::cpu::DummyBackend;
-use crate::event_controller::{
-    processor::Config, DummyPrimaryEventController, EventController, EventControllerImpl,
-    PeripheralTickCtx, PrimaryEventController, PrimaryEventControllerImpl, RaisedIrqs,
 };
-
-use super::Delta;
 
 type SyncTicker = Arc<Mutex<TickCounter>>;
 
