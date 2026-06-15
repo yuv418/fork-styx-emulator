@@ -196,6 +196,7 @@ pub fn build_arch_spec(arch: &ArchVariant, endian: ArchEndian) -> ArchSpec<Pcode
 pub fn hexagon_build_arch_spec(
     arch: &ArchVariant,
     _endian: ArchEndian,
+        num_hthreads: Option<u32>,
 ) -> ArchSpec<HexagonPcodeBackend> {
     match arch {
         #[cfg(feature = "arch_hexagon")]
@@ -210,7 +211,7 @@ pub fn hexagon_build_arch_spec(
             | arch::hexagon::HexagonMetaVariants::QDSP6V71(_)
             | arch::hexagon::HexagonMetaVariants::QDSP6V73(_)
             | arch::hexagon::HexagonMetaVariants::QDSP6V77(_),
-        ) => hexagon::build().build(arch),
+        ) => hexagon::build(num_hthreads).build(arch),
 
         _ => unimplemented!("architecture {arch:?} not supported by pcode backend"),
     }

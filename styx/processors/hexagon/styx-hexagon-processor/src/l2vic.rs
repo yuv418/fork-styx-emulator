@@ -14,8 +14,8 @@ use arbitrary_int::*;
 use bitbybit::{bitenum, bitfield};
 use smallvec::{smallvec, SmallVec};
 use styx_core::arch::hexagon::GlobalHexagonRegister;
-use styx_core::core::VcpuCore;
-use styx_core::cpu::HexagonLockType;
+use styx_core::core::{VCpuCore, VcpuBundle};
+use styx_core::cpu::{HexagonInterruptCause, HexagonLockType};
 use styx_core::event_controller::{EventControllerImpl, EventDistributorImpl};
 use styx_core::macros::peripheral_shared_state;
 use styx_core::prelude::GlobalDelta;
@@ -551,7 +551,9 @@ impl L2Vic {
         let irq_base_offset = l2vic.vid_irq_base() + vid_n;
         let ssr =
             Ssr::new_with_raw_value(vcpu.cpu.read_register::<u32>(HexagonRegister::Ssr).unwrap())
-                .with_cause(irq_base_offset as u8);
+                .with_cause(HexagonInterruptCause::Int0 as u8 + irq_base_offset as u8);
+        info!("ssr ssr {ssr:x?}");
+
         vcpu.cpu
             .write_register(HexagonRegister::Ssr, ssr.raw_value())
             .unwrap();
@@ -794,6 +796,9 @@ impl EventDistributorImpl for L2Vic {
                     HexagonLockType::Tlb,
                     &mut lock_state,
                 )
+            }
+            HexagonInterruptType::Resched => {
+                thread_instructions::resched(vcpu_idx, irq, value, vcpus)
             }
             _ => unreachable!(),
         }

@@ -18,7 +18,7 @@ use styx_processor::{
 use crate::{
     arch_spec::ArchSpecBuilder,
     call_other::{CallOtherCallback, CallOtherCpu, CallOtherHandleError},
-    HexagonPcodeBackend, PCodeStateChange,
+    HexagonInterruptType, HexagonPcodeBackend, PCodeStateChange,
 };
 
 /// Handle the isync instruction, see 11.9.3 "Instruction synchronization."
@@ -36,7 +36,7 @@ impl<T: CpuBackend> CallOtherCallback<T> for IsyncHandler {
         &mut self,
         cpu: &mut dyn CallOtherCpu<T>,
         mmu: &mut Mmu,
-        _ev: &mut EventController,
+        ev: &mut EventController,
         _inputs: &[VarnodeData],
         _output: Option<&VarnodeData>,
     ) -> Result<PCodeStateChange, CallOtherHandleError> {
@@ -56,6 +56,14 @@ impl<T: CpuBackend> CallOtherCallback<T> for IsyncHandler {
             info!("hexagon: disabling MMU at {:x?}", cpu.pc());
             mmu.tlb.disable_code_address_translation()?;
             mmu.tlb.disable_data_address_translation()?;
+        }
+
+        // So we don't add it more than once when these are executed (once per stride)
+        if !ev.primary_irqs_contain(HexagonInterruptType::Resched as i32) {
+            // Check resched
+            ev.execute_primary(HexagonInterruptType::Resched as i32, 0)
+                .with_context(|| "couldn't check reschedule")?;
+            info!("adding resched");
         }
 
         Ok(PCodeStateChange::Fallthrough)

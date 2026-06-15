@@ -28,13 +28,19 @@ pub struct WaitHandler {}
 impl<T: CpuBackend> CallOtherCallback<T> for WaitHandler {
     fn handle(
         &mut self,
-        _cpu: &mut dyn CallOtherCpu<T>,
-        _mmu: &mut Mmu,
-        _ev: &mut EventController,
+        cpu: &mut dyn CallOtherCpu<T>,
+        mmu: &mut Mmu,
+        ev: &mut EventController,
         _inputs: &[VarnodeData],
         _output: Option<&VarnodeData>,
     ) -> Result<PCodeStateChange, CallOtherHandleError> {
-        Ok(PCodeStateChange::Fallthrough)
+        // stop this thread_
+        cpu.handle_event(mmu, HexagonInterruptType::ThreadWait as i32)
+            .with_context(|| "couldn't stop thread for wait")?;
+
+        Ok(PCodeStateChange::Exit(
+            TargetExitReason::InstructionCountComplete,
+        ))
     }
 }
 

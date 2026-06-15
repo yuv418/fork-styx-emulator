@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
+use arbitrary_int::{u9, Number};
 use smallvec::SmallVec;
 use styx_core::{
-    arch::hexagon::{register_fields::Syscfg, GlobalHexagonRegister, HexagonRegister},
+    arch::hexagon::{
+        register_fields::{Bestwait, ModeCtl, SchedCfg, Ssr, Stid, Syscfg},
+        GlobalHexagonRegister, HexagonRegister,
+    },
     core::VCpuCore,
-    cpu::{CpuBackendExt, HexagonInterruptType, HexagonLockType},
+    cpu::{CpuBackendExt, HexagonInterruptCause, HexagonInterruptType, HexagonLockType},
     event_controller::{ActivateIRQnError, InterruptExecuted},
     macrolib::debug,
     prelude::{
@@ -240,4 +244,124 @@ pub fn unlock(
             Ok(InterruptExecuted::Executed)
         }
     }
+}
+
+pub fn resched(
+    vcpu_idx: usize,
+    irq: ExceptionNumber,
+    value: u64,
+    vcpus: &mut [VCpuCore],
+) -> Result<InterruptExecuted, ActivateIRQnError> {
+    // Figure out whether the current "bestwait" is higher priority than the lowest priority
+    // currently running thread. The lowest priority thread is the one with the highest STID.PRIO
+    // number.
+
+    // (TID, PRIO)
+    info!("running resched");
+
+    // First check if we are even enabled.
+    let schedcfg = SchedCfg::new_with_raw_value(
+        vcpus[vcpu_idx]
+            .cpu
+            .read_register::<u32>(GlobalHexagonRegister::SchedCfg)
+            .with_context(|| "couldn't read schedcfg")?,
+    );
+
+    if !schedcfg.en() {
+        info!("resched not enabled");
+        return Ok(InterruptExecuted::Executed);
+    }
+
+    let mut currently_running_lowest_prio: (i32, u8) = (-1, 0);
+
+    let modectl = ModeCtl::new_with_raw_value(
+        vcpus[vcpu_idx]
+            .cpu
+            .read_register::<u32>(GlobalHexagonRegister::ModeCtl)
+            .with_context(|| "couldn't read modectl")?,
+    );
+    info!("modectl is {:?}", modectl);
+
+    for (i, core) in vcpus.iter_mut().enumerate() {
+        // Check if the thread is actually enabled. Don't bother with the thread if
+        // the thread is not enabled.
+        if (modectl.enable_mask() & (1 << i as u16)) == 0 {
+            info!("skipping resched check for thread {i} since it is not enabled");
+            continue;
+        }
+
+        let stid = Stid::new_with_raw_value(
+            core.cpu
+                .read_register::<u32>(HexagonRegister::Stid)
+                .with_context(|| "couldn't read stid")?,
+        );
+        let prio = stid.prio();
+
+        // This prio is lower priority than currently running lowest.
+        if prio > currently_running_lowest_prio.1 {
+            info!("prio {prio} crlp {}", currently_running_lowest_prio.1);
+            currently_running_lowest_prio.0 = i as i32;
+            currently_running_lowest_prio.1 = prio;
+        }
+    }
+
+    // Now get bestwait priority.
+    let bestwait = Bestwait::new_with_raw_value(
+        vcpus[vcpu_idx]
+            .cpu
+            .read_register::<u32>(GlobalHexagonRegister::BestWait)
+            .with_context(|| "couldn't read bestwait")?,
+    );
+
+    info!(
+        "bestwait {:x} lowest_prio {:x?}",
+        bestwait.raw_value(),
+        currently_running_lowest_prio
+    );
+
+    if currently_running_lowest_prio.0 != -1
+        && currently_running_lowest_prio.1 > bestwait.prio().value() as u8
+    {
+        // Time to preempt.
+        let preempt_thread = currently_running_lowest_prio.0 as usize;
+        info!("resched is preempting thread {preempt_thread}");
+
+        // New priority written here
+        vcpus[preempt_thread]
+            .cpu
+            .write_register(
+                GlobalHexagonRegister::BestWait,
+                bestwait.with_prio(u9::MAX).raw_value(),
+            )
+            .with_context(|| "couldn't write bestwait")?;
+        // TODO: do I need to set stid.prio?
+
+        let ssr = Ssr::new_with_raw_value(
+            vcpus[vcpu_idx]
+                .cpu
+                .read_register::<u32>(HexagonRegister::Ssr)
+                .with_context(|| "couldn't read ssr")?,
+        );
+
+        vcpus[preempt_thread]
+            .cpu
+            .write_register(
+                HexagonRegister::Ssr,
+                ssr.with_cause(HexagonInterruptCause::Int0 as u8 + schedcfg.intno().value() as u8)
+                    .raw_value(),
+            )
+            .with_context(|| "couldn't write bestwait")?;
+        vcpus[preempt_thread]
+            .event_controller
+            .execute(
+                HexagonInterruptType::Int0 as i32 + schedcfg.intno().value() as i32,
+                vcpus[preempt_thread].cpu.as_mut(),
+                &mut vcpus[preempt_thread].mmu,
+            )
+            .with_context(|| "couldn't execute resched event")?;
+    } else {
+        info!("resched is not happening right now");
+    }
+
+    Ok(InterruptExecuted::Executed)
 }

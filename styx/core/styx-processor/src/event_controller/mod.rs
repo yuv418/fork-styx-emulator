@@ -262,6 +262,16 @@ impl EventController {
         self.inner.latch(event)
     }
 
+    pub fn primary_irqs_contain(&self, event: ExceptionNumber) -> bool {
+        for (ev, _) in self.irqs_to.iter() {
+            if *ev == event {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// This is used for when you want to execute an event on the primary event controller.
     /// Since the primary event controller can see every Vcpu, events that need shared state
     /// or information from all CPUs should be executed here.

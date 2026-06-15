@@ -223,7 +223,7 @@ pub struct Ccr {
 }
 
 /// Software Thread ID register
-#[bitfield(u32)]
+#[bitfield(u32, debug)]
 pub struct Stid {
     #[bits(0..=7, rw)]
     stid: u8,
@@ -231,10 +231,24 @@ pub struct Stid {
     prio: u8,
 }
 
-#[bitfield(u32)]
+#[bitfield(u32, debug)]
 pub struct ModeCtl {
     #[bits(0..=15, rw)]
     enable_mask: u16,
     #[bits(16..=31, rw)]
     wait_mask: u16,
+}
+
+#[bitfield(u32, debug)]
+pub struct Bestwait {
+    #[bits(0..=8, rw)]
+    prio: u9,
+}
+
+#[bitfield(u32, debug)]
+pub struct SchedCfg {
+    #[bit(8, rw)]
+    en: bool,
+    #[bits(0..=4, rw)]
+    intno: u5,
 }

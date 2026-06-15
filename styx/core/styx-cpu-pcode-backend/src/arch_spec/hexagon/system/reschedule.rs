@@ -9,7 +9,6 @@
 
 use std::str::FromStr;
 
-use as_any::Downcast;
 use log::warn;
 use styx_cpu_type::arch::hexagon::{register_fields::Stid, HexagonRegister};
 use styx_errors::anyhow::Context;
@@ -27,10 +26,10 @@ use crate::{
     HexagonInterruptType, HexagonPcodeBackend, PCodeStateChange,
 };
 
-fn resched() {}
-
 #[derive(Debug)]
-pub struct SetprioHandler {}
+pub struct SetprioHandler {
+    num_hthreads: Option<u32>,
+}
 
 /// See 11.9.2 SYSTEM MONITOR, "Set the priority for a thread"
 /// in the Hexagon manual for more information.
@@ -68,9 +67,9 @@ impl<T: CpuBackend + 'static> CallOtherCallback<T> for SetprioHandler {
             .to_u64()
             .with_context(|| "couldn't get setprio priority as u64")? as u8;
 
-        panic!("setprio called with {predicate_thread:x} {priority:x}");
+        // panic!("setprio called with {predicate_thread:x} {priority:x}");
 
-        let thread_mask = (1 << pcode_backend.num_hthreads()) - 1;
+        let thread_mask = (1 << self.num_hthreads.expect("need number mof hthreads")) - 1;
 
         // Right now, we only have one thread.
         // Do nothing if we are trying to set the priority on a different thread.
@@ -91,7 +90,8 @@ impl<T: CpuBackend + 'static> CallOtherCallback<T> for SetprioHandler {
             .with_context(|| "couldn't write Stid in setprio")?;
 
             // Triger resched
-            ev.execute_primary(HexagonInterruptType::Resched as i32, 0);
+            ev.execute_primary(HexagonInterruptType::Resched as i32, 0)
+                .with_context(|| "couldn't execute Resched IRQ")?;
 
             Ok(PCodeStateChange::Fallthrough)
         }
@@ -100,8 +100,9 @@ impl<T: CpuBackend + 'static> CallOtherCallback<T> for SetprioHandler {
 
 pub fn add_reschedule<S: SlaUserOps<UserOps: FromStr>>(
     spec: &mut ArchSpecBuilder<S, HexagonPcodeBackend>,
+    num_hthreads: Option<u32>,
 ) {
     spec.call_other_manager
-        .add_handler_other_sla(HexagonUserOps::Setprio, SetprioHandler {})
+        .add_handler_other_sla(HexagonUserOps::Setprio, SetprioHandler { num_hthreads })
         .unwrap();
 }

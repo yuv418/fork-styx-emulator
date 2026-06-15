@@ -9,6 +9,7 @@ use clade::Clade;
 
 use l2vic::L2Vic;
 use qtimer::QTimer;
+use styx_core::arch::hexagon::register_fields::ModeCtl;
 use styx_core::arch::hexagon::{GlobalHexagonRegister, HexagonRegister};
 use styx_core::core::builder::VcpuBundleBuilder;
 use styx_core::cpu::arch::hexagon::HexagonVariants;
@@ -102,7 +103,7 @@ impl ProcessorImpl for HexagonBuilder {
             // Only the first hardware thread starts as "started."
             // The rest are by default false.
             if i == 0 {
-                cpu.set_running(true)
+                cpu.set_running(true);
             }
 
             let vcpu_ec = HexagonVcpuEventController::default();
@@ -190,17 +191,14 @@ impl ProcessorImpl for HexagonBuilder {
             write_cfgtable_field(cpu, memory, *cfgbase_entry as u64, *value);
         }
 
-        info!("init end");
-        Ok(())
-    }
+        // Set the thread 0 to be running in ModeCtl
+        let modectl = ModeCtl::new_with_raw_value(0).with_enable_mask(1);
+        info!("modectl at start is {modectl:x?}");
 
-    fn init(&self, proc: &mut BuildingProcessor) -> Result<(), UnknownError> {
-        // Setup htid registers.
-        for (i, vcpu) in proc.vcpus.iter_mut().enumerate() {
-            vcpu.cpu
-                .write_register(HexagonRegister::Htid, i as u32)
-                .unwrap();
-        }
+        cpu.write_register(GlobalHexagonRegister::ModeCtl, modectl.raw_value())
+            .with_context(|| "couldn't set modectl for first register")?;
+
+        info!("init end");
         Ok(())
     }
 }

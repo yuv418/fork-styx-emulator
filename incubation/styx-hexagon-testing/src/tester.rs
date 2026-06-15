@@ -29,6 +29,7 @@ use test_case::test_case;
 #[test_case(hexagon_tests::TEST_K0LOCK_SYSCFG)]
 #[test_case(hexagon_tests::TEST_THREAD_SCHEDULING)]
 #[test_case(hexagon_tests::TEST_TEST_THREAD)]
+#[test_case(hexagon_tests::TEST_BESTWAIT)]
 #[test_case(hexagon_tests::TEST_START)]
 #[test_case(hexagon_tests::TEST_TLBLOCK)]
 #[test_case(hexagon_tests::TEST_CIAD_SIAD)]

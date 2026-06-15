@@ -64,14 +64,10 @@ pub fn setup_load_hexagon(
     .build()?;
 
     // Setup hooks
-    for hook in device.hooks().expect("couldn't get hexagon hooks") {
-        // TODO: this should add the hooks to all vcpus,
-        // but StyxHook !impl Clone so maybe the device hooks
-        // need to have a hook factory closure or similar.
-        proc.vcpus[0]
-            .cpu
-            .add_hook(hook)
-            .expect("Couldn't add hexagon hook");
+    for core in proc.vcpus.iter_mut() {
+        for hook in device.hooks().expect("couldn't get hexagon hooks") {
+            core.cpu.add_hook(hook).expect("Couldn't add hexagon hook");
+        }
     }
 
     device.post_init(&mut proc)?;

@@ -70,7 +70,9 @@ pub enum HexagonInterruptType {
     // Not an instruction, just an action. Should be dispatched
     // out to the secondary event controller and then to handle_event.
     ThreadStart = 0x5000,
+    ThreadResume = 0x5100,
     ThreadStop = 0x6000,
+    ThreadWait = 0x6100,
     LockSleep = 0x7000,
     LockWake = 0x8000,
     Resched = 0x9000,
@@ -117,9 +119,12 @@ impl From<ExceptionNumber> for HexagonInterruptType {
             // Not an instruction, just an action. Should be dispatched
             // out to the secondary event controller and then to handle_event.
             0x5000 => Self::ThreadStart,
+            0x5100 => Self::ThreadResume,
             0x6000 => Self::ThreadStop,
+            0x6100 => Self::ThreadWait,
             0x7000 => Self::LockSleep,
             0x8000 => Self::LockWake,
+            0x9000 => Self::Resched,
             _ => panic!("Invalid interrupt number"),
         }
     }

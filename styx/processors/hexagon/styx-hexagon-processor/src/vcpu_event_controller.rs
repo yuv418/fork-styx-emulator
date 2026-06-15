@@ -69,7 +69,11 @@ impl EventControllerImpl for HexagonVcpuEventController {
         let vid = cpu
             .read_register::<u32>(GlobalHexagonRegister::Vid)
             .unwrap();
-        trace!("vcpu event controller next. VID is {vid:x}");
+
+        trace!(
+            "vcpu event controller next. VID is {vid:x} events {:?}",
+            self.pending
+        );
         match self.pending.pop_front() {
             // Get latest IRQ to run
             Some(irq) => {
@@ -82,21 +86,28 @@ impl EventControllerImpl for HexagonVcpuEventController {
                     irq,
                 )?;
                 if let InterruptExecuted::NotExecuted = res {
-                    trace!("vcpu event controller - irq {irq} not executed, putting back in queue");
+                    info!("vcpu event controller - irq {irq} not executed, putting back in queue");
                     // Put the IRQ back at the front
                     self.pending.push_front(irq);
                 } else {
-                    trace!("vcpu event controller - irq {irq} executed");
+                    info!("vcpu event controller - irq {irq} executed");
                 }
                 Ok(res)
             }
 
-            None => Ok(InterruptExecuted::NotExecuted),
+            None => {
+                info!("no interrupts pending");
+                Ok(InterruptExecuted::NotExecuted)
+            }
         }
     }
 
     fn latch(&mut self, event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
-        self.pending.push_back(event);
+        if !self.pending.contains(&event) {
+            self.pending.push_back(event);
+        } else {
+            warn!("IRQ already latched");
+        }
         Ok(())
     }
 
@@ -108,6 +119,11 @@ impl EventControllerImpl for HexagonVcpuEventController {
         cpu: &mut dyn CpuBackend,
         mmu: &mut Mmu,
     ) -> Result<InterruptExecuted, ActivateIRQnError> {
+        // If I am waiting, resume. If not already waiting, this does nothing,
+        // so we can unconditionally execute it. Also done at interrupt_handler.
+        cpu.handle_event(mmu, HexagonInterruptType::ThreadResume as i32)
+            .with_context(|| "couldn't send thread resume to cpu")?;
+
         // These should hapen with the CPU
         if (irq == HexagonInterruptType::LockSleep as i32
             || irq == HexagonInterruptType::LockWake as i32
@@ -220,6 +236,11 @@ pub fn interrupt_handler(
     // Only used for synchronous interrupts, so can be None in asynchronous ones.
     semihosting_tx: Option<Arc<broadcast::Sender<u8>>>,
 ) -> Result<(), UnknownError> {
+    // If I am waiting, resume. If not already waiting, this does nothing,
+    // so we can unconditionally execute it.
+    cpu.handle_event(mmu, HexagonInterruptType::ThreadResume as i32)
+        .with_context(|| "couldn't send thread resume to cpu")?;
+
     // Get cause, if the cause is 0 with a Trap0 call, then we need to do the angel stuff
     let ssr = Ssr::new_with_raw_value(
         cpu.read_register::<u32>(HexagonRegister::Ssr)

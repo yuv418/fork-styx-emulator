@@ -20,7 +20,11 @@ pub use system::interrupt::{HexagonInterruptCause, HexagonInterruptType};
 pub use system::lock::HexagonLockType;
 
 // Adapted from PPC
-pub fn build() -> ArchSpecBuilder<sla::Hexagon, HexagonPcodeBackend> {
+pub fn build(
+
+        num_hthreads: Option<u32>,
+    
+) -> ArchSpecBuilder<sla::Hexagon, HexagonPcodeBackend> {
     let mut spec = ArchSpecBuilder::default();
 
     // Generator + pc manager. For now use the default pc manager
@@ -40,7 +44,7 @@ pub fn build() -> ArchSpecBuilder<sla::Hexagon, HexagonPcodeBackend> {
     system::arith::add_arith_callothers(&mut spec);
     system::thread::add_thread_callothers(&mut spec);
     system::lock::add_lock_callothers(&mut spec);
-    system::reschedule::add_reschedule(&mut spec);
+    system::reschedule::add_reschedule(&mut spec, num_hthreads);
 
     regpairs::add_vector_register_pair_handlers(&mut spec);
 

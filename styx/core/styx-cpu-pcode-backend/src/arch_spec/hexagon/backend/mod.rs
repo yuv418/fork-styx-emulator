@@ -15,7 +15,7 @@ use smallvec::{smallvec, SmallVec};
 use std::{borrow::Cow, collections::BTreeMap, ops::Range, sync::Arc};
 use styx_cpu_type::{
     arch::{
-        backends::{ArchRegister, ArchVariant, BasicArchRegister, GlobalArchRegister},
+        backends::{ArchRegister, ArchVariant, BasicArchRegister},
         hexagon::{
             register_fields::{ModeCtl, Ssr},
             GlobalHexagonRegister, HexagonRegister,
@@ -196,6 +196,7 @@ pub struct HexagonPcodeBackend {
     // Threading information
     num_hthreads: u32,
     running: bool,
+    waiting: bool,
 }
 
 impl Hookable for HexagonPcodeBackend {
@@ -680,9 +681,21 @@ impl CpuBackend for HexagonPcodeBackend {
                 self.running = false;
             }
             // Don't stop an already stopped thread
-            n if (n == HexagonInterruptType::ThreadStop as i32 && !self.running) => {}
-            n if (n == HexagonInterruptType::ThreadStop as i32 && self.running) => {
+            n if ((n == HexagonInterruptType::ThreadWait as i32
+                || n == HexagonInterruptType::ThreadStop as i32)
+                && !self.running) => {}
+
+            n if ((n == HexagonInterruptType::ThreadWait as i32
+                || n == HexagonInterruptType::ThreadStop as i32)
+                && self.running) =>
+            {
                 self.running = false;
+                if n == HexagonInterruptType::ThreadWait as i32 {
+                    self.waiting = true;
+                }
+
+                info!("thread event handling {n:?}");
+
                 // Clear modectl
                 let modectl = ModeCtl::new_with_raw_value(
                     self.read_register::<u32>(GlobalHexagonRegister::ModeCtl)
@@ -690,14 +703,40 @@ impl CpuBackend for HexagonPcodeBackend {
                 );
                 let htid = self.read_register::<u32>(HexagonRegister::Htid).unwrap();
 
+                let modectl = if n == HexagonInterruptType::ThreadStop as i32 {
+                    modectl.with_enable_mask(modectl.enable_mask() & !(1 << htid))
+                } else if n == HexagonInterruptType::ThreadWait as i32 {
+                    modectl.with_wait_mask(modectl.wait_mask() | (1 << htid))
+                } else {
+                    unreachable!()
+                };
+
+                info!("modectl before write is {:x?}", modectl);
+
+                self.write_register(GlobalHexagonRegister::ModeCtl, modectl.raw_value())
+                    .unwrap();
+            }
+
+            n if (n == HexagonInterruptType::ThreadResume as i32 && self.waiting) => {
+                info!("stopping the waiting");
+                self.waiting = false;
+                self.running = true;
+
+                let htid = self.read_register::<u32>(HexagonRegister::Htid).unwrap();
+                let modectl = ModeCtl::new_with_raw_value(
+                    self.read_register::<u32>(GlobalHexagonRegister::ModeCtl)
+                        .unwrap(),
+                );
+
                 self.write_register(
                     GlobalHexagonRegister::ModeCtl,
                     modectl
-                        .with_enable_mask(modectl.enable_mask() & !(1 << htid))
+                        .with_wait_mask(modectl.wait_mask() & !(1 << htid))
                         .raw_value(),
                 )
                 .unwrap();
             }
+            n if (n == HexagonInterruptType::ThreadResume as i32 && !self.waiting) => {}
             // Don't start an already running thread
             n if (n == HexagonInterruptType::ThreadStart as i32 && self.running) => {
                 info!("skipping thread was already started")
@@ -824,7 +863,7 @@ impl HexagonPcodeBackend {
     ) -> HexagonPcodeBackend {
         let arch_variant = arch_variant.into();
 
-        let spec = hexagon_build_arch_spec(&arch_variant, endian);
+        let spec = hexagon_build_arch_spec(&arch_variant, endian, num_hthreads);
         let pcode_generator = spec.generator;
 
         let endian = pcode_generator.endian();
@@ -875,6 +914,7 @@ impl HexagonPcodeBackend {
             cache: Some(BTreeMap::new()),
             num_hthreads: num_hthreads.unwrap_or(6),
             running: false,
+            waiting: false,
         }
     }
     /// Indicate when we should update the context reg
