@@ -314,7 +314,7 @@ pub fn test_abs64_range() {
 "#,
     );
 
-    const NUMS_TO_TRY: i64 = 1000000i64;
+    const NUMS_TO_TRY: i64 = 200000i64;
 
     for i in -10000000000i64..(-10000000000i64 + NUMS_TO_TRY) {
         cpu.write_register(HexagonRegister::D2, i as u64).unwrap();

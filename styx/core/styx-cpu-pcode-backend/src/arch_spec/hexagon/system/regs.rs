@@ -24,14 +24,20 @@ pub fn add_regs_handlers(backend: &mut HexagonPcodeBackend) {
                  register: ArchRegister,
                  data: &mut RegisterValue|
                  -> Result<(), UnknownError> {
+                    info!("hello from register read hook register {register:?}");
+
                     // Skip if unhooked
-                    let unhooked = BadVaRegister::new_unhooked();
-                    if matches!(
+                    let unhooked = ArchRegister::Special(SpecialArchRegister::Hexagon(
+                        SpecialHexagonRegister::BadVaRegister(BadVaRegister::new_unhooked()),
+                    ));
+                    info!(
+                        "left {:?} unhooked is {unhooked:?} matches {} equal {}",
                         register,
-                        ArchRegister::Special(SpecialArchRegister::Hexagon(
-                            SpecialHexagonRegister::BadVaRegister(unhooked)
-                        ))
-                    ) {
+                        matches!(register, unhooked),
+                        register == unhooked
+                    );
+                    if register == unhooked {
+                        info!("bye");
                         return Ok(());
                     }
 

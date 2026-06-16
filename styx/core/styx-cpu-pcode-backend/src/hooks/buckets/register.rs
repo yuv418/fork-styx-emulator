@@ -1,3 +1,4 @@
+use log::info;
 // SPDX-License-Identifier: BSD-2-Clause
 use styx_cpu_type::arch::backends::ArchRegister;
 use styx_processor::hooks::HookToken;

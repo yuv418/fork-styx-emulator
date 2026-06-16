@@ -52,7 +52,7 @@ use crate::{
     execute_pcode::PcodeHelpers,
     get_pcode::{FetchPcodeError, GetPcodeError},
     pcode_gen::{GeneratePcodeError, RegisterTranslator},
-    PcodeBackendConfiguration,
+    HexagonInterruptCause, PcodeBackendConfiguration,
 };
 use crate::{
     arch_spec::hexagon_build_arch_spec,
@@ -830,7 +830,11 @@ impl HexagonPcodeBackend {
 
         info!("slot is {slot:?}, badva is {badva:x}");
 
-        if irqn == HexagonInterruptType::TlbMissX as i32 || slot == Some(0) {
+        if ssr.cause() == HexagonInterruptCause::FetchNoUpage as u8
+            || ssr.cause() == HexagonInterruptCause::FetchNoUpage as u8
+            || irqn == HexagonInterruptType::TlbMissX as i32
+            || slot == Some(0)
+        {
             info!(
                 "writing slot0 badva0/badva1, badva0 offset is {:x?}",
                 self.pcode_generator
