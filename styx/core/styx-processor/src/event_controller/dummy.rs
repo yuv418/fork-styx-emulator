@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BSD-2-Clause
-use log::debug;
+use log::{debug, warn};
 use styx_errors::UnknownError;
 
 use crate::{
@@ -70,8 +70,21 @@ impl EventControllerImpl for DummyEventController {
     }
 }
 
-/// A placeholder primary (processor-level) event controller, does nothing.
+/// A placeholder event distributor, does nothing.
 #[derive(Default)]
 pub struct DummyEventDistributor {}
 
-impl PrimaryEventControllerImpl for DummyPrimaryEventController {}
+impl EventDistributorImpl for DummyEventDistributor {
+    fn tick(
+        &mut self,
+        _delta: &crate::executor::time::GlobalDelta,
+        pending_irqs: &[ExceptionNumber],
+        _vcpus: &mut [crate::core::VcpuCore],
+    ) -> Result<(), UnknownError> {
+        if !pending_irqs.is_empty() {
+            warn!("DummyEventDistributor has pending irqs which will be lost. \
+                For a single vCPU system you want the SingleVcpuEventController to route irqs to vCPU 0.");
+        }
+        Ok(())
+    }
+}

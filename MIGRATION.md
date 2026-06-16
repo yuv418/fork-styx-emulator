@@ -1,5 +1,240 @@
 # Migration Guide
 
+## Multi-Processor Changes
+This release reworks `styx-processor` to support **multiple vCPUs per
+processor**. The change is broad but mostly mechanical. It groups into three concerns:
+
+1. **[Multi-vCPU](#1-multi-vcpu)**: the processor core split, the `ProcessorBundle` builder, and the per-vCPU access pattern (`proc.vcpus[..]`).
+2. **[Event distributor](#2-event-distributor)**: the event-controller trait split and the reshaped `Peripheral::tick`.
+3. **[Timing](#3-timing-delta-vs-globaldelta)**: the new `Delta` vs `GlobalDelta` distinction.
+
+### The core split
+The old single `ProcessorCore` (which bundled cpu + mmu + event_controller) is split in two:
+
+| Type | Scope | Holds |
+|---|---|---|
+| `ProcessorCore` | processor-wide, shared between vCPUs | `Arc<MemoryBackend>`, `EventDistributor`, `ProcessorTime` |
+| `VcpuCore` | per-vCPU | `Box<dyn CpuBackend>`, `Mmu`, (secondary) `EventController`, `VcpuTime` |
+
+A `Processor` now exposes `pub vcpus: Vec<VcpuCore>` and `pub core: ProcessorCore`.
+Single-vCPU processors simply have one entry in `vcpus`.
+
+## 1. Multi-vCPU
+### Building a processor: `ProcessorBundle::builder()`
+Creating a `ProcessorBundle` was already a bit annoying, with multiple vcpus it is even more annoying. The new `ProcessorBundleBuilder` and VcpuBundleBuilders provide sensible defaults for most processor/vCPU components and has methods to add vCPUs.
+
+```rust
+// OLD
+Ok(ProcessorBundle {
+    cpu: Box::new(MyCpu),
+    tlb: Box::new(MyTlb),
+    event_controller: Box::new(MyEc),
+    memory,
+    peripherals,
+    loader_hints,
+})
+
+// NEW: one vCPU, configured through the nested VcpuBundleBuilder
+Ok(ProcessorBundle::builder()
+    .with_memory(memory)
+    .with_vcpu(|v| v.with_cpu(MyCpu).with_tlb(MyTlb).with_event_controller(MyEc))
+    .add_peripheral(MyUart::new())
+    .with_arch_hint(Arch::Arm)
+    .build()?)
+
+// NEW: 16 vCPUs configured quickly via `with_vcpus`
+Ok(ProcessorBundle::builder()
+    .with_memory(memory)
+    .with_vcpus(16, |_idx, v| v.with_cpu(DummyBackend).with_event_controller(MyEc))
+    .add_peripheral(MyUart::new())
+    .with_arch_hint(Arch::Arm)
+    .build()?)
+```
+
+Reference the docs for `ProcessorBundleBuilder` for all the available methods.
+
+One additional method to note on the `ProcessorBundleBuilder` is `modify_memory()` with gives mutable access to the `MemoryBackend` allowing you to map memory from within the builder.
+
+```rust
+.with_memory(MemoryBackend::new_region_store())
+.modify_memory(|mem| { mem.add_memory_region(/* .. */)?; Ok(()) })?
+```
+
+### Per-vCPU access in `init()` and elsewhere
+`proc.core.cpu` / `proc.core.mmu` no longer exist. In
+`ProcessorImpl::init` and other inits, `BuildingProcessor` now exposes this via `vcpus`:
+
+```rust
+pub struct BuildingProcessor<'a> {
+    pub vcpus: &'a mut [VcpuCore],   // NEW
+    pub core: &'a mut ProcessorCore,
+    pub runtime: &'a mut ProcessorRuntime,
+    pub routes: RoutesBuilder,
+    // ..
+}
+```
+
+Replace `proc.core.cpu` → `proc.vcpus[0].cpu`, `proc.core.mmu` → `proc.vcpus[0].mmu` for previous single-vCPU processors. Multi-vCPU systems can add hooks to one or many vCPUs.
+
+Also consider using `proc.memory()` which gives a reference to the `MemoryBackend` if your memory operations are on physical addresses.
+
+### Running processors: `Processor::run()` vs `Processor::run_multi()`
+
+| Method | Returns | Notes |
+|---|---|---|
+| `proc.run(bounds)` | `EmulationReport` | **errors if there is more than one vCPU** |
+| `proc.run_multi(bounds)` | `Vec<EmulationReport>` | one report per vCPU |
+
+Single-vCPU callers are unaffected. Multi-vCPU callers must use `run_multi`.
+
+### Other surface changes
+
+- **`CoreHandle::vcpu_id() -> VcpuId`** identifies the current vCPU.
+- **`Processor::memory() -> &Arc<MemoryBackend>`** for shared physical memory.
+- **`Processor::for_vcpu(|v| ..)`** and **`Processor::add_hooks(|vcpu_id| StyxHook)`** apply an operation/hook across every vCPU.
+
+### Executor changes
+
+The old `ExecutorImpl` trait is gone, replaced by two traits behind an
+`ExecutorKind`:
+
+- **`StrideExecutor`**: the common case. The Styx core drives the multi-vCPU
+  loop; you only supply `get_stride_length()`, `halt_emulation() ->
+  Option<HaltFn>` plus the `init`/`emulation_setup`/`emulation_teardown`/`tick`
+  lifecycle hooks.
+- **`CustomExecutor`**: full control for debuggers/fuzzers. One
+  method: `execute(&mut [VcpuCore], &mut ProcessorCore, &mut Plugins,
+  &ExecutionConstraintConcrete) -> Result<Vec<EmulationReport>>`. A custom
+  executor is responsible for ticking all components itself.
+
+## 2. Event distributor
+
+The single `EventControllerImpl` trait is split into two.
+
+**For single-vCPU processors the split is easy:** your existing controller
+logic stays as the secondary event controller and the Styx core has a
+`SingleVcpuEventController` that performs as the event distributor.
+
+| Trait | Scope | Role |
+|---|---|---|
+| `EventControllerImpl` (secondary) | per-vCPU | latch/next/execute interrupts on *its* CPU, also routes from vCPU -> Event Distributor |
+| `EventDistributorImpl` (primary) | processor-wide | owns peripherals and **routes** IRQs raised by peripheral ticks to the correct vCPU |
+
+### Per-vCPU `EventControllerImpl`
+Migrating the per-vCPU event controller should be simple.
+
+Keep all your latch/priority/ISR logic. Only two signatures move:
+
+- `next()` **no longer takes `&mut Peripherals`** (peripherals moved to the event distributor).
+- `tick()` **gains a `&Delta`** parameter.
+
+`latch()`, `execute()`, `finish_interrupt()`, `reset()`, `init()` are unchanged.
+The dummy is still `DummyEventController`. `EventController::new()` now takes
+`(Box<dyn EventControllerImpl>, vcpu_index: VcpuId)`, and `finish_interrupt()`
+now returns `Option<ExceptionNumber>`.
+
+### `EventDistributorImpl`
+```rust
+pub trait EventDistributorImpl {
+    fn init(&mut self, vcpus: &mut [VcpuCore], memory: &Arc<MemoryBackend>) -> Result<(), UnknownError> { Ok(()) }
+    fn on_processor_start(&mut self, vcpus: &mut [VcpuCore]) -> Result<(), UnknownError> { Ok(()) }
+    fn on_processor_stop(&mut self, vcpus: &mut [VcpuCore]) -> Result<(), UnknownError> { Ok(()) }
+    fn tick(&mut self, delta: &GlobalDelta, pending_irqs: &[ExceptionNumber], vcpus: &mut [VcpuCore]) -> Result<(), UnknownError> { Ok(()) }
+    fn reset(&mut self, cpu: &mut dyn CpuBackend, mmu: &mut Mmu) -> Result<(), UnknownError> { Ok(()) }
+    // latch(..), etc.
+}
+```
+
+- **`SingleVcpuEventController`**
+  routes every IRQ raised by a peripheral tick to `vcpus[0]`'s secondary
+  controller. This is what almost every single-vCPU processor with
+  interrupt-driven peripherals should use.
+- **`DummyEventDistributor`** (the default): its `tick` **drops
+  `pending_irqs`** (warning if any were pending). Nothing gets routed.
+
+Write a custom `EventDistributorImpl` when you have genuine processor-wide
+lifecycle/routing logic (e.g. routing IRQs to a *specific* core).
+
+### `Peripheral::tick` has new signature and returns IRQs
+
+Peripherals are now owned by the event distributor, which ticks
+each one per round, collects the returned IRQs, and hands them to
+`EventDistributorImpl::tick` for routing.
+
+```rust
+// OLD: latched directly onto the event controller
+fn tick(&mut self, cpu: &mut dyn CpuBackend, mmu: &mut Mmu,
+        ec: &mut dyn EventControllerImpl, delta: &Delta) -> Result<(), UnknownError> {
+    if self.has_data() { ec.latch(self.irqn)?; }
+    Ok(())
+}
+
+// NEW: returns the IRQs it wants raised
+fn tick(&mut self, ctx: &PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
+    let mut raised = RaisedIrqs::none();
+    if self.has_data() { raised.push(self.irqn); }
+    Ok(raised)
+}
+```
+
+What `tick` can/can't do now:
+
+- **Can:** read `ctx.delta` and read/write **physical** memory via `ctx.memory`
+  (`&MemoryBackend`). This lets DMA-style peripherals write guest memory
+  directly instead of staging through an MMIO hook.
+- **Can't:** touch CPU registers, per-vCPU MMU/virtual addresses, or call
+  `latch` directly. If you need register or virtual-memory access, register a
+  hook in `init()`.
+
+### Peripheral Hooks
+Peripherals no longer live near vCPUs so hooks no longer
+have access to the peripheral that owns them (previously via
+`proc.event_controller.peripherals.get_expect::<MyPeripheral>()?;`).
+
+The accepted way to share peripheral data with hooks is via an Arc'd data store.
+See the stm32f107 processor's i2c implementation for an example.
+
+```rust
+// in Peripheral::init
+cpu.add_hook(StyxHook::memory_write(
+    base_addr + I2C_CR1_OFFSET,
+    hooks::I2cCr1WHook { inner: i2c.clone() },
+))?;
+
+pub(crate) struct I2cCr1WHook {
+    pub(crate) inner: Arc<Mutex<I2CPortInner>>,
+}
+
+impl MemoryWriteHook for I2cCr1WHook {
+    fn call(
+        &mut self,
+        proc: CoreHandle,
+        address: u64,
+        _size: u32,
+        data: &[u8],
+    ) -> Result<(), UnknownError> {
+        let port = self.inner.lock().unwrap();
+        // do some stuff with `port`
+        Ok(())
+    }
+}
+```
+
+## 3. Timing: `Delta` vs `GlobalDelta`
+
+The split introduced **two delta types corresponding to processor vs vCPU time**.
+
+| Type | Fields | Used by |
+|---|---|---|
+| `Delta` (per-vCPU, per-stride) | `count: u64`, `time: Duration` | secondary `EventControllerImpl::tick`, `post_stride_processing`, `HaltFn` |
+| `GlobalDelta` (system-level, per-round) | `simulated_time: u64`, `wall_time: Duration` | `Peripheral::tick` (`ctx.delta`), `EventDistributorImpl::tick`, `Plugin::tick` |
+
+
+Time accounting is tracked by `ProcessorCore::time` (`ProcessorTime`, the
+processor-wide simulated clock, advanced once per round) and `VcpuCore::time`
+(`VcpuTime`, per-vCPU). See the `styx_core::executor::time` module docs for the
+full model.
+
 ## 1.0.0 to 1.2.0
 
 ### Emulation API Changes

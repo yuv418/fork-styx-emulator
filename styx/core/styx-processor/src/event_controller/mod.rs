@@ -180,11 +180,13 @@ pub trait EventDistributorImpl: AsAny + Send {
     ///
     /// `pending_irqs` contains exception numbers returned by peripheral ticks.
     /// Route them to the appropriate vCPU's event controller.
+    /// The pending irqs are assumed to be handled after this tick.
+    #[allow(unused_variables)]
     fn tick(
         &mut self,
-        _delta: &GlobalDelta,
-        _pending_irqs: &[ExceptionNumber],
-        _vcpus: &mut [VcpuCore],
+        delta: &GlobalDelta,
+        pending_irqs: &[ExceptionNumber],
+        vcpus: &mut [VcpuCore],
     ) -> Result<(), UnknownError> {
         Ok(())
     }

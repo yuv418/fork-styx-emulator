@@ -20,7 +20,10 @@ pub struct CoreHandle<'a> {
 
 impl<'a> CoreHandle<'a> {
     /// Returns the index of the vCPU this handle belongs to.
+    ///
+    /// The vCPU id indexes into the processor vCPU slice.
     pub fn vcpu_id(&self) -> VcpuId {
+        // seems a little weird to store on the event controller.
         self.event_controller.vcpu_index
     }
 

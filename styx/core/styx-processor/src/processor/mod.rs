@@ -155,11 +155,11 @@ impl Processor {
         &self.core.memory
     }
 
-    /// Perform an action on each vcpu.
+    /// Perform an action on each vCPU.
     ///
-    /// Fails early if one of the closures returns `Err()` with a descriptive error context.
+    /// Fails early if one of the closures returns `Err()`.
     ///
-    /// Use `proc.vpus.iter_mut()` do any any other complex operations on all vcpus.
+    /// Use `proc.vpus.iter_mut()` for any other complex operations on all vCPUs.
     pub fn for_vcpu(
         &mut self,
         mut f: impl FnMut(&mut VcpuCore) -> Result<(), UnknownError>,

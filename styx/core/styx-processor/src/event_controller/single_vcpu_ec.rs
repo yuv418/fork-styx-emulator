@@ -2,7 +2,7 @@
 
 use super::*;
 
-/// Primary event controller that routes interrupts to vcpu 0.
+/// Event distributor that routes interrupts to vCPU 0.
 #[derive(Default)]
 pub struct SingleVcpuEventController {}
 
