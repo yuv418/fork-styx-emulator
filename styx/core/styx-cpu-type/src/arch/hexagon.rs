@@ -7,7 +7,10 @@ pub mod register_fields;
 mod registers;
 pub mod variants;
 
-pub use registers::{GlobalHexagonRegister, HexagonRegister, SpecialHexagonRegister};
+pub use registers::{
+    BadVaRegister, BadVaRegisterValue, GlobalHexagonRegister, HexagonRegister,
+    SpecialHexagonRegister, SpecialHexagonRegisterIter, SpecialHexagonRegisterValues,
+};
 
 use super::ArchitectureDef;
 use variants::*;

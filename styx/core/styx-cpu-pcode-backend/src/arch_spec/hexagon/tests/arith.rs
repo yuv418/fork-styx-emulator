@@ -1198,6 +1198,66 @@ pub fn vadduh_sat_test(
     assert_eq!(ovf_result, ovf_expect);
 }
 
+pub fn addpsat_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	a4 c2 60 d3	d360c2a4 { 	r5:4 = add(r1:0,r3:2):sat }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+#[test_case(-10, i64::MIN)]
+#[test_case(-1, i64::MIN)]
+#[test_case(-3891, i64::MIN)]
+#[test_case(10, i64::MAX)]
+#[test_case(100, i64::MAX)]
+#[test_case(1000, i64::MAX)]
+#[test_case(i64::MIN, i64::MAX)]
+#[test_case(33, 44)]
+#[test_case(330, 144)]
+#[test_case(i64::MAX-1, 1)]
+#[test_case(i64::MIN+1, -1)]
+pub fn addpsat_hardcode(left: i64, right: i64) {
+    let (mut cpu, mut mmu, mut ev) = addpsat_setup();
+
+    addpsat_test(left, right, &mut cpu, &mut ev, &mut mmu);
+}
+
+pub fn addpsat_test(
+    left: i64,
+    right: i64,
+    cpu: &mut HexagonPcodeBackend,
+    ev: &mut EventController,
+    mmu: &mut Mmu,
+) {
+    cpu.set_pc(0x1000).unwrap();
+
+    cpu.write_register(HexagonRegister::D0, left as u64)
+        .unwrap();
+    cpu.write_register(HexagonRegister::D1, right as u64)
+        .unwrap();
+
+    cpu.execute(mmu, ev, 1).unwrap();
+
+    let d2 = cpu.read_register::<u64>(HexagonRegister::D2).unwrap() as i64;
+
+    assert_eq!(left.saturating_add(right), d2);
+}
+
+#[test]
+pub fn addpsat_loops() {
+    let (mut cpu, mut mmu, mut ev) = addpsat_setup();
+
+    // Made up numbers just for testing
+    for i in (i64::MIN..i64::MAX).step_by(0x12b9324de848671) {
+        for j in (i64::MIN..i64::MAX).step_by(0x9e32d22f2395a1) {
+            addpsat_test(i, j, &mut cpu, &mut ev, &mut mmu);
+        }
+    }
+}
+
 #[test_case([0xabab, 0xffff], [0xffff, 0x1])]
 #[test_case([0x387, 0x1], [0x987, 0xff])]
 #[test_case([0xfffe, 0x8831], [0x1, 0xea1])]

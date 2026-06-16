@@ -11,6 +11,13 @@ use styx_core::sync::styx_async::sync::broadcast;
 
 #[derive(Derivative)]
 #[derivative(Default)]
+pub struct QcomPrngConfig {
+    #[derivative(Default(value = "0x10c2000"))]
+    pub base_addr: u64,
+}
+
+#[derive(Derivative)]
+#[derivative(Default)]
 pub struct QTimerConfig {
     /// In qemu-hexagon-testing: See qtimer.c in standalone_systests/src,
     /// and IRQ1/IRQ2 values in cmake/hexagon-standalone.cmake
@@ -58,6 +65,7 @@ pub struct HexagonProcessorConfig {
     /// Peripherals
     pub qtimer_config: QTimerConfig,
     pub l2vic_config: L2VicConfig,
+    pub prng_config: QcomPrngConfig,
 
     /// Output
     ///

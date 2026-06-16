@@ -8,8 +8,9 @@ use super::{
     HexagonRegister,
 };
 use crate::arch::{
-    backends::GlobalArchRegister, hexagon::GlobalHexagonRegister, Arch, ArchitectureDef,
-    ArchitectureVariant, CpuRegister, CpuRegisterBank,
+    backends::GlobalArchRegister,
+    hexagon::{BadVaRegister, GlobalHexagonRegister, SpecialHexagonRegister},
+    Arch, ArchitectureDef, ArchitectureVariant, CpuRegister, CpuRegisterBank,
 };
 use derive_more::Display;
 use log::info;
@@ -17,6 +18,8 @@ use strum::IntoEnumIterator;
 use styx_sync::lazy_static;
 
 lazy_static! {
+    pub static ref HEXAGON_SPECIAL: [CpuRegister; 1] =
+        [SpecialHexagonRegister::BadVaRegister(BadVaRegister::new_unhooked()).register()];
     pub static ref HEXAGON_DEST_PREDICATES: [CpuRegister; 4] = [
         HexagonRegister::DestP0.register(),
         HexagonRegister::DestP1.register(),
@@ -129,6 +132,7 @@ impl CpuRegisterBank for HexagonGeneralRegisters {
             .cloned()
             .collect::<Vec<_>>();
         regs.extend_from_slice(HEXAGON_DEST_PREDICATES.as_slice());
+        regs.extend_from_slice(HEXAGON_SPECIAL.as_slice());
         regs.extend_from_slice(HEXAGON_REGPAIRS.as_slice());
         regs
     }
@@ -154,6 +158,7 @@ impl CpuRegisterBank for HexagonGeneralRegistersWithHvx {
             .cloned()
             .collect::<Vec<_>>();
         regs.extend_from_slice(HEXAGON_DEST_PREDICATES.as_slice());
+        regs.extend_from_slice(HEXAGON_SPECIAL.as_slice());
         regs.extend_from_slice(HEXAGON_REGPAIRS.as_slice());
         regs
     }

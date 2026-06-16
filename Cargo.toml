@@ -226,7 +226,7 @@ getset = "0.1.3"
 paste = "1.0.15"
 derivative = "2.2.0"
 embed-doc-image = "0.1.4"
-rand = "0.8.5"
+rand = "0.10.1"
 derive_more = { version = "1.0", features = ["full"] }
 confique = { version = "0.3.0", features = ["yaml", "toml", "json5"] }
 url = "2.5.3"

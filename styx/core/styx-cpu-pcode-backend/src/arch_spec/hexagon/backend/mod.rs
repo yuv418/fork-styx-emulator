@@ -18,7 +18,7 @@ use styx_cpu_type::{
         backends::{ArchRegister, ArchVariant, BasicArchRegister, GlobalArchRegister},
         hexagon::{
             register_fields::{ModeCtl, Ssr},
-            GlobalHexagonRegister, HexagonRegister,
+            BadVaRegister, GlobalHexagonRegister, HexagonRegister, SpecialHexagonRegister,
         },
         ArchitectureDef, RegisterValue,
     },
@@ -29,8 +29,11 @@ use styx_errors::{
     styx_cpu::StyxCpuBackendError,
     UnknownError,
 };
-use styx_pcode::pcode::{Opcode, Pcode, SpaceName, VarnodeData};
-use styx_pcode_translator::ContextOption;
+use styx_pcode::{
+    pcode::{Opcode, Pcode, SpaceName, VarnodeData},
+    sla::UserOps,
+};
+use styx_pcode_translator::{sla::HexagonUserOps, ContextOption};
 use styx_processor::{
     cpu::{
         CpuBackend, CpuBackendExt, CpuBuilding, ExecutionReport, GlobalRegisterStore,
@@ -46,6 +49,7 @@ use thiserror::Error;
 use crate::{
     arch_spec::hexagon::pkt_semantics::DEST_REG_OFFSET,
     backend_helper::BackendHelper,
+    execute_pcode::PcodeHelpers,
     get_pcode::{FetchPcodeError, GetPcodeError},
     pcode_gen::{GeneratePcodeError, RegisterTranslator},
     PcodeBackendConfiguration,
@@ -67,6 +71,8 @@ use crate::{
 use crate::{execute_pcode, HexagonInterruptType};
 use crate::{PCodeStateChange, DEFAULT_REG_ALLOCATION};
 use derive_more::Debug;
+
+use super::system;
 
 mod decode_attribs;
 mod decode_info;
@@ -813,7 +819,9 @@ impl HexagonPcodeBackend {
         slot: Option<usize>,
     ) -> Result<(), UnknownError> {
         let badva = self
-            .read_register::<u32>(HexagonRegister::BadVa)
+            .read_register::<u32>(SpecialHexagonRegister::BadVaRegister(
+                BadVaRegister::new_unhooked(),
+            ))
             .with_context(|| "couldn't read badva in exception")?;
         let mut ssr = Ssr::new_with_raw_value(
             self.read_register::<u32>(HexagonRegister::Ssr)
@@ -915,7 +923,7 @@ impl HexagonPcodeBackend {
             .offset;
 
         // Temporary hack while we figure this out better. 6 threads default.
-        Self {
+        let mut backend = Self {
             saved_context_opts: SavedContextOpts::default(),
             saved_execution_helper: None,
             execution_helper: Some(execution_helper),
@@ -936,15 +944,47 @@ impl HexagonPcodeBackend {
             bestwait_start,
             cache: Some(BTreeMap::new()),
             num_hthreads: num_hthreads.unwrap_or(6),
-            running: false,
+            running: true,
             waiting: false,
-        }
+        };
+
+        system::regs::add_regs_handlers(&mut backend);
+
+        backend
     }
     /// Indicate when we should update the context reg
     /// and what the new value should be. See `SavedContextOpts::update_context`
     /// for more details.
     pub fn update_context(&mut self, when: PacketLocation, what: ContextOption) {
         self.saved_context_opts.update_context(when, what);
+    }
+
+    pub fn is_callother_loadstore(&mut self, pcode: &Pcode) -> bool {
+        let loadstores = [
+            HexagonUserOps::Dczeroa.index(),
+            HexagonUserOps::MemwLocked.index(),
+            HexagonUserOps::MemwLoadlinked.index(),
+            HexagonUserOps::MemdLocked.index(),
+            HexagonUserOps::MemdLoadlinked.index(),
+        ];
+
+        if matches!(pcode.opcode, Opcode::CallOther) {
+            // The first is always a constant
+            let call_other_op = self
+                .space_manager()
+                .read(pcode.get_input(0))
+                .unwrap()
+                .to_u64()
+                .unwrap();
+
+            for loadstore in loadstores {
+                if call_other_op == loadstore {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 
     /// Execute a single instruction
@@ -1441,7 +1481,9 @@ impl HexagonPcodeBackend {
         for (i, ins) in full_pcodes.iter().enumerate() {
             let mut this_slot_info = None;
             for pcode in ins.iter() {
-                if matches!(pcode.opcode, Opcode::Load | Opcode::Store) {
+                if matches!(pcode.opcode, Opcode::Load | Opcode::Store)
+                    || self.is_callother_loadstore(&pcode)
+                {
                     trace!("instruction {i}/{} is a load/store", full_pcodes.len());
                     // Slot determination: figure out if the instruction has any "special" slot
                     // metadata.

@@ -6,7 +6,7 @@ use super::{
     Bool, Float, Int, PCodeStateChange, PcodeType, SInt,
 };
 use crate::{
-    call_other::{CallOtherCpu, CallOtherManager},
+    call_other::{CallOtherCpu, CallOtherHandleError, CallOtherManager},
     hooks::HasHookManager,
     memory::{
         sized_value::SizedValue,

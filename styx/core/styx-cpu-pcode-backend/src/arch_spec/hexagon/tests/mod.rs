@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 pub use crate::arch_spec::arch::hexagon::HexagonRegister;
+use crate::PcodeBackendConfiguration;
 pub use keystone_engine::Keystone;
 pub use log::trace;
 pub use regex::Regex;
@@ -65,10 +66,15 @@ pub fn setup_asm(
 }
 
 pub fn setup_cpu() -> (HexagonPcodeBackend, Mmu, EventController) {
-    let cpu = HexagonPcodeBackend::new_engine(
-        Arch::Hexagon,
+    let cpu = HexagonPcodeBackend::new_engine_config(
         HexagonVariants::QDSP6V66,
         ArchEndian::BigEndian,
+        &PcodeBackendConfiguration {
+            register_read_hooks: true,
+            register_write_hooks: true,
+            ..Default::default()
+        },
+        None,
     );
 
     let mmu = Mmu::default();

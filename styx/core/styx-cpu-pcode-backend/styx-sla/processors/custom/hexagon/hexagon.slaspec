@@ -42297,7 +42297,32 @@ gp: reloc is epsilon [ reloc = 0; ] {
   A2_addp_Rdd32 = tmp0;
 }
 
-:A2_addpsat A2_addpsat_Rdd32 A2_addpsat_Rss32 A2_addpsat_Rtt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 0 & b7 = 1 & b21 = 1 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 1 & A2_addpsat_Rdd32 & A2_addpsat_Rss32 & A2_addpsat_Rtt32 unimpl
+:A2_addpsat A2_addpsat_Rdd32 A2_addpsat_Rss32 A2_addpsat_Rtt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 0 & b7 = 1 & b21 = 1 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 1 & A2_addpsat_Rdd32 & A2_addpsat_Rss32 & A2_addpsat_Rtt32 {
+
+    local shld_saturate = scarry(A2_addpsat_Rss32, A2_addpsat_Rtt32);
+    # check which way to saturate (positive or negative) with this mask
+    local mask = 1 << 63;
+    local sum = A2_addpsat_Rss32 + A2_addpsat_Rtt32;
+    local out = 0;
+
+    # if the masked sum is zero, it's a negative overflow
+    local masked_sum = (mask & sum) == 0;
+
+    if (shld_saturate) goto <sat>;
+    out = sum;
+    goto <end>;
+
+<sat>
+    if (masked_sum) goto <satneg>;
+
+    out = ~mask;
+    goto <end>;
+
+<satneg>
+    out = mask;
+<end>
+    A2_addpsat_Rdd32 = out;
+}
 
 :A2_addspl A2_addspl_Rdd32 A2_addspl_Rss32 A2_addspl_Rtt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 0 & b6 = 1 & b7 = 1 & b21 = 1 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 1 & A2_addspl_Rdd32 & A2_addspl_Rss32 & A2_addspl_Rtt32 {
   local tmp0:8;

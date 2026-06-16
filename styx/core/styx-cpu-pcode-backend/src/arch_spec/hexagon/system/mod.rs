@@ -6,6 +6,7 @@ pub mod interrupt;
 pub mod l2;
 pub mod lock;
 pub mod mem;
+pub mod regs;
 pub mod reschedule;
 pub mod sync;
 pub mod thread;

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: BSD-2-Clause
 //! Generic top level container for Hexagon registers
+use derive_more::Display;
+use num_derive::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
 use std::num::NonZeroUsize;
 use strum::IntoEnumIterator;
@@ -136,7 +138,7 @@ create_basic_register_enums!(
     (Ssr, 32),    // S6
     (Ccr, 32),    // S7
     (Htid, 32),   // S8
-    (BadVa, 32),  // S9
+    // (BadVa, 32),  // S9
     (Imask, 32),  // S10
     (Gevb, 32),   // S11
     (VwCtrl, 32), // S12
@@ -304,7 +306,45 @@ lazy_static::lazy_static! {
     };
 }
 
-create_special_register_enums!(Hexagon);
+create_special_register_enums!(Hexagon, BadVaRegister);
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Default, Display)]
+pub struct BadVaRegister(bool);
+
+impl BadVaRegister {
+    // True is hooked, false is not
+    pub fn new() -> BadVaRegister {
+        Self(true)
+    }
+
+    pub fn new_unhooked() -> BadVaRegister {
+        Self(false)
+    }
+}
+
+impl From<BadVaRegister> for RegisterValue {
+    fn from(badva: BadVaRegister) -> Self {
+        RegisterValue::HexagonSpecial(SpecialHexagonRegisterValues::BadVaRegister(badva.into()))
+    }
+}
+
+#[derive(
+    Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Display, FromPrimitive, ToPrimitive,
+)]
+pub struct BadVaRegisterValue(u32);
+
+impl BadVaRegisterValue {
+    pub const fn const_default() -> Self {
+        Self(0)
+    }
+}
+
+impl From<BadVaRegister> for BadVaRegisterValue {
+    fn from(_bva: BadVaRegister) -> Self {
+        Self(0)
+    }
+}
+
 create_global_register_enums!(
     Hexagon,
     (Evb, 32),      // S16

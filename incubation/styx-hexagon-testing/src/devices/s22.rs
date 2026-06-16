@@ -21,7 +21,7 @@ impl HexagonDevice for S22 {
         info!("S22 processor config");
 
         Ok(HexagonProcessorConfig {
-            hardware_threads: 1, // 8,
+            hardware_threads: 8,
             config_table: [
                 (HexagonConfigTable::L2TCM, 0x540),
                 (HexagonConfigTable::L2EcomemSize, 0x800),
@@ -71,44 +71,12 @@ impl HexagonDevice for S22 {
                     Ok(())
                 }),
             ),
-            // Trying to figure out the mystery peripheral
-            // is it UART, etc. ?
-            StyxHook::MemoryRead(
-                (0x10c2000..0x10c4000).into(),
-                Box::new(
-                    |proc: CoreHandle, address: u64, size: u32, data: &mut [u8]| {
-                        info!(
-                            "READ mystery periph {:x} size {} data {:x?} at pc {:x?}",
-                            address,
-                            size,
-                            data,
-                            proc.cpu.pc()
-                        );
-
-                        Ok(())
-                    },
-                ),
-            ),
-            StyxHook::MemoryWrite(
-                (0x10c2000..0x10c4000).into(),
-                Box::new(|proc: CoreHandle, address: u64, size: u32, data: &[u8]| {
-                    info!(
-                        "WRITE mystery periph {:x} size {} data {:x?} at pc {:x?}",
-                        address,
-                        size,
-                        data,
-                        proc.cpu.pc()
-                    );
-
-                    Ok(())
-                }),
-            ),
             // quick clade2 test
             StyxHook::MemoryRead(
                 (0x120000000..0x140000000).into(),
                 Box::new(
-                    |_proc: CoreHandle, _address: u64, _size: u32, _data: &mut [u8]| {
-                        /*panic!(
+                    |proc: CoreHandle, address: u64, size: u32, data: &mut [u8]| {
+                        /*    panic!(
                             "clade2 read addr {:x} size {} data {:x?} pc {:x?}",
                             address,
                             size,
@@ -120,6 +88,28 @@ impl HexagonDevice for S22 {
                     },
                 ),
             ),
+            // Something related to waipio chipset/revision/whatever. Firmware needs this.
+            StyxHook::MemoryRead(
+                (0x1fc8000..0x1fc8004).into(),
+                Box::new(
+                    |proc: CoreHandle, address: u64, size: u32, data: &mut [u8]| {
+                        data.copy_from_slice(&0xa001_0000_u32.to_le_bytes());
+
+                        Ok(())
+                    },
+                ),
+            ),
+            // Something related to waipio chipset/revision/whatever. Firmware needs this.
+            /*StyxHook::MemoryRead(
+                (0x1fc8000..0x1fc8004).into(),
+                Box::new(
+                    |proc: CoreHandle, address: u64, size: u32, data: &mut [u8]| {
+                        data.copy_from_slice(&0xa001_0000_u32.to_le_bytes());
+
+                        Ok(())
+                    },
+                ),
+            ),*/
         ])
     }
 
@@ -128,6 +118,9 @@ impl HexagonDevice for S22 {
         // Mystery peripheral
         memory.write(0x10c2004).le().value(1u32).unwrap();
         memory.write(0x10c2000).le().value(1u32).unwrap();
+        // Something related to waipio chipset/revision/whatever. Firmware needs this.
+        memory.write(0x1fc8000).le().value(0xa001_0000u32)?;
+
         Ok(())
     }
 }

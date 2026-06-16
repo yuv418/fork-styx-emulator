@@ -390,35 +390,35 @@ where
                 // boundary is crossed (e.g. on the `cpu_epoch + 1`th single step).
                 let cycles = self.vcpus[vcpu_idx].time.cycles_executed();
                 let wall = self.vcpus[vcpu_idx].time.wall_time();
-                if cycles.saturating_sub(self.last_tick_cycles[vcpu_idx]) >= cpu_epoch {
-                    // `step_irqs` disabled suppresses peripheral/secondary-EC ticking
-                    // while stepping; a plain `continue` always ticks.
-                    // During a stepping round a non-stepped `Continue` vCPU still
-                    // ticks here once it crosses its own epoch boundary.
-                    if action == ExecMode::Continue || should_step_irqs {
-                        let delta = Delta {
-                            time: wall.saturating_sub(self.last_tick_wall[vcpu_idx]),
-                            count: cycles.saturating_sub(self.last_tick_cycles[vcpu_idx]),
-                        };
-                        if let Err(e) = styx_core::executor::post_stride_processing(
-                            &mut self.vcpus,
-                            &mut self.core.event_controller,
-                            vcpu_idx,
-                            &delta,
-                        ) {
-                            error!("post_stride_processing error: {e}");
-                        }
-                    }
-                    // Re-baseline from `VcpuTime`. `wall_time` only accrues during
-                    // `execute`, so it already excludes the ticking logic above.
-                    self.last_tick_cycles[vcpu_idx] = cycles;
-                    self.last_tick_wall[vcpu_idx] = wall;
-
-                    // poll for incoming data
-                    if poll_incoming_data() {
-                        return Ok(RunEvent::IncomingData);
+                // if cycles.saturating_sub(self.last_tick_cycles[vcpu_idx]) >= cpu_epoch {
+                // `step_irqs` disabled suppresses peripheral/secondary-EC ticking
+                // while stepping; a plain `continue` always ticks.
+                // During a stepping round a non-stepped `Continue` vCPU still
+                // ticks here once it crosses its own epoch boundary.
+                if action == ExecMode::Continue || should_step_irqs {
+                    let delta = Delta {
+                        time: wall.saturating_sub(self.last_tick_wall[vcpu_idx]),
+                        count: cycles.saturating_sub(self.last_tick_cycles[vcpu_idx]),
+                    };
+                    if let Err(e) = styx_core::executor::post_stride_processing(
+                        &mut self.vcpus,
+                        &mut self.core.event_controller,
+                        vcpu_idx,
+                        &delta,
+                    ) {
+                        error!("post_stride_processing error: {e}");
                     }
                 }
+                // Re-baseline from `VcpuTime`. `wall_time` only accrues during
+                // `execute`, so it already excludes the ticking logic above.
+                self.last_tick_cycles[vcpu_idx] = cycles;
+                self.last_tick_wall[vcpu_idx] = wall;
+
+                // poll for incoming data
+                if poll_incoming_data() {
+                    return Ok(RunEvent::IncomingData);
+                }
+                // }
 
                 // Processor-wide round tick.
                 // Checked every iteration so we don't miss ticks from an early return.

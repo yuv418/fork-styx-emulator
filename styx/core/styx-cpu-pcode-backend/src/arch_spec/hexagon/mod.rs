@@ -20,11 +20,7 @@ pub use system::interrupt::{HexagonInterruptCause, HexagonInterruptType};
 pub use system::lock::HexagonLockType;
 
 // Adapted from PPC
-pub fn build(
-
-        num_hthreads: Option<u32>,
-    
-) -> ArchSpecBuilder<sla::Hexagon, HexagonPcodeBackend> {
+pub fn build(num_hthreads: Option<u32>) -> ArchSpecBuilder<sla::Hexagon, HexagonPcodeBackend> {
     let mut spec = ArchSpecBuilder::default();
 
     // Generator + pc manager. For now use the default pc manager

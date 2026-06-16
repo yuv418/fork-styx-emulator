@@ -161,3 +161,5 @@ pub trait CpuBackend: Debug + Hookable + Send {
         Ok(())
     }
 }
+
+// impl CpuBackend for Box<dyn CpuBackend> {}

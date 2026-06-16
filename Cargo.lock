@@ -793,6 +793,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
+name = "chacha20"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f8d983286843e49675a4b7a2d174efe136dc93a18d69130dd18198a6c167601"
+dependencies = [
+ "cfg-if",
+ "cpufeatures 0.3.0",
+ "rand_core 0.10.1",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1164,6 +1175,15 @@ name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "59ed5838eebb26a2bb2e58f6d5b5316989ae9d08bab10e0e6d103e656d1b0280"
+dependencies = [
+ "libc",
+]
+
+[[package]]
+name = "cpufeatures"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b2a41393f66f16b0823bb79094d54ac5fbd34ab292ddafb9a0456ac9f87d201"
 dependencies = [
  "libc",
 ]
@@ -4526,6 +4546,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "rand"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2e8e8bcc7961af1fdac401278c6a831614941f6164ee3bf4ce61b7edb162207"
+dependencies = [
+ "chacha20",
+ "getrandom 0.4.2",
+ "rand_core 0.10.1",
+]
+
+[[package]]
 name = "rand_chacha"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5391,7 +5422,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3bf829a2d51ab4a5ddf1352d8470c140cadc8301b2ae1789db023f01cedd6ba"
 dependencies = [
  "cfg-if",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "digest 0.10.7",
 ]
 
@@ -5403,7 +5434,7 @@ checksum = "4d58a1e1bf39749807d89cf2d98ac2dfa0ff1cb3faa38fbb64dd88ac8013d800"
 dependencies = [
  "block-buffer 0.9.0",
  "cfg-if",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "digest 0.9.0",
  "opaque-debug",
 ]
@@ -5415,7 +5446,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283"
 dependencies = [
  "cfg-if",
- "cpufeatures",
+ "cpufeatures 0.2.17",
  "digest 0.10.7",
 ]
 
@@ -6140,7 +6171,7 @@ name = "styx-dbutil"
 version = "1.2.0"
 dependencies = [
  "log",
- "rand 0.8.5",
+ "rand 0.10.1",
  "sea-orm",
  "serde_json",
  "styx-core",
@@ -6177,7 +6208,7 @@ dependencies = [
 name = "styx-devices"
 version = "1.2.0"
 dependencies = [
- "rand 0.8.5",
+ "rand 0.10.1",
  "styx-core",
  "styx-workspace-hack",
  "thiserror 2.0.17",
@@ -6341,6 +6372,7 @@ dependencies = [
  "bitbybit",
  "bitvec",
  "derivative",
+ "rand 0.10.1",
  "serde",
  "smallvec",
  "styx-core",
@@ -6406,7 +6438,7 @@ dependencies = [
  "opentelemetry",
  "opentelemetry-otlp",
  "paste",
- "rand 0.8.5",
+ "rand 0.10.1",
  "serde",
  "serde_yaml",
  "styx-core",
@@ -8089,7 +8121,7 @@ dependencies = [
  "glob",
  "log",
  "prost",
- "rand 0.8.5",
+ "rand 0.10.1",
  "serde",
  "serde_json",
  "styx-emulator",
@@ -8136,7 +8168,7 @@ dependencies = [
  "log",
  "prost",
  "pyo3",
- "rand 0.8.5",
+ "rand 0.10.1",
  "serde",
  "serde_json",
  "styx-emulator",
@@ -8171,7 +8203,7 @@ dependencies = [
  "glob",
  "log",
  "prost",
- "rand 0.8.5",
+ "rand 0.10.1",
  "serde",
  "serde_json",
  "styx-emulator",

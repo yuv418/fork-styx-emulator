@@ -8,6 +8,7 @@ use std::sync::{Arc, Mutex};
 use clade::Clade;
 
 use l2vic::L2Vic;
+use prng::QcomPrng;
 use qtimer::QTimer;
 use styx_core::arch::hexagon::register_fields::ModeCtl;
 use styx_core::arch::hexagon::{GlobalHexagonRegister, HexagonRegister};
@@ -40,6 +41,7 @@ mod clade;
 
 mod config;
 mod l2vic;
+mod prng;
 mod qtimer;
 mod shared_state_hooks;
 mod thread_instructions;
@@ -83,12 +85,11 @@ impl ProcessorImpl for HexagonBuilder {
                 HexagonPcodeBackend::new_engine_config(
                     self.variant.clone(),
                     ArchEndian::LittleEndian,
-                    /*&PcodeBackendConfiguration {
+                    &PcodeBackendConfiguration {
                         register_read_hooks: true,
                         register_write_hooks: true,
                         exception: args.exception,
-                    },*/
-                    &args.into(),
+                    },
                     Some(thread_count),
                 )
             } else {
@@ -104,6 +105,8 @@ impl ProcessorImpl for HexagonBuilder {
             // The rest are by default false.
             if i == 0 {
                 cpu.set_running(true);
+            } else {
+                cpu.set_running(false);
             }
 
             let vcpu_ec = HexagonVcpuEventController::default();
@@ -120,6 +123,7 @@ impl ProcessorImpl for HexagonBuilder {
 
         let peripherals: Vec<Box<dyn Peripheral>> = vec![
             Box::new(QTimer::default()),
+            Box::new(QcomPrng::default()),
             #[cfg(feature = "hexagon-clade")]
             {
                 Box::new(Clade::default())

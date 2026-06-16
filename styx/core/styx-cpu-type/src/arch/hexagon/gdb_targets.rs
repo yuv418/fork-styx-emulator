@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 
 use super::HexagonRegister;
 use crate::arch::backends::{ArchRegister, BasicArchRegister};
-use crate::arch::hexagon::GlobalHexagonRegister;
+use crate::arch::hexagon::{BadVaRegister, GlobalHexagonRegister, SpecialHexagonRegister};
 use crate::arch::CpuRegister;
 use std::marker::PhantomData;
 use styx_macros::gdb_target_description;
@@ -134,7 +134,8 @@ lazy_static! {
         (110, HexagonRegister::Ssr.register()),
         (111, HexagonRegister::Ccr.register()),
         (112, HexagonRegister::Htid.register()),
-        (113, HexagonRegister::BadVa.register()),
+        (113, SpecialHexagonRegister::BadVaRegister(BadVaRegister::new()).register()),
+        // (113, SpecialHexagonRegister::BadVaRegister(BadVaRegister::new_unhooked()).register()),
         (114, HexagonRegister::Imask.register()),
         (115, HexagonRegister::Gevb.register()),
         (116, HexagonRegister::VwCtrl.register()),

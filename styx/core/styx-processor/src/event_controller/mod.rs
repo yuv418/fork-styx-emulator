@@ -8,7 +8,6 @@ mod single_vcpu_ec;
 use std::borrow::Cow;
 use std::fmt::Display;
 use std::{any::type_name, sync::Arc};
-use std::vec::Drain;
 
 use as_any::AsAny;
 pub use dummy::{DummyEventController, DummyEventDistributor};
@@ -16,13 +15,15 @@ use log::{info, trace};
 pub use peripheral::{DummyPeripheral, Peripheral, PeripheralTickCtx, RaisedIrqs};
 pub use peripherals::Peripherals;
 pub use single_vcpu_ec::SingleVcpuEventController;
-use smallvec::{Drain, SmallVec};
+use smallvec::SmallVec;
 use static_assertions::assert_obj_safe;
+use std::vec::Drain;
 use styx_errors::anyhow::Context;
 use styx_errors::UnknownError;
 use thiserror::Error;
 
 use crate::core::VcpuId;
+use crate::hooks::StyxHook;
 use crate::{
     core::VcpuCore,
     cpu::CpuBackend,
@@ -30,13 +31,6 @@ use crate::{
     memory::{MemoryBackend, Mmu},
     processor::Config,
 };
- use crate::core::VCpuCore;
- use crate::cpu::CpuBackend;
- use crate::executor::time::GlobalDelta;
- use crate::executor::Delta;
-use crate::hooks::StyxHook;
- use crate::memory::{MemoryBackend, Mmu};
- use crate::processor::Config;
 
 pub type ExceptionNumber = i32;
 
@@ -221,11 +215,13 @@ pub trait EventDistributorImpl: AsAny + Send {
     fn reset(&mut self, _cpu: &mut dyn CpuBackend, _mmu: &mut Mmu) -> Result<(), UnknownError> {
         Ok(())
     }
+
+    fn reset(&mut self, _cpu: &mut dyn CpuBackend, _mmu: &mut Mmu) -> Result<(), UnknownError> {
+        Ok(())
+    }
 }
 
 /// Wraps a [`EventControllerImpl`] and delegates all per-vCPU interrupt operations to it.
-///
-/// Does not own peripherals. Peripheral management is the responsibility of [`EventDistributor`].
 ///
 /// The dummy implementation provides a dummy event controller on vcpu 0. Good for tests.
 pub struct EventController {
@@ -233,8 +229,6 @@ pub struct EventController {
     pub inner: Box<dyn EventControllerImpl>,
     /// Which vcpu does this event controller belong to.
     pub vcpu_index: VcpuId,
-     /// IRQs to latch on other vcpus
-    pub vcpu_index: usize,
     /// IRQs to latch on primary event controller. (IRQ, value).
     pub irqs_to: SmallVec<[(ExceptionNumber, u64); 4]>,
     /// Hooks to add to other vCPUs. (hook, vcpu_index).

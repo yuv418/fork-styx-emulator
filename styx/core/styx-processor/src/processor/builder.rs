@@ -22,7 +22,7 @@ use crate::core::builder::{
 };
 use crate::core::ProcessorBundle;
 use crate::core::{ExceptionBehavior, ProcMeta, ProcessorCore, VcpuCore};
-use crate::cpu::{CpuBackend, CpuBackendExt, CpuBuilding, GlobalRegisterStore};
+use crate::cpu::{CpuBackend, CpuBackendExt, GlobalRegisterStore};
 use crate::event_controller::{EventController, EventControllerImpl, EventDistributor};
 use crate::executor::{
     time::{ProcessorTime, VcpuTime},
@@ -411,10 +411,38 @@ impl<'a> ProcessorBuilder<'a> {
         if let Some((cpu, _, _)) = vcpu_data.first_mut() {
             builder.post_shared_state_setup(cpu.as_mut(), &mut memory, &mut self.config)?;
         }
-
         // Init each secondary EC before memory is moved into Arc.
         for (cpu, _, ec_impl) in &mut vcpu_data {
             ec_impl.init(cpu.as_mut(), &mut memory, &mut self.config)?;
+        }
+
+        // Determine whether we have global registers. If so, initialize a store for them and
+        // share the register store with each Vcpu.
+        let global_registers_size = vcpu_data[0]
+            .0
+            .architecture()
+            .registers()
+            .global_registers_size();
+        info!("got global register size: {global_registers_size:x}");
+        if global_registers_size > 0 {
+            let backing_store = {
+                let mut tmp: Box<dyn GlobalRegisterStore> = Box::new(RwLock::new(Vec::new()));
+                // Fill in backing store.
+                tmp.initialize(global_registers_size)?;
+
+                // Move to Arc
+                Arc::new(tmp)
+            };
+
+            // Put the backing store in each vcpu.
+            // This does nothing if the backing store does not handle global registers.
+            for (vcpu, _, _) in &mut vcpu_data {
+                vcpu.add_global_registers(backing_store.clone())?;
+            }
+        }
+
+        if let Some((cpu, _, _)) = vcpu_data.first_mut() {
+            builder.post_shared_state_setup(cpu.as_mut(), &mut memory, &mut self.config)?;
         }
 
         let memory = Arc::new(memory);

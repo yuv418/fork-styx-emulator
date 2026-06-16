@@ -261,7 +261,6 @@ mod ppc {
             | Ppc32Register::R8
             | Ppc32Register::R9
             | Ppc32Register::R10
-            | Ppc32Register::R11
             | Ppc32Register::R12
             | Ppc32Register::R13
             | Ppc32Register::R14
@@ -478,8 +477,8 @@ mod hexagon {
     //! hexagon sla specifications
 
     use styx_cpu_type::arch::{
-        backends::{ArchRegister, BasicArchRegister, GlobalArchRegister},
-        hexagon::{GlobalHexagonRegister, HexagonRegister},
+        backends::{ArchRegister, BasicArchRegister, GlobalArchRegister, SpecialArchRegister},
+        hexagon::{GlobalHexagonRegister, HexagonRegister, SpecialHexagonRegister},
         CpuRegister,
     };
 
@@ -487,15 +486,16 @@ mod hexagon {
         fn translate_register(register: &CpuRegister) -> Box<str> {
             let variant = register.variant();
 
-            match variant {
-                ArchRegister::Basic(BasicArchRegister::Hexagon(reg)) => {
-                    hexagon_basic(register, reg)
-                }
-                ArchRegister::Global(GlobalArchRegister::Hexagon(reg)) => {
-                    hexagon_global(register, reg)
-                }
-                _ => "".to_owned().into_boxed_str(),
-            }
+            hexagon_translate_register(&variant)
+        }
+    }
+
+    pub fn hexagon_translate_register(register: &ArchRegister) -> Box<str> {
+        match register {
+            ArchRegister::Basic(BasicArchRegister::Hexagon(reg)) => hexagon_basic(reg),
+            ArchRegister::Global(GlobalArchRegister::Hexagon(reg)) => hexagon_global(reg),
+            ArchRegister::Special(SpecialArchRegister::Hexagon(reg)) => hexagon_special(reg),
+            _ => "".to_owned().into_boxed_str(),
         }
     }
 
@@ -568,7 +568,7 @@ mod hexagon {
             HexagonRegister::Ssr => "S6",
             HexagonRegister::Ccr => "S7",
             HexagonRegister::Htid => "S8",
-            HexagonRegister::BadVa => "S9",
+            // HexagonRegister::BadVa => "S9",
             HexagonRegister::Imask => "S10",
             HexagonRegister::Gevb => "S11",
             HexagonRegister::VwCtrl => "S12",
@@ -766,11 +766,26 @@ mod hexagon {
         .to_owned()
         .into_boxed_str()
     }
-    fn hexagon_global(_register: &CpuRegister, hex_reg: GlobalHexagonRegister) -> Box<str> {
-        hexagon_global_reg_to_str(&hex_reg)
+
+    pub fn hexagon_special_reg_to_str(hex_reg: &SpecialHexagonRegister) -> Box<str> {
+        let default_name = &hex_reg.to_string();
+
+        (match hex_reg {
+            SpecialHexagonRegister::BadVaRegister(_) => "S9",
+        })
+        .to_owned()
+        .into_boxed_str()
     }
 
-    fn hexagon_basic(_register: &CpuRegister, hex_reg: HexagonRegister) -> Box<str> {
+    fn hexagon_special(hex_reg: &SpecialHexagonRegister) -> Box<str> {
+        hexagon_special_reg_to_str(hex_reg)
+    }
+
+    fn hexagon_global(hex_reg: &GlobalHexagonRegister) -> Box<str> {
+        hexagon_global_reg_to_str(hex_reg)
+    }
+
+    fn hexagon_basic(hex_reg: &HexagonRegister) -> Box<str> {
         // The slaspec doesn't have support for the
         // vector registers at the moment.
         // TODO: Things could get very messy if we update a register name and
@@ -782,7 +797,7 @@ mod hexagon {
         // as in the future we may have names for them, and it would be good for rust to throw an error
         // or have to explicitly modify this match if/when that rename happens.
 
-        hexagon_reg_to_str(&hex_reg)
+        hexagon_reg_to_str(hex_reg)
     }
 }
 

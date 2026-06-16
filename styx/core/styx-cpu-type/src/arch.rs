@@ -213,6 +213,9 @@ pub enum RegisterValue {
     /// PPC32 special registers, only valid in a context where the
     /// currently executing target program is PPC32
     Ppc32Special(ppc32::SpecialPpc32RegisterValues),
+    /// Hexagon special registers, only valid in a context where the
+    /// currently executing target program is Hexagon
+    HexagonSpecial(hexagon::SpecialHexagonRegisterValues),
 }
 
 #[derive(Error, Debug)]
@@ -340,6 +343,7 @@ impl RegisterValue {
             RegisterValue::u128(_) => 128,
             RegisterValue::ArmSpecial(_) => 32,
             RegisterValue::Ppc32Special(_) => 32,
+            RegisterValue::HexagonSpecial(_) => 32,
         }
     }
 
@@ -356,6 +360,7 @@ impl RegisterValue {
             RegisterValue::u128(_) => 16,
             RegisterValue::ArmSpecial(_) => 4,
             RegisterValue::Ppc32Special(_) => 4,
+            RegisterValue::HexagonSpecial(_) => 4,
         }
     }
 }
@@ -385,6 +390,9 @@ impl Ord for RegisterValue {
             return match self {
                 RegisterValue::ArmSpecial(self_val) => {
                     self_val.cmp(other.as_arm_special().unwrap())
+                }
+                RegisterValue::HexagonSpecial(self_val) => {
+                    self_val.cmp(other.as_hexagon_special().unwrap())
                 }
                 RegisterValue::Ppc32Special(self_val) => {
                     self_val.cmp(other.as_ppc32_special().unwrap())

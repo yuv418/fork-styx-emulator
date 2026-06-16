@@ -374,6 +374,14 @@ pub fn post_stride_processing(
         .event_controller
         .tick(vcpus[idx].cpu.as_mut(), &mut vcpus[idx].mmu, delta)?;
 
+    if let Some(_irqn) = vcpus[idx]
+        .event_controller
+        .finish_interrupt(vcpus[idx].cpu.as_mut(), &mut vcpus[idx].mmu)
+    {
+        // vcpus[idx].event_controller
+        //     .notify_interrupt_finished(irqn, vcpus[idx].cpu.as_mut(), &mut vcpu.mmu);
+    }
+
     // Get hooks and add them.
     for (hook, hook_idx) in vcpus[idx].event_controller.drain_hooks() {
         let _ = vcpus[hook_idx]

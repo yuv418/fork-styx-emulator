@@ -4336,6 +4336,7 @@ pub fn loadstore_slot(instr_bits: u32) -> Option<SlotInfo> {
     for ins in INSTRS.iter() {
         if ins.pattern.is_match(instr_bits) {
             trace!("the ins {ins:?} is a match");
+
             for attr in &ins.attrs {
                 match attr {
                     HexagonInsnAttributes::RestrictSlot0Only

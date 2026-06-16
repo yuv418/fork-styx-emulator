@@ -14,7 +14,7 @@ use arbitrary_int::*;
 use bitbybit::{bitenum, bitfield};
 use smallvec::{smallvec, SmallVec};
 use styx_core::arch::hexagon::GlobalHexagonRegister;
-use styx_core::core::{VCpuCore, VcpuBundle};
+use styx_core::core::{VcpuBundle, VcpuCore};
 use styx_core::cpu::{HexagonInterruptCause, HexagonLockType};
 use styx_core::event_controller::{EventControllerImpl, EventDistributorImpl};
 use styx_core::macros::peripheral_shared_state;
@@ -470,6 +470,18 @@ impl L2VicSharedState {
 }
 
 impl L2Vic {
+    /// This will effectively set this IRQ to pending, and put it in the
+    /// IRQ queue.
+    ///
+    /// This means when the next event are checked and executed,
+    /// in `next`, this event an be considered.
+    ///
+    /// TODO Priority and use a queue to avoid performance issues
+    fn latch(&mut self, event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
+        trace!("l2vic latch called with event {event}");
+        self.lock().latch(event)
+    }
+
     /// See l2vic_update for more details
     /// in hw/intc/l2vic.c.
     /// TODO: need to use this for synchronous interrupts, don't do all this Vid logic stuff for that
@@ -477,7 +489,7 @@ impl L2Vic {
     fn execute_async(
         &mut self,
         l2vic_irq_n: ExceptionNumber,
-        vcpu: &mut VCpuCore,
+        vcpu: &mut VcpuCore,
     ) -> Result<(), ActivateIRQnError> {
         let mut l2vic = self.lock();
 
@@ -601,7 +613,7 @@ impl EventDistributorImpl for L2Vic {
         &mut self,
         delta: &GlobalDelta,
         pending_irqs: &[ExceptionNumber],
-        vcpus: &mut [VCpuCore],
+        vcpus: &mut [VcpuCore],
     ) -> Result<(), UnknownError> {
         trace!("l2vic tick called, vid is 0x{:x}", self.lock().vid);
         // Update the VID, since the register write hook won't work
@@ -729,24 +741,12 @@ impl EventDistributorImpl for L2Vic {
         Ok(())
     }
 
-    /// This will effectively set this IRQ to pending, and put it in the
-    /// IRQ queue.
-    ///
-    /// This means when the next event are checked and executed,
-    /// in `next`, this event an be considered.
-    ///
-    /// TODO Priority and use a queue to avoid performance issues
-    fn latch(&mut self, event: ExceptionNumber) -> Result<(), ActivateIRQnError> {
-        trace!("l2vic latch called with event {event}");
-        self.lock().latch(event)
-    }
-
     fn execute(
         &mut self,
         vcpu_idx: usize,
         value: u64,
         irq: ExceptionNumber,
-        vcpus: &mut [VCpuCore],
+        vcpus: &mut [VcpuCore],
     ) -> Result<InterruptExecuted, ActivateIRQnError> {
         let interrupt_type = HexagonInterruptType::from(irq);
         match interrupt_type {
@@ -814,8 +814,8 @@ impl EventDistributorImpl for L2Vic {
 
     fn init(
         &mut self,
-        cpu: &mut dyn CpuBackend,
-        mmu: &mut MemoryBackend,
+        cpus: &mut [VcpuCore],
+        mmu: &Arc<MemoryBackend>,
         config: &mut Config,
     ) -> Result<(), UnknownError> {
         let proc_cfg = config.get::<HexagonProcessorConfig>().expect("You need to provide a hexagon process configuration in processor config to initialize l2vic");
@@ -825,7 +825,7 @@ impl EventDistributorImpl for L2Vic {
         let fastl2vic_base = l2vic_cfg.fastl2vic_base;
 
         write_cfgtable_field(
-            cpu,
+            cpus[0].cpu.as_mut(),
             mmu,
             FASTL2VIC_CFGTABLE_OFFSET,
             (fastl2vic_base >> 16) as u32,
@@ -840,24 +840,25 @@ impl EventDistributorImpl for L2Vic {
             "l2vic initializing with l2vic_base {l2vic_base:x} fastl2vic_base {fastl2vic_base:x}"
         );
 
-        cpu.mem_write_hook(
-            l2vic_base,
-            l2vic_base + 0x1000,
-            peripheral_shared_state_write(l2vic_mmio_write_hook, self.inner.clone()),
-        )?;
+        for vcpu in cpus {
+            vcpu.cpu.mem_write_hook(
+                l2vic_base,
+                l2vic_base + 0x1000,
+                peripheral_shared_state_write(l2vic_mmio_write_hook, self.inner.clone()),
+            )?;
 
-        cpu.mem_read_hook(
-            l2vic_base,
-            l2vic_base + 0x1000,
-            peripheral_shared_state_read(l2vic_mmio_read_hook, self.inner.clone()),
-        )?;
+            vcpu.cpu.mem_read_hook(
+                l2vic_base,
+                l2vic_base + 0x1000,
+                peripheral_shared_state_read(l2vic_mmio_read_hook, self.inner.clone()),
+            )?;
 
-        cpu.mem_write_hook(
-            fastl2vic_base,
-            fastl2vic_base + 0x4,
-            peripheral_shared_state_write(fastl2vic_mmio_write_hook, self.inner.clone()),
-        )?;
-
+            vcpu.cpu.mem_write_hook(
+                fastl2vic_base,
+                fastl2vic_base + 0x4,
+                peripheral_shared_state_write(fastl2vic_mmio_write_hook, self.inner.clone()),
+            )?;
+        }
         info!("the hexagon l2vic has started");
 
         Ok(())

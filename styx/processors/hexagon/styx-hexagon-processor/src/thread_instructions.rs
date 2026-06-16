@@ -7,7 +7,7 @@ use styx_core::{
         register_fields::{Bestwait, ModeCtl, SchedCfg, Ssr, Stid, Syscfg},
         GlobalHexagonRegister, HexagonRegister,
     },
-    core::VCpuCore,
+    core::VcpuCore,
     cpu::{CpuBackendExt, HexagonInterruptCause, HexagonInterruptType, HexagonLockType},
     event_controller::{ActivateIRQnError, InterruptExecuted},
     macrolib::debug,
@@ -30,7 +30,7 @@ pub fn start(
     vcpu_idx: usize,
     irq: ExceptionNumber,
     value: u64,
-    vcpus: &mut [VCpuCore],
+    vcpus: &mut [VcpuCore],
 ) -> Result<InterruptExecuted, ActivateIRQnError> {
     let thread_mask = value as u32;
     info!("start handler with {thread_mask:x}");
@@ -64,7 +64,7 @@ pub fn nmi(
     vcpu_idx: usize,
     irq: ExceptionNumber,
     value: u64,
-    vcpus: &mut [VCpuCore],
+    vcpus: &mut [VcpuCore],
 ) -> Result<InterruptExecuted, ActivateIRQnError> {
     let thread_mask = value as u32;
     info!("nmi handler with {thread_mask:x}");
@@ -113,7 +113,7 @@ pub fn lock(
     vcpu_idx: usize,
     irq: ExceptionNumber,
     value: u64,
-    vcpus: &mut [VCpuCore],
+    vcpus: &mut [VcpuCore],
     lock_type: HexagonLockType,
     lock_state: &mut SmallVec<[HexagonLockState; 16]>,
 ) -> Result<InterruptExecuted, ActivateIRQnError> {
@@ -204,7 +204,7 @@ pub fn unlock(
     vcpu_idx: usize,
     irq: ExceptionNumber,
     value: u64,
-    vcpus: &mut [VCpuCore],
+    vcpus: &mut [VcpuCore],
     lock_type: HexagonLockType,
     lock_state: &mut SmallVec<[HexagonLockState; 16]>,
 ) -> Result<InterruptExecuted, ActivateIRQnError> {
@@ -303,7 +303,7 @@ pub fn resched(
     vcpu_idx: usize,
     irq: ExceptionNumber,
     value: u64,
-    vcpus: &mut [VCpuCore],
+    vcpus: &mut [VcpuCore],
 ) -> Result<InterruptExecuted, ActivateIRQnError> {
     // Figure out whether the current "bestwait" is higher priority than the lowest priority
     // currently running thread. The lowest priority thread is the one with the highest STID.PRIO

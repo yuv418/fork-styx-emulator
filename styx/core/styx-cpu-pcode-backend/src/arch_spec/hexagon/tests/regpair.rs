@@ -1,5 +1,5 @@
-use styx_cpu_type::arch::backends::ArchRegister;
-use styx_pcode_translator::sla::hexagon_global_reg_to_str;
+use styx_cpu_type::arch::backends::{ArchRegister, BasicArchRegister};
+use styx_pcode_translator::sla::{hexagon_global_reg_to_str, hexagon_translate_register};
 
 // SPDX-License-Identifier: BSD-2-Clause
 use crate::arch_spec::hexagon::regpairs::{GLOBAL_REGPAIR_MAP, REGPAIR_MAP};
@@ -14,9 +14,10 @@ fn verify_regpairs() {
     styx_util::logging::init_logging();
     let re = Regex::new(r"[A-Z]*\d*").unwrap();
     for (k, v) in REGPAIR_MAP.iter() {
-        let regpair_str = hexagon_reg_to_str(k);
-        let reglo_str = hexagon_reg_to_str(&v.1);
-        let reghi_str = hexagon_reg_to_str(&v.0);
+        let regpair_str =
+            hexagon_translate_register(&ArchRegister::Basic(BasicArchRegister::Hexagon(*k)));
+        let reglo_str = hexagon_translate_register(&v.1);
+        let reghi_str = hexagon_translate_register(&v.0);
 
         let regs: Vec<&str> = re.find_iter(&regpair_str).map(|m| m.as_str()).collect();
         trace!("regs for {regpair_str} are {regs:?} and hi {reghi_str} lo {reglo_str}");

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 use styx_core::{
-    arch::hexagon::{register_fields::Ssr, HexagonRegister},
+    arch::hexagon::{register_fields::Ssr, BadVaRegister, HexagonRegister, SpecialHexagonRegister},
     cpu::{CpuBackendExt, HexagonInterruptCause},
     errors::anyhow::Result,
     memory::TlbProcessor,
@@ -13,7 +13,10 @@ use styx_core::{
 /// It is set to false if it is a store.
 pub fn update_badva(proc: &mut TlbProcessor, va: u32) -> Result<()> {
     proc.cpu
-        .write_register(HexagonRegister::BadVa, va)
+        .write_register(
+            SpecialHexagonRegister::BadVaRegister(BadVaRegister::new()),
+            va,
+        )
         .with_context(|| "couldn't write BadVa in page fault")
 }
 

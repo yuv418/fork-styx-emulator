@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use log::{debug, trace};
 use styx_cpu_type::arch::{
     backends::{ArchRegister, BasicArchRegister, GlobalArchRegister},
-    hexagon::{GlobalHexagonRegister, HexagonRegister},
+    hexagon::{BadVaRegister, GlobalHexagonRegister, HexagonRegister, SpecialHexagonRegister},
 };
 use styx_errors::anyhow::anyhow;
 use styx_processor::cpu::{CpuBackend, CpuBackendExt};
@@ -23,214 +23,214 @@ use super::backend::HexagonPcodeBackend;
 // and in a RegisterHandler which is never used during
 // execution.
 lazy_static! {
-    pub static ref REGPAIR_MAP: HashMap<HexagonRegister, (HexagonRegister, HexagonRegister)> =
+    pub static ref REGPAIR_MAP: HashMap<HexagonRegister, (ArchRegister, ArchRegister)> =
         HashMap::from([
             (
                 HexagonRegister::D0,
-                (HexagonRegister::R1, HexagonRegister::R0)
+                (HexagonRegister::R1.into(), HexagonRegister::R0.into())
             ),
             (
                 HexagonRegister::D1,
-                (HexagonRegister::R3, HexagonRegister::R2)
+                (HexagonRegister::R3.into(), HexagonRegister::R2.into())
             ),
             (
                 HexagonRegister::D2,
-                (HexagonRegister::R5, HexagonRegister::R4)
+                (HexagonRegister::R5.into(), HexagonRegister::R4.into())
             ),
             (
                 HexagonRegister::D3,
-                (HexagonRegister::R7, HexagonRegister::R6)
+                (HexagonRegister::R7.into(), HexagonRegister::R6.into())
             ),
             (
                 HexagonRegister::D4,
-                (HexagonRegister::R9, HexagonRegister::R8)
+                (HexagonRegister::R9.into(), HexagonRegister::R8.into())
             ),
             (
                 HexagonRegister::D5,
-                (HexagonRegister::R11, HexagonRegister::R10)
+                (HexagonRegister::R11.into(), HexagonRegister::R10.into())
             ),
             (
                 HexagonRegister::D6,
-                (HexagonRegister::R13, HexagonRegister::R12)
+                (HexagonRegister::R13.into(), HexagonRegister::R12.into())
             ),
             (
                 HexagonRegister::D7,
-                (HexagonRegister::R15, HexagonRegister::R14)
+                (HexagonRegister::R15.into(), HexagonRegister::R14.into())
             ),
             (
                 HexagonRegister::D8,
-                (HexagonRegister::R17, HexagonRegister::R16)
+                (HexagonRegister::R17.into(), HexagonRegister::R16.into())
             ),
             (
                 HexagonRegister::D9,
-                (HexagonRegister::R19, HexagonRegister::R18)
+                (HexagonRegister::R19.into(), HexagonRegister::R18.into())
             ),
             (
                 HexagonRegister::D10,
-                (HexagonRegister::R21, HexagonRegister::R20)
+                (HexagonRegister::R21.into(), HexagonRegister::R20.into())
             ),
             (
                 HexagonRegister::D11,
-                (HexagonRegister::R23, HexagonRegister::R22)
+                (HexagonRegister::R23.into(), HexagonRegister::R22.into())
             ),
             (
                 HexagonRegister::D12,
-                (HexagonRegister::R25, HexagonRegister::R24)
+                (HexagonRegister::R25.into(), HexagonRegister::R24.into())
             ),
             (
                 HexagonRegister::D13,
-                (HexagonRegister::R27, HexagonRegister::R26)
+                (HexagonRegister::R27.into(), HexagonRegister::R26.into())
             ),
             (
                 HexagonRegister::D14,
-                (HexagonRegister::Sp, HexagonRegister::R28)
+                (HexagonRegister::Sp.into(), HexagonRegister::R28.into())
             ),
             (
                 HexagonRegister::D15,
-                (HexagonRegister::Lr, HexagonRegister::Fp)
+                (HexagonRegister::Lr.into(), HexagonRegister::Fp.into())
             ),
             (
                 HexagonRegister::SGP1SGP0,
-                (HexagonRegister::Sgp1, HexagonRegister::Sgp0)
+                (HexagonRegister::Sgp1.into(), HexagonRegister::Sgp0.into())
             ),
             (
                 HexagonRegister::S3S2,
-                (HexagonRegister::Elr, HexagonRegister::Stid)
+                (HexagonRegister::Elr.into(), HexagonRegister::Stid.into())
             ),
             (
                 HexagonRegister::S5S4,
-                (HexagonRegister::BadVa1, HexagonRegister::BadVa0)
+                (HexagonRegister::BadVa1.into(), HexagonRegister::BadVa0.into())
             ),
             (
                 HexagonRegister::S7S6,
-                (HexagonRegister::Ccr, HexagonRegister::Ssr)
+                (HexagonRegister::Ccr.into(), HexagonRegister::Ssr.into())
             ),
             (
                 HexagonRegister::S9S8,
-                (HexagonRegister::BadVa, HexagonRegister::Htid)
+                (SpecialHexagonRegister::BadVaRegister(BadVaRegister::new()).into(), HexagonRegister::Htid.into())
             ),
             (
                 HexagonRegister::S11S10,
-                (HexagonRegister::Gevb, HexagonRegister::Imask)
+                (HexagonRegister::Gevb.into(), HexagonRegister::Imask.into())
             ),
             (
                 HexagonRegister::S13S12,
-                (HexagonRegister::S13, HexagonRegister::VwCtrl)
+                (HexagonRegister::S13.into(), HexagonRegister::VwCtrl.into())
             ),
             (
                 HexagonRegister::S15S14,
-                (HexagonRegister::S15, HexagonRegister::S14)
+                (HexagonRegister::S15.into(), HexagonRegister::S14.into())
             ),
             (
                 HexagonRegister::G1G0,
-                (HexagonRegister::Gsr, HexagonRegister::Gelr)
+                (HexagonRegister::Gsr.into(), HexagonRegister::Gelr.into())
             ),
             (
                 HexagonRegister::G3G2,
-                (HexagonRegister::GbadVa, HexagonRegister::Gosp)
+                (HexagonRegister::GbadVa.into(), HexagonRegister::Gosp.into())
             ),
             (
                 HexagonRegister::G5G4,
-                (HexagonRegister::Gcommit2t, HexagonRegister::Gcommit1t)
+                (HexagonRegister::Gcommit2t.into(), HexagonRegister::Gcommit1t.into())
             ),
             (
                 HexagonRegister::G7G6,
-                (HexagonRegister::Gcommit4t, HexagonRegister::Gcommit3t)
+                (HexagonRegister::Gcommit4t.into(), HexagonRegister::Gcommit3t.into())
             ),
             (
                 HexagonRegister::G9G8,
-                (HexagonRegister::Gcommit6t, HexagonRegister::Gcommit5t)
+                (HexagonRegister::Gcommit6t.into(), HexagonRegister::Gcommit5t.into())
             ),
             (
                 HexagonRegister::G11G10,
-                (HexagonRegister::Gpcycle2t, HexagonRegister::Gpcycle1t)
+                (HexagonRegister::Gpcycle2t.into(), HexagonRegister::Gpcycle1t.into())
             ),
             (
                 HexagonRegister::G13G12,
-                (HexagonRegister::Gpcycle4t, HexagonRegister::Gpcycle3t)
+                (HexagonRegister::Gpcycle4t.into(), HexagonRegister::Gpcycle3t.into())
             ),
             (
                 HexagonRegister::G15G14,
-                (HexagonRegister::Gpcycle6t, HexagonRegister::Gpcycle5t)
+                (HexagonRegister::Gpcycle6t.into(), HexagonRegister::Gpcycle5t.into())
             ),
             (
                 HexagonRegister::G17G16,
-                (HexagonRegister::Gpmucnt5, HexagonRegister::Gpmucnt4)
+                (HexagonRegister::Gpmucnt5.into(), HexagonRegister::Gpmucnt4.into())
             ),
             (
                 HexagonRegister::G19G18,
-                (HexagonRegister::Gpmucnt7, HexagonRegister::Gpmucnt6)
+                (HexagonRegister::Gpmucnt7.into(), HexagonRegister::Gpmucnt6.into())
             ),
             (
                 HexagonRegister::G21G20,
-                (HexagonRegister::Gcommit8t, HexagonRegister::Gcommit7t)
+                (HexagonRegister::Gcommit8t.into(), HexagonRegister::Gcommit7t.into())
             ),
             (
                 HexagonRegister::G23G22,
-                (HexagonRegister::Gpcycle8t, HexagonRegister::Gpcycle7t)
+                (HexagonRegister::Gpcycle8t.into(), HexagonRegister::Gpcycle7t.into())
             ),
             (
                 HexagonRegister::G25G24,
-                (HexagonRegister::Gpcyclehi, HexagonRegister::Gpcyclelo)
+                (HexagonRegister::Gpcyclehi.into(), HexagonRegister::Gpcyclelo.into())
             ),
             (
                 HexagonRegister::G27G26,
-                (HexagonRegister::Gpmucnt1, HexagonRegister::Gpmucnt0)
+                (HexagonRegister::Gpmucnt1.into(), HexagonRegister::Gpmucnt0.into())
             ),
             (
                 HexagonRegister::G29G28,
-                (HexagonRegister::Gpmucnt3, HexagonRegister::Gpmucnt2)
+                (HexagonRegister::Gpmucnt3.into(), HexagonRegister::Gpmucnt2.into())
             ),
             (
                 HexagonRegister::G31G30,
-                (HexagonRegister::G31, HexagonRegister::G30)
+                (HexagonRegister::G31.into(), HexagonRegister::G30.into())
             ),
             (
                 HexagonRegister::C1C0,
-                (HexagonRegister::Lc0, HexagonRegister::Sa0)
+                (HexagonRegister::Lc0.into(), HexagonRegister::Sa0.into())
             ),
             (
                 HexagonRegister::C3C2,
-                (HexagonRegister::Lc1, HexagonRegister::Sa1)
+                (HexagonRegister::Lc1.into(), HexagonRegister::Sa1.into())
             ),
             (
                 HexagonRegister::C5C4,
-                (HexagonRegister::C5, HexagonRegister::P3_0)
+                (HexagonRegister::C5.into(), HexagonRegister::P3_0.into())
             ),
             (
                 HexagonRegister::C7C6,
-                (HexagonRegister::M1, HexagonRegister::M0)
+                (HexagonRegister::M1.into(), HexagonRegister::M0.into())
             ),
             (
                 HexagonRegister::C9C8,
-                (HexagonRegister::Pc, HexagonRegister::Usr)
+                (HexagonRegister::Pc.into(), HexagonRegister::Usr.into())
             ),
             (
                 HexagonRegister::C11C10,
-                (HexagonRegister::Gp, HexagonRegister::Ugp)
+                (HexagonRegister::Gp.into(), HexagonRegister::Ugp.into())
             ),
             // C13C12
             (
                 HexagonRegister::Cs,
-                (HexagonRegister::Cs1, HexagonRegister::Cs0)
+                (HexagonRegister::Cs1.into(), HexagonRegister::Cs0.into())
             ),
             // C15C14
             (
                 HexagonRegister::Upcycle,
-                (HexagonRegister::UpcycleHi, HexagonRegister::UpcycleLo)
+                (HexagonRegister::UpcycleHi.into(), HexagonRegister::UpcycleLo.into())
             ),
             (
                 HexagonRegister::C17C16,
-                (HexagonRegister::FrameKey, HexagonRegister::FrameLimit)
+                (HexagonRegister::FrameKey.into(), HexagonRegister::FrameLimit.into())
             ),
             (
                 HexagonRegister::PktCount,
-                (HexagonRegister::PktCountHi, HexagonRegister::PktCountLo)
+                (HexagonRegister::PktCountHi.into(), HexagonRegister::PktCountLo.into())
             ),
             (
                 HexagonRegister::Utimer,
-                (HexagonRegister::UtimerHi, HexagonRegister::UtimerLo)
-            )
+                (HexagonRegister::UtimerHi.into(), HexagonRegister::UtimerLo.into())
+            .into())
 
     ]);
 
@@ -413,9 +413,7 @@ lazy_static! {
 }
 
 impl RegpairHandler {
-    fn get_pairs_from_archregister(
-        register: ArchRegister,
-    ) -> Option<(HexagonRegister, HexagonRegister)> {
+    fn get_pairs_from_archregister(register: ArchRegister) -> Option<(ArchRegister, ArchRegister)> {
         // WARN: this assumes the registers are defined contiguously
         match register {
             ArchRegister::Basic(BasicArchRegister::Hexagon(reg)) => REGPAIR_MAP.get(&reg).copied(),

@@ -417,6 +417,12 @@ impl CpuBackend for UnicornBackend {
                     "ppc32 special register read not implemented for the unicorn backend"
                 )))
             }
+
+            RegisterValue::HexagonSpecial(_) => {
+                return Err(ReadRegisterError::Other(anyhow!(
+                    "hexagon special register read not implemented for the unicorn backend"
+                )))
+            }
         };
 
         // re-unpack the data, and return it
@@ -483,7 +489,10 @@ impl CpuBackend for UnicornBackend {
                 }
             }
             RegisterValue::Ppc32Special(_) => Err(WriteRegisterError::Other(anyhow!(
-                "ppc32 special register read not implemented for the unicorn backend"
+                "ppc32 special register write not implemented for the unicorn backend"
+            ))),
+            RegisterValue::HexagonSpecial(_) => Err(WriteRegisterError::Other(anyhow!(
+                "hexagon special register write not implemented for the unicorn backend"
             ))),
         }
     }

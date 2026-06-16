@@ -516,7 +516,7 @@ impl TlbImpl for HexagonTlb {
         if flags == 0 {
             let probe_field = TLBProbeField::new_with_raw_value(input as u32);
 
-            trace!(
+            debug!(
                 "tlb search with asid {:x} vpn {:x}",
                 probe_field.asid(),
                 probe_field.vpn()
@@ -525,7 +525,7 @@ impl TlbImpl for HexagonTlb {
             // match on VPN and ASID
 
             for (i, ent) in self.lock().entries.iter().enumerate() {
-                trace!(
+                debug!(
                     "probe_field vpn {:x} entry vpn {:x}",
                     probe_field.vpn(),
                     ent.vpn()
@@ -538,10 +538,10 @@ impl TlbImpl for HexagonTlb {
                     let page_mask = PAGE_MASK[page_type];
 
                     let probe_field_vpn_page_masked = probe_field_vpn_shifted & !page_mask;
-                    trace!("probe_field_vpn_page_masked {probe_field_vpn_page_masked:x} ent_vpn_shfited {ent_vpn_shifted:x}");
+                    debug!("probe_field_vpn_page_masked {probe_field_vpn_page_masked:x} ent_vpn_shfited {ent_vpn_shifted:x}");
 
                     if probe_field_vpn_page_masked == ent_vpn_shifted {
-                        trace!("tlb search got entry {ent:x?}");
+                        debug!("tlb search got entry {ent:x?}");
                         return Some(i as u64);
                     }
                 }
@@ -556,10 +556,10 @@ impl TlbImpl for HexagonTlb {
             // the documentation states that "In the overlap check, the global bit of the incoming
             // Rss entry is forced to zero and the valid bit is forced to 1." As such, we don't
             // check the valid bit or global bit.
-            trace!("tlb_search on input entry {input_entry:x?}");
+            debug!("tlb_search on input entry {input_entry:x?}");
 
             for (i, entry) in self.lock().entries.iter().enumerate() {
-                trace!("checking against entry {entry:x?}");
+                debug!("checking against entry {entry:x?}");
                 if !entry.v() || entry.asid() != input_entry.asid() {
                     continue;
                 }
@@ -573,7 +573,7 @@ impl TlbImpl for HexagonTlb {
                 let sz = 1 << Self::get_entry_page_num_bits(entry);
                 let input_sz = 1 << Self::get_entry_page_num_bits(&input_entry);
 
-                trace!("input_va {input_va:x} input_sz {input_sz:x} va {va:x} sz {sz:x}");
+                debug!("input_va {input_va:x} input_sz {input_sz:x} va {va:x} sz {sz:x}");
                 // Now actually check for overlaps.
                 //
                 // Case 1:
