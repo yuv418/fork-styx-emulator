@@ -41,7 +41,7 @@ impl<T: ?Sized + CpuBackend> CpuBackendExt for T {
                     .map(Some)
                     .unwrap_or_else(|err| {
                         // this is needed to handle registers that are not u32
-                        log::warn!(
+                        log::debug!(
                             "Could not get the register value for {:?}: {err:#}",
                             regdef.variant()
                         );
