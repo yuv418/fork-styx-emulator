@@ -21,6 +21,7 @@ bitbybit = { workspace = true }
 arbitrary-int = { workspace = true }
 thiserror = { workspace = true }
 bitvec = { workspace = true, optional = true }
+bytemuck = { workspace = true }
 derivative = { workspace = true }
 as-any = { workspace = true }
 smallvec = { workspace = true }

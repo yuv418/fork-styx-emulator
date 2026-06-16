@@ -11,6 +11,16 @@ use styx_core::sync::styx_async::sync::broadcast;
 
 #[derive(Derivative)]
 #[derivative(Default)]
+pub struct SmemConfig {
+    #[derivative(Default(value = "0xe00_0000"))]
+    pub base_addr: u64,
+    // This address is read during emulation to find the base address.
+    #[derivative(Default(value = "0x1fd4000"))]
+    pub smem_addr_read_base: u64,
+}
+
+#[derive(Derivative)]
+#[derivative(Default)]
 pub struct QcomPrngConfig {
     #[derivative(Default(value = "0x10c2000"))]
     pub base_addr: u64,
@@ -66,6 +76,7 @@ pub struct HexagonProcessorConfig {
     pub qtimer_config: QTimerConfig,
     pub l2vic_config: L2VicConfig,
     pub prng_config: QcomPrngConfig,
+    pub smem_config: SmemConfig,
 
     /// Output
     ///

@@ -10,6 +10,7 @@ use clade::Clade;
 use l2vic::L2Vic;
 use prng::QcomPrng;
 use qtimer::QTimer;
+use smem::Smem;
 use styx_core::arch::hexagon::register_fields::ModeCtl;
 use styx_core::arch::hexagon::{GlobalHexagonRegister, HexagonRegister};
 use styx_core::core::builder::VcpuBundleBuilder;
@@ -44,6 +45,7 @@ mod l2vic;
 mod prng;
 mod qtimer;
 mod shared_state_hooks;
+mod smem;
 mod thread_instructions;
 mod tlb;
 mod vcpu_event_controller;
@@ -124,6 +126,7 @@ impl ProcessorImpl for HexagonBuilder {
         let peripherals: Vec<Box<dyn Peripheral>> = vec![
             Box::new(QTimer::default()),
             Box::new(QcomPrng::default()),
+            Box::new(Smem::default()),
             #[cfg(feature = "hexagon-clade")]
             {
                 Box::new(Clade::default())

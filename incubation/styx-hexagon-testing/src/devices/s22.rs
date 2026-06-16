@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
+use log::warn;
 use styx_emulator::{
     cpu::{arch::hexagon::HexagonRegister, CpuBackendExt},
     errors::UnknownError,
@@ -99,6 +100,87 @@ impl HexagonDevice for S22 {
                     },
                 ),
             ),
+            // smem related
+            StyxHook::MemoryRead(
+                (0xe00_0000..0xe01_2000).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &mut [u8]|
+                     -> Result<(), UnknownError> {
+                        info!(
+                            "SMEM memory read pc {:x?} {address:x} size {size} data {data:?}",
+                            proc.cpu.pc()
+                        );
+                        Ok(())
+                    },
+                ),
+            ),
+            StyxHook::MemoryWrite(
+                (0xe00_2000..0xe20_0000).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &[u8]|
+                     -> Result<(), UnknownError> {
+                        info!(
+                            "SMEM memory write pc {:x?} {address:x} size {size} data {data:?}",
+                            proc.cpu.pc()
+                        );
+                        Ok(())
+                    },
+                ),
+            ),
+            StyxHook::MemoryRead(
+                (0x1fc8000..0x1fe8000).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &mut [u8]|
+                     -> Result<(), UnknownError> {
+                        info!(
+                            "SMEMPre memory read pc {:x?} {address:x} size {size} data {data:?}",
+                            proc.cpu.pc()
+                        );
+                        Ok(())
+                    },
+                ),
+            ),
+            StyxHook::MemoryWrite(
+                (0x1fc8000..0x1fe8000).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &[u8]|
+                     -> Result<(), UnknownError> {
+                        info!(
+                            "SMEMPre memory write pc {:x?} {address:x} size {size} data {data:?}",
+                            proc.cpu.pc()
+                        );
+                        Ok(())
+                    },
+                ),
+            ),
+            StyxHook::MemoryRead(
+                (0xe001030..(0xe001030 + 0xb0)).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &mut [u8]|
+                     -> Result<(), UnknownError> {
+                        warn!(
+                            "chipinfo memory write pc {:x?} {address:x} size {size} data {data:?}",
+                            proc.cpu.pc()
+                        );
+                        Ok(())
+                    },
+                ),
+            ),
             // Something related to waipio chipset/revision/whatever. Firmware needs this.
             /*StyxHook::MemoryRead(
                 (0x1fc8000..0x1fc8004).into(),
@@ -118,8 +200,90 @@ impl HexagonDevice for S22 {
         // Mystery peripheral
         memory.write(0x10c2004).le().value(1u32).unwrap();
         memory.write(0x10c2000).le().value(1u32).unwrap();
+        const SMEM_BASE_ADDR: u32 = 0xe00_0000;
+        const SMEM_SIZE: u32 = 0x100000;
+
         // Something related to waipio chipset/revision/whatever. Firmware needs this.
         memory.write(0x1fc8000).le().value(0xa001_0000u32)?;
+
+        /*memory.write(0x1fd4000).le().value(SMEM_BASE_ADDR)?;
+        // ???
+        memory.write(0x1fd4004).le().value(0xababababu32)?;
+
+        // see struct smem_addr_info and smem_get_base_addr
+        // SMEM_TARGET_INFO_IDENTIFIER
+        // according to QEMU this is SMEM_ADDR
+        memory.write(0xe00_0000).le().value(0x49494953u32)?;
+        // size
+        memory.write(0xe00_0004).le().value(SMEM_SIZE)?;
+        // phy_addr
+        memory.write(0xe00_0008).le().value(SMEM_BASE_ADDR)?;
+
+        /*for i in 0..(0x10000 / 4) {
+            memory.write(0xe00_2000 + i as u64).le().value(i as u32)?;
+        }*/
+
+        // bloop
+        memory.write(SMEM_BASE_ADDR + 0xc0).le().value(1u32)?;
+        for i in 0..32 {
+            memory
+                .write(SMEM_BASE_ADDR + 0x42 + (i * 4))
+                .le()
+                .value(12u16)?;
+        }
+        // memory.write(0xe00_205c as u64).le().value(1u32)?;
+
+        const SMEM_TOC: u32 = SMEM_BASE_ADDR + SMEM_SIZE - 0x1000;
+        const SMEM_PARTHEADER_OFF: u32 = 0x1000;
+        const SMEM_PARTHEADER: u32 = SMEM_BASE_ADDR + SMEM_PARTHEADER_OFF;
+        // magic $TOC
+        memory.write(SMEM_TOC).le().value(0x434f5424u32)?;
+        // "SMEM_READ_SMEM_4(&toc->version) == 1"
+        memory.write(SMEM_TOC + 4).le().value(1u32)?;
+        // canot be greater than 18, but should be zero to facilitate initialization
+        // toc number of entries
+        memory.write(SMEM_TOC + 8).le().value(1)?;
+
+        // partition table address (offset)
+        memory
+            .write(SMEM_TOC + 0x20)
+            .le()
+            .value(SMEM_PARTHEADER_OFF)?;
+        // partition table size
+        memory.write(SMEM_TOC + 0x24).le().value(0x10000u32)?;
+        //
+        memory.write(SMEM_TOC + 0x28).le().value(0u32)?;
+        // host0
+        memory.write(SMEM_TOC + 0x2c).le().value(0xfffeu16)?;
+        // host1
+        memory.write(SMEM_TOC + 0x2e).le().value(0xfffeu16)?;
+
+        // part table
+        memory.write(SMEM_PARTHEADER).le().value(0x54525024)?;
+        // host0 (global host)
+        memory.write(SMEM_PARTHEADER + 0x4).le().value(0xfffeu16)?;
+        // host1 (global host)
+        memory.write(SMEM_PARTHEADER + 0x6).le().value(0xfffeu16)?;
+        memory.write(SMEM_PARTHEADER + 0x8).le().value(0x10000u32)?;
+        // this value might be wrong
+        memory.write(SMEM_PARTHEADER + 0xc).le().value(0xa0u32)?;
+        memory
+            .write(SMEM_PARTHEADER + 0x10)
+            .le()
+            .value(0x10000u32)?;
+
+        // private entry
+        memory.write(SMEM_PARTHEADER + 0x20).le().value(0xa5a5u16)?;
+        // id
+        memory.write(SMEM_PARTHEADER + 0x22).le().value(0x89u16)?;
+        memory.write(SMEM_PARTHEADER + 0x24).le().value(0xb0u32)?;
+        for i in 0..0xb0 {
+            memory
+                .write(SMEM_PARTHEADER + 0x30 + i)
+                .le()
+                .value(0xa8u8)?;
+        }
+        memory.write(SMEM_PARTHEADER + 0x30).le().value(0u32)?;*/
 
         Ok(())
     }
