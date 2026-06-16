@@ -4,6 +4,7 @@
 use crate::arch_spec::hexagon::tests::*;
 use log::info;
 use styx_cpu_type::arch::hexagon::register_fields::Usr;
+use styx_processor::cpu::ExecutionReport;
 use test_case::test_case;
 
 #[test_case(-392, 392; "negative_392")]
@@ -1293,4 +1294,266 @@ pub fn vadduh_sat_loops() {
             );
         }
     }
+}
+
+pub fn cmpbgtui_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	03 40 00 00	00004003 { 	immext(#0xc0)
+	4:	e0 c7 41 dd	dd41c7e0   	p0 = cmpb.gtu(r1,##0xff) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+pub fn cmpbgtu_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	e0 c2 c1 c7	c7c1c2e0 { 	p0 = cmpb.gtu(r1,r2) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+pub fn cmpbgti_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	e0 cf 21 dd	dd21cfe0 { 	p0 = cmpb.gt(r1,#0x7f) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+pub fn cmpbgt_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	40 c2 c1 c7	c7c1c240 { 	p0 = cmpb.gt(r1,r2) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+pub fn cmpbeqi_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	e0 df 01 dd	dd01dfe0 { 	p0 = cmpb.eq(r1,#0xff) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+pub fn cmpbeq_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	c0 c2 c1 c7	c7c1c2c0 { 	p0 = cmpb.eq(r1,r2) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+// cmph
+
+pub fn cmphgtui_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	ff 43 00 00	000043ff { 	immext(#0xffc0)
+	4:	e8 c7 41 dd	dd41c7e8   	p0 = cmph.gtu(r1,##0xffff) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+pub fn cmphgtu_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	a0 c2 c1 c7	c7c1c2a0 { 	p0 = cmph.gtu(r1,r2) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+pub fn cmphgti_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	ff 41 00 00	000041ff { 	immext(#0x7fc0)
+	4:	e8 c7 21 dd	dd21c7e8   	p0 = cmph.gt(r1,##0x7fff) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+pub fn cmphgt_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	80 c2 c1 c7	c7c1c280 { 	p0 = cmph.gt(r1,r2) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+pub fn cmpheqi_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	ff 41 00 00	000041ff { 	immext(#0x7fc0)
+	4:	e8 c7 01 dd	dd01c7e8   	p0 = cmph.eq(r1,##0x7fff) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+pub fn cmpheq_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	60 c2 c1 c7	c7c1c260 { 	p0 = cmph.eq(r1,r2) }
+"#,
+    );
+
+    (cpu, mmu, ev)
+}
+
+#[test_case(10; "small")]
+#[test_case(0x7f; "small_signed")]
+#[test_case(0x10ff; "big")]
+#[test_case(0xffffffff; "huge")]
+#[test_case(0xaab3ff; "medium1")]
+#[test_case(0xaafffe; "medium2")]
+pub fn cmpb_individual(inp: u32) {
+    let (mut cpueqi, mut mmueqi, mut eveqi) = cmpbeqi_setup();
+    let (mut cpugti, mut mmugti, mut evgti) = cmpbgti_setup();
+    let (mut cpugtui, mut mmugtui, mut evgtui) = cmpbgtui_setup();
+
+    let (mut cpueq, mut mmueq, mut eveq) = cmpbeq_setup();
+    let (mut cpugt, mut mmugt, mut evgt) = cmpbgt_setup();
+    let (mut cpugtu, mut mmugtu, mut evgtu) = cmpbgtu_setup();
+
+    cpueq.write_register(HexagonRegister::R2, 0xffu32).unwrap();
+    cpugt.write_register(HexagonRegister::R2, 0x7fu32).unwrap();
+    cpugtu.write_register(HexagonRegister::R2, 0xffu32).unwrap();
+
+    cmpb(inp, true, false, 8, &mut cpueq, &mut mmueq, &mut eveq);
+    cmpb(inp, true, false, 8, &mut cpueqi, &mut mmueqi, &mut eveqi);
+    cmpb(inp, false, true, 8, &mut cpugt, &mut mmugt, &mut evgt);
+    cmpb(inp, false, true, 8, &mut cpugti, &mut mmugti, &mut evgti);
+    cmpb(inp, false, false, 8, &mut cpugtu, &mut mmugtu, &mut evgtu);
+    cmpb(
+        inp,
+        false,
+        false,
+        8,
+        &mut cpugtui,
+        &mut mmugtui,
+        &mut evgtui,
+    );
+
+    let (mut cpueqi, mut mmueqi, mut eveqi) = cmpheqi_setup();
+    let (mut cpugti, mut mmugti, mut evgti) = cmphgti_setup();
+    let (mut cpugtui, mut mmugtui, mut evgtui) = cmphgtui_setup();
+
+    let (mut cpueq, mut mmueq, mut eveq) = cmpheq_setup();
+    let (mut cpugt, mut mmugt, mut evgt) = cmphgt_setup();
+    let (mut cpugtu, mut mmugtu, mut evgtu) = cmphgtu_setup();
+
+    cpueq
+        .write_register(HexagonRegister::R2, 0xffffu32)
+        .unwrap();
+    cpugt
+        .write_register(HexagonRegister::R2, 0x7fffu32)
+        .unwrap();
+    cpugtu
+        .write_register(HexagonRegister::R2, 0xffffu32)
+        .unwrap();
+
+    cmpb(inp, true, false, 16, &mut cpueq, &mut mmueq, &mut eveq);
+    cmpb(inp, true, false, 16, &mut cpueqi, &mut mmueqi, &mut eveqi);
+    cmpb(inp, false, true, 16, &mut cpugt, &mut mmugt, &mut evgt);
+    cmpb(inp, false, true, 16, &mut cpugti, &mut mmugti, &mut evgti);
+    cmpb(inp, false, false, 16, &mut cpugtu, &mut mmugtu, &mut evgtu);
+    cmpb(
+        inp,
+        false,
+        false,
+        16,
+        &mut cpugtui,
+        &mut mmugtui,
+        &mut evgtui,
+    );
+}
+
+pub fn cmpb(
+    inp: u32,
+    eq: bool,
+    signed: bool,
+    sz: u32,
+    cpu: &mut HexagonPcodeBackend,
+    mmu: &mut Mmu,
+    ev: &mut EventController,
+) {
+    info!("cmbp eq {eq} signed {signed}");
+    cpu.write_register(HexagonRegister::R1, inp).unwrap();
+    let ex = cpu.execute(mmu, ev, 1).unwrap();
+
+    assert_eq!(ex.exit_reason, TargetExitReason::InstructionCountComplete);
+
+    let mask = (1 << sz) - 1;
+    let smask = (1 << (sz - 1)) - 1;
+
+    let p0 = cpu.read_register::<u8>(HexagonRegister::P0).unwrap();
+    let result = if eq {
+        info!("inp {inp} mask {mask}");
+        (inp & mask) == mask
+    } else {
+        if signed {
+            if sz == 8 {
+                info!(
+                    "signed (8) expects {} > {}, size {sz}",
+                    (inp & mask) as i8,
+                    smask as i8
+                );
+                (inp & mask) as i8 > smask as i8
+            } else {
+                info!(
+                    "signed (16) expects {} > {}, size {sz}",
+                    (inp & mask) as i16,
+                    smask as i16
+                );
+                (inp & mask) as i16 > smask as i16
+            }
+        } else {
+            (inp & mask) > mask
+        }
+    };
+
+    let expected = if result { 0xff } else { 0 };
+
+    assert_eq!(p0, expected);
+}
+
+#[test]
+pub fn bitsset() {
+    let (mut cpu, mut mmu, mut ev) = setup_objdump(
+        r#"
+	0:	00 d0 57 c7	c757d000 { 	p0 = bitsset(r23,r16) }
+"#,
+    );
+
+    cpu.write_register(HexagonRegister::R23, 0xffff_ffffu32)
+        .unwrap();
+    cpu.write_register(HexagonRegister::R16, 0xffffu32).unwrap();
+
+    let res = cpu.execute(&mut mmu, &mut ev, 1).unwrap();
+
+    let p0 = cpu.read_register::<u8>(HexagonRegister::P0).unwrap();
+
+    assert_eq!(p0, 0xff);
 }

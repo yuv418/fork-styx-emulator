@@ -32351,7 +32351,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp6 = tmp4 & tmp5;
   tmp0 = tmp6:1;
   local tmp7:4;
-  tmp7 = sext(tmp0);
+  tmp7 = zext(tmp0);
   local tmp8:1;
   tmp8 = tmp7 == A4_cmpbeqi_u8;
   A4_cmpbeqi_Pd4 = (tmp8 << 7) s>> 7;
@@ -32409,7 +32409,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local tmp7:4;
   tmp7 = A4_cmpbgtui_u7;
   local tmp8:4;
-  tmp8 = sext(tmp0);
+  tmp8 = zext(tmp0);
   local tmp9:1;
   tmp9 = tmp8 > tmp7;
   A4_cmpbgtui_Pd4 = (tmp9 << 7) s>> 7;
@@ -32464,10 +32464,10 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local tmp6:4;
   tmp6 = tmp4 & tmp5;
   tmp0 = tmp6:1;
-  local tmp7:4;
-  tmp7 = zext(tmp0);
+  local tmp7:1;
+  tmp7 = tmp0;
   local tmp8:1;
-  tmp8 = tmp7 s> A4_cmpbgti_s8;
+  tmp8 = zext(tmp7) s> A4_cmpbgti_s8;
   A4_cmpbgti_Pd4 = (tmp8 << 7) s>> 7;
 }
 
@@ -35850,10 +35850,10 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local tmp6:4;
   tmp6 = tmp4 & tmp5;
   tmp0 = tmp6:2;
-  local tmp7:4;
-  tmp7 = zext(tmp0);
+  local tmp7:2;
+  tmp7 = tmp0;
   local tmp8:1;
-  tmp8 = tmp7 s> A4_cmphgti_s8;
+  tmp8 = zext(tmp7) s> A4_cmphgti_s8;
   A4_cmphgti_Pd4 = (tmp8 << 7) s>> 7;
 }
 
@@ -35875,7 +35875,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local tmp7:4;
   tmp7 = A4_cmphgtui_u7;
   local tmp8:4;
-  tmp8 = sext(tmp0);
+  tmp8 = zext(tmp0);
   local tmp9:1;
   tmp9 = tmp8 > tmp7;
   A4_cmphgtui_Pd4 = (tmp9 << 7) s>> 7;
