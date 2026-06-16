@@ -93,18 +93,6 @@ impl Peripheral for FlexibleTimer {
         vec![self.irqn]
     }
 
-    fn post_event_hook(
-        &mut self,
-        _cpu: &mut dyn CpuBackend,
-        _mmu: &mut Mmu,
-        _event_controller: &mut dyn PrimaryEventControllerImpl,
-        num: ExceptionNumber,
-    ) -> Result<(), UnknownError> {
-        trace!("Flexible timer {} IRQ{num}::post_event_hook", self.num);
-        self.interrupt_raised = false;
-        Ok(())
-    }
-
     fn tick(&mut self, ctx: &mut PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
         let mut raised = RaisedIrqs::none();
         // if the guest has enabled us
@@ -163,20 +151,6 @@ impl Peripheral for FtmController {
             .iter()
             .flat_map(|x| x.lock().unwrap().irqs())
             .collect()
-    }
-
-    fn post_event_hook(
-        &mut self,
-        cpu: &mut dyn CpuBackend,
-        mmu: &mut Mmu,
-        event_controller: &mut dyn PrimaryEventControllerImpl,
-        num: ExceptionNumber,
-    ) -> Result<(), UnknownError> {
-        let timer = self.irq_to_timer(num)?;
-        timer
-            .lock()
-            .unwrap()
-            .post_event_hook(cpu, mmu, event_controller, num)
     }
 
     fn tick(&mut self, ctx: &mut PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {

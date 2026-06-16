@@ -165,6 +165,48 @@ impl HexagonDevice for S22 {
                     },
                 ),
             ),
+            StyxHook::MemoryReadVirtual(
+                (0xeb1ae000..(0xeb1ae000 + 0x2000)).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &mut [u8]|
+                     -> Result<(), UnknownError> {
+                        warn!(
+                            "mpss_pll read pc {:x?} {address:x} data {data:x?}",
+                            proc.cpu.pc()
+                        );
+                        if address == 0xeb1ae000 {
+                            let b = 0x8000_0000_u32.to_le_bytes();
+                            for i in 0..data.len() {
+                                data[i] = b[i];
+                            }
+                        } else if address == 0xeb1af424 {
+                            warn!("this is probably not mpss pll but...");
+
+                            data.copy_from_slice(&[0, 0, 0, 0]);
+                        }
+                        Ok(())
+                    },
+                ),
+            ),
+            StyxHook::MemoryWriteVirtual(
+                (0xeb1ae000..(0xeb1ae000 + 0x2000)).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &[u8]|
+                     -> Result<(), UnknownError> {
+                        warn!(
+                            "mpss_pll read pc {:x?} write {address:x} data {data:x?}",
+                            proc.cpu.pc()
+                        );
+                        Ok(())
+                    },
+                ),
+            ),
             StyxHook::MemoryRead(
                 (0xe001030..(0xe001030 + 0xb0)).into(),
                 Box::new(

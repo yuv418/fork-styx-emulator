@@ -1,1 +1,4 @@
 .envrc
+perf*
+flamegraph*.svg
+

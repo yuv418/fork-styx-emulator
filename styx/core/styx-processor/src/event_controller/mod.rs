@@ -215,10 +215,6 @@ pub trait EventDistributorImpl: AsAny + Send {
     fn reset(&mut self, _cpu: &mut dyn CpuBackend, _mmu: &mut Mmu) -> Result<(), UnknownError> {
         Ok(())
     }
-
-    fn reset(&mut self, _cpu: &mut dyn CpuBackend, _mmu: &mut Mmu) -> Result<(), UnknownError> {
-        Ok(())
-    }
 }
 
 /// Wraps a [`EventControllerImpl`] and delegates all per-vCPU interrupt operations to it.

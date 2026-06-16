@@ -136,7 +136,10 @@ pub fn lock(
 
     let lock_state_this_thread = { lock_state[htid as usize] };
 
-    info!("in lock, lock state is {lock_state:x?}");
+    info!(
+        "in lock, lock state is {lock_state:x?} and pc is {:x?} and idx is {vcpu_idx}",
+        cpu.pc()
+    );
     let mut give_lock = || -> Result<InterruptExecuted, ActivateIRQnError> {
         // The lock is acquired
         cpu.write_register(
@@ -170,7 +173,10 @@ pub fn lock(
             HexagonLockState::LockHeld => {
                 // Halting interrupt. According to qemu, the same thread that holds the lock locking itself
                 // would be a double interrupt. (deadlocks?)
-                warn!("htid {htid} tried to lock twice lock_state {lock_state:x?}");
+                warn!(
+                    "htid {htid} tried to lock twice lock_state {lock_state:x?} at pc {:x?}",
+                    cpu.pc()
+                );
 
                 cpu.handle_event(&mut mmu, HexagonInterruptType::LockSleep as ExceptionNumber)?;
                 Ok(InterruptExecuted::Executed)
