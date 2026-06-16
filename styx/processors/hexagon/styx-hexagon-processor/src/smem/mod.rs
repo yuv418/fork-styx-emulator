@@ -79,6 +79,7 @@ pub struct SmemPartitionTableEntry {
     host0: u16,
     host1: u16,
     cacheline: u32,
+    reserved: [u32; 7],
 }
 
 #[repr(packed)]
@@ -148,7 +149,7 @@ impl Smem {
             base_addr,
             reserved: 0,
             // I guess setting this to zero makes the system auto-compute the length.
-            num_items: 0, // info.partitions.len() as u32,
+            num_items: 0x276, // info.partitions.len() as u32,
         };
 
         Self::write_smem_struct(base_addr, &smem_info, mmu);
@@ -189,6 +190,7 @@ impl Smem {
                 host0: info.partitions[i].host0,
                 host1: info.partitions[i].host1,
                 cacheline: 0,
+                reserved: [0; 7],
             });
 
             Self::write_smem_struct(
@@ -296,17 +298,25 @@ impl Peripheral for Smem {
             &mut proc.vcpus[0].mmu,
             &SmemInformation {
                 smem_size: SMEM_SIZE,
-                partitions: vec![SmemPartition {
-                    smem_partition_size: SMEM_GLOBALPART_SIZE,
-                    host0: SMEM_GLOBAL_IDENTIFIER,
-                    host1: SMEM_GLOBAL_IDENTIFIER,
-                    entries: vec![SmemEntry {
-                        // soc info stuff
-                        item_number: 0x89,
-                        // the size in the real struct is rounded up to 0x10 and the offset is set accordingly
-                        size: 0xb0,
-                    }],
-                }],
+                partitions: vec![
+                    SmemPartition {
+                        smem_partition_size: SMEM_GLOBALPART_SIZE,
+                        host0: SMEM_GLOBAL_IDENTIFIER,
+                        host1: SMEM_GLOBAL_IDENTIFIER,
+                        entries: vec![SmemEntry {
+                            // soc info stuff
+                            item_number: 0x89,
+                            // the size in the real struct is rounded up to 0x10 and the offset is set accordingly
+                            size: 0xb0,
+                        }],
+                    },
+                    SmemPartition {
+                        smem_partition_size: SMEM_GLOBALPART_SIZE,
+                        host0: 1,
+                        host1: 0xe,
+                        entries: vec![],
+                    },
+                ],
             },
         );
 
