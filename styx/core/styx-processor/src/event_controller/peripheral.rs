@@ -3,11 +3,13 @@ use as_any::AsAny;
 use log::debug;
 use smallvec::SmallVec;
 use static_assertions::assert_obj_safe;
+use styx_cpu_type::arch::backends::GlobalArchRegister;
+use styx_cpu_type::arch::RegisterValueCompatible;
 use styx_errors::UnknownError;
 
 use super::{EventDistributorImpl, ExceptionNumber};
 use crate::core::VcpuCore;
-use crate::cpu::CpuBackend;
+use crate::cpu::{CpuBackend, CpuBackendExt, ReadRegisterError, WriteRegisterError};
 use crate::executor::time::GlobalDelta;
 use crate::memory::{MemoryBackend, Mmu};
 use crate::processor::BuildingProcessor;
@@ -25,13 +27,38 @@ use crate::processor::BuildingProcessor;
 /// Construct via [`PeripheralTickCtx::new`].
 #[non_exhaustive]
 pub struct PeripheralTickCtx<'a> {
+    vcpu: &'a mut dyn CpuBackend,
     pub delta: &'a GlobalDelta,
     pub memory: &'a MemoryBackend,
 }
 
 impl<'a> PeripheralTickCtx<'a> {
-    pub fn new(delta: &'a GlobalDelta, memory: &'a MemoryBackend) -> Self {
-        Self { delta, memory }
+    pub fn new(
+        vcpu: &'a mut dyn CpuBackend,
+        delta: &'a GlobalDelta,
+        memory: &'a MemoryBackend,
+    ) -> Self {
+        Self {
+            vcpu,
+            delta,
+            memory,
+        }
+    }
+
+    pub fn read_globalreg<V: RegisterValueCompatible>(
+        &mut self,
+        register: impl Into<GlobalArchRegister>,
+    ) -> Result<V::ReturnValue, ReadRegisterError> {
+        self.vcpu.read_register::<V>(register.into())
+    }
+
+    #[allow(unused)]
+    pub fn write_globalreg(
+        &mut self,
+        reg: impl Into<GlobalArchRegister>,
+        value: impl RegisterValueCompatible,
+    ) -> Result<(), WriteRegisterError> {
+        self.vcpu.write_register(reg.into(), value)
     }
 }
 
@@ -252,7 +279,7 @@ pub trait Peripheral: AsAny + Send {
     /// access to shared physical memory via `ctx.memory`. CPU register
     /// access is intentionally unavailable; use hooks registered during
     /// [`Peripheral::init()`] if you need per-vCPU CPU state.
-    fn tick(&mut self, _ctx: &PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
+    fn tick(&mut self, _ctx: &mut PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
         Ok(RaisedIrqs::none())
     }
 }

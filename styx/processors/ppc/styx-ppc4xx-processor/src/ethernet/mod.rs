@@ -293,7 +293,7 @@ impl Peripheral for EthernetController {
         "Ethernet Controller"
     }
 
-    fn tick(&mut self, _ctx: &PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
+    fn tick(&mut self, _ctx: &mut PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
         let mut inner = self.inner.lock().unwrap();
         inner.grab_packets()?;
 

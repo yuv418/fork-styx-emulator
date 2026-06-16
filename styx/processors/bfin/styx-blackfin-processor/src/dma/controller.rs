@@ -71,7 +71,7 @@ impl Peripheral for DmaController {
         "DmaController"
     }
 
-    fn tick(&mut self, ctx: &PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
+    fn tick(&mut self, ctx: &mut PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
         let mut raised = RaisedIrqs::none();
         let incoming_data = self.mapping.get_next_data2();
 

@@ -457,11 +457,11 @@ impl EventDistributor {
 
         // Scope the immutable borrow of `vcpus` so it ends before we hand
         // `vcpus` mutably to `self.inner.tick` below.
-        if let Some(vcpu) = vcpus.first() {
+        if let Some(vcpu) = vcpus.first_mut() {
             let memory: &MemoryBackend = &vcpu.mmu.memory;
-            let ctx = PeripheralTickCtx::new(delta, memory);
+            let mut ctx = PeripheralTickCtx::new(vcpu.cpu.as_mut(), delta, memory);
             for peripheral in &mut self.peripherals.peripherals {
-                let raised = peripheral.tick(&ctx)?;
+                let raised = peripheral.tick(&mut ctx)?;
                 pending_irqs.extend(raised);
             }
         }

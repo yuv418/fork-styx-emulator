@@ -200,7 +200,7 @@ impl crate::event_controller::Peripheral for SyncTicker {
 
     fn tick(
         &mut self,
-        _ctx: &PeripheralTickCtx<'_>,
+        _ctx: &mut PeripheralTickCtx<'_>,
     ) -> Result<RaisedIrqs, styx_errors::UnknownError> {
         self.lock().unwrap().ticked += 1;
         Ok(RaisedIrqs::none())
@@ -425,7 +425,7 @@ fn test_peripheral_tick_irq_routing() {
         }
         fn tick(
             &mut self,
-            _ctx: &PeripheralTickCtx<'_>,
+            _ctx: &mut PeripheralTickCtx<'_>,
         ) -> Result<RaisedIrqs, styx_errors::UnknownError> {
             Ok(RaisedIrqs::one(42))
         }

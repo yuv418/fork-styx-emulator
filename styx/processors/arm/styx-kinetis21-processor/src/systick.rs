@@ -26,7 +26,7 @@ impl Peripheral for SysTickTimer {
         vec![SYSTICK_IRQN]
     }
 
-    fn tick(&mut self, ctx: &PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
+    fn tick(&mut self, ctx: &mut PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
         let mut raised = RaisedIrqs::none();
         let mut state = self.inner.lock().unwrap();
         if state.guest_enabled {

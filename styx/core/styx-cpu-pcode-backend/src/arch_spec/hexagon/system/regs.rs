@@ -3,7 +3,10 @@
 use log::info;
 use styx_cpu_type::arch::{
     backends::{ArchRegister, SpecialArchRegister},
-    hexagon::{register_fields::Ssr, BadVaRegister, HexagonRegister, SpecialHexagonRegister},
+    hexagon::{
+        register_fields::Ssr, BadVaRegister, GlobalHexagonRegister, HexagonRegister,
+        SpecialHexagonRegister,
+    },
     RegisterValue,
 };
 use styx_errors::{anyhow::Context, UnknownError};
@@ -66,4 +69,57 @@ pub fn add_regs_handlers(backend: &mut HexagonPcodeBackend) {
             ),
         ))
         .expect("Couldn't add badva register handler");
+
+    // Utimer is hooked instead of written since timer is written in the peripheral tick,
+    // which only allows read/writes of global registers.
+    backend
+        .add_hook(StyxHook::RegisterRead(
+            HexagonRegister::UtimerLo.into(),
+            Box::new(
+                |proc: CoreHandle,
+                 _register: ArchRegister,
+                 data: &mut RegisterValue|
+                 -> Result<(), UnknownError> {
+                    *data = proc
+                        .cpu
+                        .read_register_raw(GlobalHexagonRegister::TimerLo.into())?;
+                    Ok(())
+                },
+            ),
+        ))
+        .expect("Couldn't add utimer lo register handler");
+
+    backend
+        .add_hook(StyxHook::RegisterRead(
+            HexagonRegister::UtimerHi.into(),
+            Box::new(
+                |proc: CoreHandle,
+                 _register: ArchRegister,
+                 data: &mut RegisterValue|
+                 -> Result<(), UnknownError> {
+                    *data = proc
+                        .cpu
+                        .read_register_raw(GlobalHexagonRegister::TimerHi.into())?;
+                    Ok(())
+                },
+            ),
+        ))
+        .expect("Couldn't add utimer hi register handler");
+
+    backend
+        .add_hook(StyxHook::RegisterRead(
+            HexagonRegister::Utimer.into(),
+            Box::new(
+                |proc: CoreHandle,
+                 _register: ArchRegister,
+                 data: &mut RegisterValue|
+                 -> Result<(), UnknownError> {
+                    *data = proc
+                        .cpu
+                        .read_register_raw(GlobalHexagonRegister::Timer.into())?;
+                    Ok(())
+                },
+            ),
+        ))
+        .expect("Couldn't add utimer register handler");
 }

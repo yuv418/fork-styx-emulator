@@ -145,7 +145,7 @@ fn osc_cr_w_hook(
 }
 
 impl Peripheral for Mcg {
-    fn tick(&mut self, _ctx: &PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
+    fn tick(&mut self, _ctx: &mut PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
         Ok(RaisedIrqs::none())
     }
 

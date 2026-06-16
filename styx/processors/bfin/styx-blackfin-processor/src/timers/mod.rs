@@ -75,7 +75,7 @@ impl Peripheral for Timers {
         "blackfin timers"
     }
 
-    fn tick(&mut self, ctx: &PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
+    fn tick(&mut self, ctx: &mut PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
         let mut raised = RaisedIrqs::none();
         if self.running && self.loop_status.triggered.load(Ordering::Relaxed) {
             self.loop_status.triggered.store(false, Ordering::Relaxed);

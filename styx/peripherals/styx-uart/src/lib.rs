@@ -308,7 +308,7 @@ impl Peripheral for UartController {
             .collect()
     }
 
-    fn tick(&mut self, ctx: &PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
+    fn tick(&mut self, ctx: &mut PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
         let mut raised = RaisedIrqs::none();
         for interface in self.uart_interfaces.iter_mut() {
             raised.extend(interface.inner.tick(ctx)?);

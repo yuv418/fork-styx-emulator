@@ -32,6 +32,7 @@ use test_case::test_case;
 #[test_case(hexagon_tests::TEST_BESTWAIT)]
 #[test_case(hexagon_tests::TEST_START)]
 #[test_case(hexagon_tests::TEST_TLBLOCK)]
+#[test_case(hexagon_tests::TEST_TIMER_REG)]
 // #[test_case(hexagon_tests::TEST_CIAD_SIAD)]
 // #[test_case(hexagon_tests::TEST_PENDALOT)]
 fn test_qemu_hexagon_testing_unittests(test: TestData) {

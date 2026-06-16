@@ -403,7 +403,7 @@ impl Peripheral for I2CController {
             .collect()
     }
 
-    fn tick(&mut self, ctx: &PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
+    fn tick(&mut self, ctx: &mut PeripheralTickCtx<'_>) -> Result<RaisedIrqs, UnknownError> {
         let mut raised = RaisedIrqs::none();
         for port in self.i2cs.iter() {
             raised.extend(port.lock().unwrap().tick(ctx)?);

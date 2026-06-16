@@ -13,7 +13,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::anyhow::anyhow;
 use styx_core::{
+    arch::hexagon::GlobalHexagonRegister,
     core::VcpuCore,
     cpu::CpuBackend,
     errors::UnknownError,
@@ -220,7 +222,7 @@ impl QTimerFrame {
         qtimer_base: u64,
         irq_base: ExceptionNumber,
         tick_amount: u64,
-        mem: &MemoryBackend,
+        ctx: &mut PeripheralTickCtx<'_>,
         raised_irqs: &mut RaisedIrqs,
     ) -> Result<(), UnknownError> {
         // Using a read hook here would mean that when accessing memory
@@ -228,10 +230,10 @@ impl QTimerFrame {
         // the value in physical memory in sync when the value needs to be updated.
 
         // Update the counter, setting memory in the process.
-        self.increment_counter(qtimer_base, mem, tick_amount)?;
+        self.increment_counter(qtimer_base, ctx, tick_amount)?;
 
-        // Decrement TimerValue, setting memory in progress.
-        self.write_timer_value(qtimer_base, mem, tick_amount)?;
+        // Decrement TimerValue, setting memory/registers in progress.
+        self.write_timer_value(qtimer_base, ctx.memory, tick_amount)?;
 
         trace!(
             "(tick inner) timer number is {} counter is {} compare value is {} enable is {} istatus is {}",
@@ -273,21 +275,27 @@ impl QTimerFrame {
     fn increment_counter(
         &mut self,
         qtimer_base: u64,
-        mem: &MemoryBackend,
+        ctx: &mut PeripheralTickCtx<'_>,
         tick_amount: u64,
     ) -> Result<(), UnknownError> {
         // Update the counter, setting memory in the process.
         self.counter = self.counter.wrapping_add(tick_amount);
 
-        let write_counter_to_mem = |lo_off: u64, hi_off: u64| -> Result<(), UnknownError> {
-            mem.write_data(
+        // Also write the registers timerlo/timerhi while we're at it lol
+        let mut write_counter_to_mem = |lo_off: u64, hi_off: u64| -> Result<(), UnknownError> {
+            ctx.memory.write_data(
                 self.timers_frame_base(qtimer_base) + lo_off,
                 &(self.counter as u32).to_le_bytes(),
             )?;
-            mem.write_data(
+            ctx.memory.write_data(
                 self.timers_frame_base(qtimer_base) + hi_off,
                 &((self.counter >> 32) as u32).to_le_bytes(),
             )?;
+
+            // Cannot write utimer here as utimer is per thread
+            ctx.write_globalreg(GlobalHexagonRegister::Timer, self.counter)
+                .with_context(|| "Couldn't write hexagon timer global register")?;
+
             Ok(())
         };
 
@@ -409,7 +417,33 @@ fn qtimer_mmio_write_hook(
     data: &[u8],
     timer_state_mutex: Arc<Mutex<QTimerSharedState>>,
 ) -> Result<(), UnknownError> {
+    // Split up the hook if the data is more than 32 bits.
+    if data.len() % 4 != 0 {
+        return Err(anyhow!("abcd"));
+    } else if data.len() > 4 {
+        for i in 0..(data.len() / 4) {
+            let addr = address + (i * 4) as u64;
+            let data_slice = &data[(i * 4)..(i + 1) * 4];
+            info!("splititng write hook, writing to address {addr:x} {data_slice:x?}");
+            qtimer_mmio_write_hook(
+                CoreHandle {
+                    cpu: proc.cpu,
+                    mmu: proc.mmu,
+                    event_controller: proc.event_controller,
+                },
+                addr,
+                size,
+                data_slice,
+                timer_state_mutex.clone(),
+            )?;
+        }
+
+        return Ok(());
+    }
+
     let pc = proc.cpu.pc().unwrap();
+
+    info!("qtimer mmio write hook");
 
     let mut timer_state = timer_state_mutex
         .lock()
@@ -658,7 +692,7 @@ impl Peripheral for QTimer {
 
     fn tick(
         &mut self,
-        ctx: &PeripheralTickCtx<'_>,
+        ctx: &mut PeripheralTickCtx<'_>,
     ) -> Result<RaisedIrqs, styx_core::prelude::UnknownError> {
         let mut raised_irqs = RaisedIrqs::default();
         let mut state = self.lock();
@@ -707,7 +741,7 @@ impl Peripheral for QTimer {
                 .expect("IRQ expected to be set during qtimer init");
 
             for timer in state.timer_frames.iter_mut() {
-                timer.tick(qtimer_base, irq, timer_ticks, ctx.memory, &mut raised_irqs)?;
+                timer.tick(qtimer_base, irq, timer_ticks, ctx, &mut raised_irqs)?;
             }
 
             // After ticking the qtimer, we remove the "pcycles" that were consumed by the tick
