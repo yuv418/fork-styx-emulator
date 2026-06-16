@@ -24,6 +24,7 @@ bitvec = { workspace = true, optional = true }
 derivative = { workspace = true }
 as-any = { workspace = true }
 smallvec = { workspace = true }
+rand = { workspace = true }
 
 [features]
 hexagon-clade = ["dep:styx-hexagon-sys", "dep:bitvec"]

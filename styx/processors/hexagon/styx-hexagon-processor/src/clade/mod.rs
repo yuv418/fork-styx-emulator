@@ -8,6 +8,7 @@ use bitvec::prelude::*;
 use safe::clade1::Clade1;
 use std::process::exit;
 use std::sync::{Arc, Mutex};
+use styx_core::hooks::StyxHook;
 use styx_core::{
     arch::{
         hexagon::{
@@ -107,8 +108,6 @@ fn clade_mmio_write_hook(
     clade_state: Arc<Mutex<CladeSharedState>>,
 ) -> Result<(), UnknownError> {
     // Needed so we can pass clade_state to the mem read hooks later.
-    let state_clone_read_hook = clade_state.clone();
-    let state_clone_code_hook = clade_state.clone();
 
     let mut periph = clade_state
         .lock()
@@ -125,39 +124,46 @@ fn clade_mmio_write_hook(
 
             info!("CLADE: setting output to {:x}", periph.output_addr);
 
-            // lowkenuinely not sure what this should be
-            // TODO: delete the hook if this is changed.
-            proc.cpu
-                .mem_read_hook(
-                    periph.output_addr,
-                    periph.output_addr + CLADE_REGION_SIZE as u64,
-                    Box::new(
-                        move |proc: CoreHandle, address: u64, size: u32, data: &mut [u8]| {
+            for i in 0..periph.num_hthreads {
+                let state_clone_read_hook = clade_state.clone();
+                let state_clone_code_hook = clade_state.clone();
+
+                // lowkenuinely not sure what this should be
+                // TODO: delete the hook if this is changed.
+                proc.event_controller.add_hook(
+                    StyxHook::MemoryRead(
+                        (periph.output_addr..periph.output_addr + CLADE_REGION_SIZE as u64).into(),
+                        Box::new(
+                            move |proc: CoreHandle, address: u64, size: u32, data: &mut [u8]| {
+                                clade_extract(
+                                    proc,
+                                    address,
+                                    MemoryType::Data,
+                                    state_clone_read_hook.clone(),
+                                )
+                            },
+                        ),
+                    ),
+                    i,
+                );
+
+                proc.event_controller.add_hook(
+                    StyxHook::Code(
+                        (periph.output_addr..(periph.output_addr + CLADE_REGION_SIZE as u64))
+                            .into(),
+                        Box::new(move |mut proc: CoreHandle| {
+                            let pc_addr = proc.pc().expect("Couldn't get PC for extracting clade");
                             clade_extract(
                                 proc,
-                                address,
-                                MemoryType::Data,
-                                state_clone_read_hook.clone(),
+                                pc_addr,
+                                MemoryType::Code,
+                                state_clone_code_hook.clone(),
                             )
-                        },
+                        }),
                     ),
-                )
-                .with_context(|| "couldn't add MMIO hooks for clade")?;
-
-            proc.cpu
-                .add_hook(styx_core::hooks::StyxHook::Code(
-                    (periph.output_addr..(periph.output_addr + CLADE_REGION_SIZE as u64)).into(),
-                    Box::new(move |mut proc: CoreHandle| {
-                        let pc_addr = proc.pc().expect("Couldn't get PC for extracting clade");
-                        clade_extract(
-                            proc,
-                            pc_addr,
-                            MemoryType::Code,
-                            state_clone_code_hook.clone(),
-                        )
-                    }),
-                ))
-                .with_context(|| "couldn't add code hooks for clade")?;
+                    i,
+                );
+            }
         }
         Ok(Clade1Register::CompressRegion) => {
             let compress_addr = (value as u64) << 4;
@@ -235,6 +241,8 @@ pub struct Clade {
     exc_hi_section: Vec<u8>,
     #[shared]
     extracted: CladeExtractedBitvec,
+    #[shared]
+    num_hthreads: usize,
 }
 
 // Used for fixing up ownership issues
@@ -257,6 +265,7 @@ impl Default for Clade {
                 dictionary_section: vec![0; 0x6000],
                 exc_hi_section: vec![0; 0x2000],
                 extracted: bitarr![0; CLADE_NO_CHUNKS],
+                num_hthreads: 0,
             })),
         }
     }
@@ -273,40 +282,42 @@ impl Peripheral for Clade {
     ) -> Result<(), styx_core::prelude::UnknownError> {
         unsafe { clade::clade_set_trace(0xff) };
 
-        proc.vcpus[0]
+        let mut clade_inner = self.lock();
+        clade_inner.num_hthreads = proc.vcpus.len();
+
+        for vcpu in proc.vcpus.iter_mut() {
+            vcpu.cpu
+                .mem_write_hook(
+                    CLADE_BASE,
+                    CLADE_BASE + 0x8000,
+                    peripheral_shared_state_write(clade_mmio_write_hook, self.inner.clone()),
+                )
+                .with_context(|| "couldn't add MMIO hooks for clade")?;
+
+            vcpu.cpu
+                .mem_read_hook(
+                    CLADE_BASE,
+                    CLADE_BASE + 0x8000,
+                    peripheral_shared_state_read(clade_mmio_read_hook, self.inner.clone()),
+                )
+                .with_context(|| "couldn't add MMIO hooks for clade")?;
+
+            /*proc.core
             .cpu
             .mem_write_hook(
-                CLADE_BASE,
-                CLADE_BASE + 0x8000,
-                peripheral_shared_state_write(clade_mmio_write_hook, self.inner.clone()),
-            )
-            .with_context(|| "couldn't add MMIO hooks for clade")?;
-
-        proc.vcpus[0]
-            .cpu
-            .mem_read_hook(
-                CLADE_BASE,
-                CLADE_BASE + 0x8000,
-                peripheral_shared_state_read(clade_mmio_read_hook, self.inner.clone()),
-            )
-            .with_context(|| "couldn't add MMIO hooks for clade")?;
-
-        /*proc.core
-        .cpu
-        .mem_write_hook(
-            CLADE2_BASE,
-            CLADE2_BASE + 0x8000,
-            Box::new(clade_mmio_write_hook),
-        )
-        .with_context(|| "couldn't add MMIO hooks for clade")?;*/
-        proc.vcpus[0]
-            .cpu
-            .mem_read_hook(
                 CLADE2_BASE,
                 CLADE2_BASE + 0x8000,
-                peripheral_shared_state_read(clade_mmio_read_hook, self.inner.clone()),
+                Box::new(clade_mmio_write_hook),
             )
-            .with_context(|| "couldn't add MMIO hooks for clade")?;
+            .with_context(|| "couldn't add MMIO hooks for clade")?;*/
+            vcpu.cpu
+                .mem_read_hook(
+                    CLADE2_BASE,
+                    CLADE2_BASE + 0x8000,
+                    peripheral_shared_state_read(clade_mmio_read_hook, self.inner.clone()),
+                )
+                .with_context(|| "couldn't add MMIO hooks for clade")?;
+        }
         Ok(())
     }
 }

@@ -21419,7 +21419,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local tmp2:4;
   tmp2 = S2_allocframe_Rx32 + tmp1;
   EA = tmp2;
-  *:8 EA = R31R30;
+  *:8 EA = (zext(C17) << 32) ^ R31R30;
   D_R30 = EA;
   local tmp3:4;
   tmp3 = EA - S2_allocframe_u11_3;
@@ -21431,7 +21431,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_deallocframe_Rs32;
   tmp = *:8 EA;
-  L2_deallocframe_Rdd32 = tmp;
+  L2_deallocframe_Rdd32 = (zext(C17) << 32) ^ tmp;
   local tmp0:4;
   tmp0 = 8;
   local tmp1:4;
@@ -21444,7 +21444,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_return_Rs32;
   tmp = *:8 EA;
-  L4_return_Rdd32 = tmp;
+  L4_return_Rdd32 = (zext(C17) << 32) ^ tmp;
   local tmp0:4;
   tmp0 = 8;
   local tmp1:4;
@@ -21481,7 +21481,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   goto <f_branch_2>;
 <t_branch_2>
   tmp = *:8 EA;
-  L4_return_t_Rdd32 = tmp;
+  L4_return_t_Rdd32 = (zext(C17) << 32) ^ tmp;
   local tmp2:4;
   tmp2 = 8;
   local tmp3:4;
@@ -21523,7 +21523,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   goto <f_branch_3>;
 <t_branch_3>
   tmp = *:8 EA;
-  L4_return_f_Rdd32 = tmp;
+  L4_return_f_Rdd32 = (zext(C17) << 32) ^ tmp;
   local tmp3:4;
   tmp3 = 8;
   local tmp4:4;
@@ -21565,7 +21565,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   goto <f_branch_3>;
 <t_branch_3>
   tmp = *:8 EA;
-  L4_return_tnew_pt_Rdd32 = tmp;
+  L4_return_tnew_pt_Rdd32 = (zext(C17) << 32) ^ tmp;
   local tmp3:4;
   tmp3 = 8;
   local tmp4:4;
@@ -21609,7 +21609,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   goto <f_branch_4>;
 <t_branch_4>
   tmp = *:8 EA;
-  L4_return_fnew_pt_Rdd32 = tmp;
+  L4_return_fnew_pt_Rdd32 = (zext(C17) << 32) ^ tmp;
   local tmp4:4;
   tmp4 = 8;
   local tmp5:4;
@@ -21651,7 +21651,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   goto <f_branch_3>;
 <t_branch_3>
   tmp = *:8 EA;
-  L4_return_tnew_pnt_Rdd32 = tmp;
+  L4_return_tnew_pnt_Rdd32 = (zext(C17) << 32) ^ tmp;
   local tmp3:4;
   tmp3 = 8;
   local tmp4:4;
@@ -21695,7 +21695,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   goto <f_branch_4>;
 <t_branch_4>
   tmp = *:8 EA;
-  L4_return_fnew_pnt_Rdd32 = tmp;
+  L4_return_fnew_pnt_Rdd32 = (zext(C17) << 32) ^ tmp;
   local tmp4:4;
   tmp4 = 8;
   local tmp5:4;
@@ -78802,7 +78802,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = R30;
   tmp = *:8 EA;
-  tmp = tmp;
+  tmp = (zext(C17) << 32) ^ tmp;
   local tmp0:8;
   local tmp1:4;
   local tmp2:4;
@@ -78853,7 +78853,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = R30;
   tmp = *:8 EA;
-  tmp = tmp;
+  tmp = (zext(C17) << 32) ^ tmp;
   local tmp0:8;
   local tmp1:4;
   local tmp2:4;
@@ -78928,7 +78928,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   goto <f_branch_2>;
 <t_branch_2>
   tmp = *:8 EA;
-  tmp = tmp;
+  tmp = (zext(C17) << 32) ^ tmp;
   local tmp2:8;
   local tmp3:4;
   local tmp4:4;
@@ -79008,7 +79008,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   goto <f_branch_3>;
 <t_branch_3>
   tmp = *:8 EA;
-  tmp = tmp;
+  tmp = (zext(C17) << 32) ^ tmp;
   local tmp3:8;
   local tmp4:4;
   local tmp5:4;
@@ -79088,7 +79088,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   goto <f_branch_3>;
 <t_branch_3>
   tmp = *:8 EA;
-  tmp = tmp;
+  tmp = (zext(C17) << 32) ^ tmp;
   local tmp3:8;
   local tmp4:4;
   local tmp5:4;
@@ -79170,7 +79170,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   goto <f_branch_4>;
 <t_branch_4>
   tmp = *:8 EA;
-  tmp = tmp;
+  tmp = (zext(C17) << 32) ^ tmp;
   local tmp4:8;
   local tmp5:4;
   local tmp6:4;
@@ -79411,7 +79411,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local tmp2:4;
   tmp2 = R29 + tmp1;
   EA = tmp2;
-  *:8 EA = R31R30;
+  *:8 EA = (zext(C17) << 32) ^ R31R30;
   D_R30 = EA;
   local tmp3:4;
   tmp3 = EA - SS2_allocframe_u5_3;

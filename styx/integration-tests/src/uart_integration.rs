@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-2-Clause
 
-use rand::Rng;
+use rand::prelude::*;
 use std::net::TcpStream;
 use styx_core::{peripheral_clients::uart::UartClient, prelude::*};
 
 /// create a `Vec<u8>` with random bytes of some size
 fn generate_random_vec(length: usize) -> Vec<u8> {
-    let mut rng = rand::thread_rng();
-    (0..length).map(|_| rng.r#gen()).collect()
+    let mut rng = rand::rng();
+    (0..length).map(|_| rng.random()).collect()
 }
 
 /// Given a series of inputs, generate a test suite to exercise

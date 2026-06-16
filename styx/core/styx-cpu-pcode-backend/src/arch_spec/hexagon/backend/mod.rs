@@ -15,7 +15,7 @@ use smallvec::{smallvec, SmallVec};
 use std::{borrow::Cow, collections::BTreeMap, ops::Range, sync::Arc};
 use styx_cpu_type::{
     arch::{
-        backends::{ArchRegister, ArchVariant, BasicArchRegister},
+        backends::{ArchRegister, ArchVariant, BasicArchRegister, GlobalArchRegister},
         hexagon::{
             register_fields::{ModeCtl, Ssr},
             GlobalHexagonRegister, HexagonRegister,
@@ -188,6 +188,10 @@ pub struct HexagonPcodeBackend {
     // this is the offset from the register space start to the first predicate register
     hexagon_predicate_start: u64,
     hexagon_predicate_end: u64,
+
+    // Used for hexagon hardware scheduler (tell if this packet wrote the bestwait register and we have to do a
+    // reschedule check)
+    bestwait_start: u64,
 
     // Used for performance, P-code translation is quite slow
     // Maps PC to pcodes and other info for running hexagon code
@@ -484,6 +488,11 @@ impl BackendHelper<HexagonExecuteSingleInfo, Vec<Pcode>> for HexagonPcodeBackend
             _ => {}
         }
 
+        // Check if resched should happen
+        if self.check_bestwait_resched(ev, &execution_regs_written)? {
+            delayed_exit = Some(TargetExitReason::InstructionCountComplete)
+        }
+
         let mut execution_helper_outer = self.execution_helper.take().unwrap();
         {
             let next_pc = match branched_pc {
@@ -505,6 +514,11 @@ impl BackendHelper<HexagonExecuteSingleInfo, Vec<Pcode>> for HexagonPcodeBackend
         if let Some(irqn) = delayed_irqn {
             trace!("delayed irqn hook");
             HookManager::trigger_interrupt_hook(self, mmu, ev, irqn)?;
+        }
+
+        if ev.has_hooks() {
+            // Forcefully end the stride
+            return Ok(Err(TargetExitReason::InstructionCountComplete));
         }
 
         if let Some(reason) = delayed_exit {
@@ -609,7 +623,7 @@ impl CpuBackend for HexagonPcodeBackend {
                 exit_reason: TargetExitReason::InstructionCountComplete,
             })
         } else {
-            warn!("running htid {htid}");
+            warn!("running htid {htid} pc {:x?}", self.pc());
             self.execute_helper(mmu, event_controller, count)
                 .map(|mut i| {
                     // Add the packet order to the execution report
@@ -892,6 +906,14 @@ impl HexagonPcodeBackend {
             .expect("can't get p0 register as varnode")
             .offset;
 
+        // Used for seeing if the bestwait register was written during this packet.
+        let bestwait_start = pcode_generator
+            .get_register(&ArchRegister::Global(GlobalArchRegister::Hexagon(
+                GlobalHexagonRegister::BestWait,
+            )))
+            .expect("can't get bestwait register as varnode")
+            .offset;
+
         // Temporary hack while we figure this out better. 6 threads default.
         Self {
             saved_context_opts: SavedContextOpts::default(),
@@ -911,6 +933,7 @@ impl HexagonPcodeBackend {
             saved_reg_context: BTreeMap::new(),
             hexagon_predicate_start,
             hexagon_predicate_end,
+            bestwait_start,
             cache: Some(BTreeMap::new()),
             num_hthreads: num_hthreads.unwrap_or(6),
             running: false,
@@ -1039,6 +1062,30 @@ impl HexagonPcodeBackend {
             })
         }
         pcodes
+    }
+
+    // Returns true is resched happened. False if not. Execution is stopped accordingly if resched is to happen.
+    pub fn check_bestwait_resched(
+        &self,
+        ev: &mut EventController,
+        execution_regs_written: &SmallVec<[VarnodeData; DEFAULT_REG_ALLOCATION]>,
+    ) -> Result<bool, UnknownError> {
+        // For hardware scheduling, we also want to see if the bestwait register
+        // was written in this packet
+        for reg in execution_regs_written {
+            if reg.offset == self.bestwait_start {
+                info!("bestwait was written during this packet, doing a resched.");
+
+                ev.execute_primary(HexagonInterruptType::Resched as i32, 0)
+                    .with_context(|| {
+                        "couldn't add resched to event controller in bestwait resched check"
+                    })?;
+
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
     }
 
     /// In a loop, start at the current PC, which will always be at the start of a packet, and fetch all the instructions

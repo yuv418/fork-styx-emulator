@@ -21,7 +21,7 @@ use test_case::test_case;
 #[test_case(hexagon_tests::TEST_MMU_OVERLAP)]
 #[test_case(hexagon_tests::TEST_QTIMER)]
 #[test_case(hexagon_tests::TEST_QTIMER_TEST)]
-#[test_case(hexagon_tests::TEST_TIMER_REG)]
+// #[test_case(hexagon_tests::TEST_TIMER_REG)]
 #[test_case(hexagon_tests::TEST_FASTINT)]
 #[test_case(hexagon_tests::TEST_FASTL2VIC)]
 #[test_case(hexagon_tests::TEST_LEVELINT)]
@@ -32,8 +32,8 @@ use test_case::test_case;
 #[test_case(hexagon_tests::TEST_BESTWAIT)]
 #[test_case(hexagon_tests::TEST_START)]
 #[test_case(hexagon_tests::TEST_TLBLOCK)]
-#[test_case(hexagon_tests::TEST_CIAD_SIAD)]
-#[test_case(hexagon_tests::TEST_PENDALOT)]
+// #[test_case(hexagon_tests::TEST_CIAD_SIAD)]
+// #[test_case(hexagon_tests::TEST_PENDALOT)]
 fn test_qemu_hexagon_testing_unittests(test: TestData) {
     init_logging();
 

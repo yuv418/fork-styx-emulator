@@ -603,23 +603,24 @@ impl Peripheral for QTimer {
         }
 
         // shouldn't it be all of them..
-        proc.vcpus[0]
-            .cpu
-            .mem_write_hook(
-                qtimer_base,
-                qtimer_base + 0x1000 + (0x1000 * QTIMER_NUM_TIMERS),
-                peripheral_shared_state_write(qtimer_mmio_write_hook, self.inner.clone()),
-            )
-            .with_context(|| "couldn't add MMIO hooks for qtimer")?;
 
-        proc.vcpus[0]
-            .cpu
-            .mem_read_hook(
-                qtimer_base,
-                qtimer_base + 0x1000 + (0x1000 * QTIMER_NUM_TIMERS),
-                peripheral_shared_state_read(qtimer_mmio_read_hook, self.inner.clone()),
-            )
-            .with_context(|| "couldn't add MMIO hooks for qtimer")?;
+        for vcpu in proc.vcpus.iter_mut() {
+            vcpu.cpu
+                .mem_write_hook(
+                    qtimer_base,
+                    qtimer_base + 0x1000 + (0x1000 * QTIMER_NUM_TIMERS),
+                    peripheral_shared_state_write(qtimer_mmio_write_hook, self.inner.clone()),
+                )
+                .with_context(|| "couldn't add MMIO hooks for qtimer")?;
+
+            vcpu.cpu
+                .mem_read_hook(
+                    qtimer_base,
+                    qtimer_base + 0x1000 + (0x1000 * QTIMER_NUM_TIMERS),
+                    peripheral_shared_state_read(qtimer_mmio_read_hook, self.inner.clone()),
+                )
+                .with_context(|| "couldn't add MMIO hooks for qtimer")?;
+        }
 
         info!("QTimer initialized.");
 

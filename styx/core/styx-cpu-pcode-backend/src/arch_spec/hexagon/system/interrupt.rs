@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: BSD-2-Clause
 use derive_more::FromStr;
 use log::{info, trace};
-use styx_cpu_type::arch::hexagon::{
-    register_fields::{Ipendad, Ssr},
-    GlobalHexagonRegister, HexagonRegister,
+use styx_cpu_type::{
+    arch::hexagon::{
+        register_fields::{Ipendad, Ssr},
+        GlobalHexagonRegister, HexagonRegister,
+    },
+    TargetExitReason,
 };
 use styx_errors::anyhow::Context;
 use styx_pcode::{
@@ -62,6 +65,7 @@ pub enum HexagonInterruptType {
     // Made this up, inspired by QEMU. The difference is ThreadStop will set ModeCtl/ThreadStart will jump to Reset,
     // but sleep/wake just pause the thread.
     StartInstruction = 0x1000,
+    NmiInstruction = 0x1100,
     StopInstruction = 0x2000,
     K0lockInstruction = 0x3000,
     K0UnlockInstruction = 0x3001,
@@ -111,6 +115,7 @@ impl From<ExceptionNumber> for HexagonInterruptType {
             // Made this up, inspired by QEMU. The difference is ThreadStop will set ModeCtl/ThreadStart will jump to Reset,
             // but sleep/wake just pause the thread.
             0x1000 => Self::StartInstruction,
+            0x1100 => Self::NmiInstruction,
             0x2000 => Self::StopInstruction,
             0x3000 => Self::K0lockInstruction,
             0x3001 => Self::K0UnlockInstruction,
@@ -394,7 +399,7 @@ impl<T: CpuBackend> CallOtherCallback<T> for NmiHandler {
         &mut self,
         backend: &mut dyn CallOtherCpu<T>,
         _mmu: &mut Mmu,
-        _ev: &mut EventController,
+        ev: &mut EventController,
         inputs: &[VarnodeData],
         _output: Option<&VarnodeData>,
     ) -> Result<PCodeStateChange, CallOtherHandleError> {
@@ -403,7 +408,9 @@ impl<T: CpuBackend> CallOtherCallback<T> for NmiHandler {
             .read(rs)
             .with_context(|| "couldn't read Rs for nmi")?
             .to_u64()
-            .with_context(|| "couldn't turn Rs to u32 for nmi")?;
+            .with_context(|| "couldn't turn Rs to u64 for nmi")?;
+
+        info!("nmi called, mask {rs_val:x} pc {:x?}", backend.pc());
 
         // FIXME: multicore
         // we only have one thread, so this suffices.
@@ -411,19 +418,12 @@ impl<T: CpuBackend> CallOtherCallback<T> for NmiHandler {
         // In the case, we do not have to NMI on thread 0
         // and since we are running on thread 0 since Styx only
         // supports one core, we are done.
-        if rs_val & 1 == 0 {
-            trace!("nmi({rs_val:x}) called");
-            Ok(PCodeStateChange::Fallthrough)
-        }
-        // Some other thread should be sent an nmi,
-        // but Styx doesn't support multicore yet.
-        else {
-            unimplemented!("nmi({:x}) called", rs_val);
+        ev.execute_primary(HexagonInterruptType::NmiInstruction as i32, rs_val)
+            .with_context(|| "couldn't execute nmi on primary ev")?;
 
-            // Ok(PCodeStateChange::DelayedInterrupt(
-            //     HexagonInterruptType::Imprecise as i32,
-            // ))
-        }
+        Ok(PCodeStateChange::Exit(
+            TargetExitReason::InstructionCountComplete,
+        ))
     }
 }
 

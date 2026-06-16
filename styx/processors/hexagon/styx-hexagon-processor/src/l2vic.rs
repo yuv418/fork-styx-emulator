@@ -754,6 +754,7 @@ impl EventDistributorImpl for L2Vic {
                 thread_instructions::start(vcpu_idx, irq, value, vcpus)
             }
             HexagonInterruptType::K0lockInstruction => {
+                info!("k0lock");
                 let mut lock_state = self.k0lock_state.lock().unwrap();
                 thread_instructions::lock(
                     vcpu_idx,
@@ -765,6 +766,7 @@ impl EventDistributorImpl for L2Vic {
                 )
             }
             HexagonInterruptType::K0UnlockInstruction => {
+                info!("k0unlock");
                 let mut lock_state = self.k0lock_state.lock().unwrap();
                 thread_instructions::unlock(
                     vcpu_idx,
@@ -776,6 +778,7 @@ impl EventDistributorImpl for L2Vic {
                 )
             }
             HexagonInterruptType::TlblockInstruction => {
+                info!("tlblock");
                 let mut lock_state = self.tlblock_state.lock().unwrap();
                 thread_instructions::lock(
                     vcpu_idx,
@@ -787,6 +790,7 @@ impl EventDistributorImpl for L2Vic {
                 )
             }
             HexagonInterruptType::TlbUnlockInstruction => {
+                info!("tlbunlock");
                 let mut lock_state = self.tlblock_state.lock().unwrap();
                 thread_instructions::unlock(
                     vcpu_idx,
@@ -797,9 +801,13 @@ impl EventDistributorImpl for L2Vic {
                     &mut lock_state,
                 )
             }
+            HexagonInterruptType::NmiInstruction => {
+                thread_instructions::nmi(vcpu_idx, irq, value, vcpus)
+            }
             HexagonInterruptType::Resched => {
                 thread_instructions::resched(vcpu_idx, irq, value, vcpus)
             }
+
             _ => unreachable!(),
         }
     }

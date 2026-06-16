@@ -8,6 +8,7 @@ mod single_vcpu_ec;
 use std::borrow::Cow;
 use std::fmt::Display;
 use std::{any::type_name, sync::Arc};
+use std::vec::Drain;
 
 use as_any::AsAny;
 pub use dummy::{DummyEventController, DummyEventDistributor};
@@ -29,6 +30,13 @@ use crate::{
     memory::{MemoryBackend, Mmu},
     processor::Config,
 };
+ use crate::core::VCpuCore;
+ use crate::cpu::CpuBackend;
+ use crate::executor::time::GlobalDelta;
+ use crate::executor::Delta;
+use crate::hooks::StyxHook;
+ use crate::memory::{MemoryBackend, Mmu};
+ use crate::processor::Config;
 
 pub type ExceptionNumber = i32;
 
@@ -225,8 +233,12 @@ pub struct EventController {
     pub inner: Box<dyn EventControllerImpl>,
     /// Which vcpu does this event controller belong to.
     pub vcpu_index: VcpuId,
-    /// IRQs to latch on other vcpus
+     /// IRQs to latch on other vcpus
+    pub vcpu_index: usize,
+    /// IRQs to latch on primary event controller. (IRQ, value).
     pub irqs_to: SmallVec<[(ExceptionNumber, u64); 4]>,
+    /// Hooks to add to other vCPUs. (hook, vcpu_index).
+    pub hooks: Vec<(StyxHook, usize)>,
 }
 
 impl Default for EventController {
@@ -241,12 +253,25 @@ impl EventController {
             inner,
             vcpu_index,
             irqs_to: Default::default(),
+            hooks: Default::default(),
         }
     }
 
     /// Provides a dummy event controller on vcpu 0. Good for tests.
     pub fn dummy() -> Self {
         Self::new(Box::new(DummyEventController::default()), 0)
+    }
+
+    pub fn add_hook(&mut self, hook: StyxHook, vcpu_idx: usize) {
+        self.hooks.push((hook, vcpu_idx))
+    }
+
+    pub fn has_hooks(&self) -> bool {
+        !self.hooks.is_empty()
+    }
+
+    pub fn drain_hooks(&mut self) -> Drain<'_, (StyxHook, usize)> {
+        self.hooks.drain(..)
     }
 
     pub fn next(

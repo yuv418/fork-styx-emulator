@@ -60,6 +60,55 @@ pub fn start(
     Ok(InterruptExecuted::Executed)
 }
 
+pub fn nmi(
+    vcpu_idx: usize,
+    irq: ExceptionNumber,
+    value: u64,
+    vcpus: &mut [VCpuCore],
+) -> Result<InterruptExecuted, ActivateIRQnError> {
+    let thread_mask = value as u32;
+    info!("nmi handler with {thread_mask:x}");
+
+    let sz = 32;
+
+    for t in 0..sz {
+        // Check thread for mask
+        if thread_mask & (1 << t) != 0 {
+            info!("nmi to thread {t} pc {:x?}", vcpus[t].cpu.pc());
+            // Don't start a thread that doesn't exist
+            if t < vcpus.len() {
+                let ssr = Ssr::new_with_raw_value(
+                    vcpus[t]
+                        .cpu
+                        .read_register::<u32>(HexagonRegister::Ssr)
+                        .with_context(|| "couldn't read ssr register")?,
+                );
+                vcpus[t]
+                    .cpu
+                    .write_register(
+                        HexagonRegister::Ssr,
+                        ssr.with_cause(HexagonInterruptCause::ImpreciseNmi as u8)
+                            .raw_value(),
+                    )
+                    .with_context(|| "couldn't read ssr register")?;
+
+                vcpus[t]
+                    .event_controller
+                    .execute(
+                        HexagonInterruptType::Imprecise as ExceptionNumber,
+                        vcpus[t].cpu.as_mut(),
+                        &mut vcpus[t].mmu,
+                    )
+                    .with_context(|| "couldn't send event to cpu to start thread")?;
+            } else {
+                warn!("don't nmi to thread {t} that doesn't exist");
+            }
+        }
+    }
+
+    Ok(InterruptExecuted::Executed)
+}
+
 pub fn lock(
     vcpu_idx: usize,
     irq: ExceptionNumber,
@@ -87,6 +136,7 @@ pub fn lock(
 
     let lock_state_this_thread = { lock_state[htid as usize] };
 
+    info!("in lock, lock state is {lock_state:x?}");
     let mut give_lock = || -> Result<InterruptExecuted, ActivateIRQnError> {
         // The lock is acquired
         cpu.write_register(
@@ -105,6 +155,8 @@ pub fn lock(
             .with_context(|| "couldn't advance tlblock pc")?;
 
         lock_state[htid as usize] = HexagonLockState::LockHeld;
+        info!("give_lock, lock state is {lock_state:x?}");
+
         Ok(InterruptExecuted::Executed)
     };
 
@@ -118,7 +170,7 @@ pub fn lock(
             HexagonLockState::LockHeld => {
                 // Halting interrupt. According to qemu, the same thread that holds the lock locking itself
                 // would be a double interrupt. (deadlocks?)
-                warn!("htid {htid} tried to lock twice");
+                warn!("htid {htid} tried to lock twice lock_state {lock_state:x?}");
 
                 cpu.handle_event(&mut mmu, HexagonInterruptType::LockSleep as ExceptionNumber)?;
                 Ok(InterruptExecuted::Executed)
@@ -143,7 +195,7 @@ pub fn lock(
     }
     // No one else
     else {
-        info!("lock not held by anyone, giving lock to thread {htid}");
+        info!("lock not held by anyone, giving lock to thread {htid}",);
         give_lock()
     }
 }
@@ -164,6 +216,8 @@ pub fn unlock(
         cpu.read_register::<u32>(GlobalHexagonRegister::SysCfg)
             .with_context(|| "couldn't read Syscfg register")?,
     );
+
+    info!("in unlock, lock state is {lock_state:x?}");
 
     let lock = match lock_type {
         HexagonLockType::K0 => syscfg.k0lock(),
@@ -190,17 +244,10 @@ pub fn unlock(
             Ok(InterruptExecuted::Executed)
         } else {
             // The lock is released
-            cpu.write_register(
-                GlobalHexagonRegister::SysCfg,
-                match lock_type {
-                    HexagonLockType::K0 => syscfg.with_k0lock(false),
-                    HexagonLockType::Tlb => syscfg.with_tlblock(false),
-                }
-                .raw_value(),
-            )
-            .with_context(|| "couldn't write syscfg")?;
-
             lock_state[htid as usize] = HexagonLockState::Unlocked;
+
+            // Only unlock in SYSCFG if the queued is not true
+            let mut queued = false;
 
             // Now figure out if anyone else is getting the lock.
             for i in 0..lock_state.len() {
@@ -215,16 +262,6 @@ pub fn unlock(
                             .with_context(|| "couldn't read syscfg")?,
                     );
 
-                    cpu.write_register(
-                        GlobalHexagonRegister::SysCfg,
-                        match lock_type {
-                            HexagonLockType::K0 => syscfg.with_k0lock(false),
-                            HexagonLockType::Tlb => syscfg.with_tlblock(false),
-                        }
-                        .raw_value(),
-                    )
-                    .with_context(|| "couldn't write syscfg")?;
-
                     lock_state[i] = HexagonLockState::Queued;
 
                     vcpus[i]
@@ -236,9 +273,25 @@ pub fn unlock(
                         )
                         .with_context(|| "couldn't execute unlock to other vcpu")?;
 
+                    queued = true;
                     break;
                     // ipend check that QEMU does
                 }
+            }
+
+            if !queued {
+                info!("releasing syscfg lock");
+                vcpus[vcpu_idx]
+                    .cpu
+                    .write_register(
+                        GlobalHexagonRegister::SysCfg,
+                        match lock_type {
+                            HexagonLockType::K0 => syscfg.with_k0lock(false),
+                            HexagonLockType::Tlb => syscfg.with_tlblock(false),
+                        }
+                        .raw_value(),
+                    )
+                    .with_context(|| "couldn't write syscfg")?;
             }
 
             Ok(InterruptExecuted::Executed)

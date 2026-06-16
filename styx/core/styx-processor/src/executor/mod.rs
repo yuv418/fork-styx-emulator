@@ -374,6 +374,14 @@ pub fn post_stride_processing(
         .event_controller
         .tick(vcpus[idx].cpu.as_mut(), &mut vcpus[idx].mmu, delta)?;
 
+    // Get hooks and add them.
+    for (hook, hook_idx) in vcpus[idx].event_controller.drain_hooks() {
+        let _ = vcpus[hook_idx]
+            .cpu
+            .add_hook(hook)
+            .with_context(|| "couldn't add hook")?;
+    }
+
     // Get the "latch_to" IRQs to the primary event controller (clears the latched IRQs as well)
     let vcpu_irqs = vcpus[idx].event_controller.vcpu_irqs()?;
     info!("getting vcpu irqs");
