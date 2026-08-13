@@ -207,6 +207,24 @@ impl HexagonDevice for S22 {
                     },
                 ),
             ),
+            // rsc peripheral
+            StyxHook::MemoryReadVirtual(
+                (0xa2163020..0xa2163030).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &mut [u8]|
+                     -> Result<(), UnknownError> {
+                        if address == 0xa2163020 {
+                            data.copy_from_slice(&1u32.to_le_bytes());
+                        } else if address == 0xa216302c {
+                            data.copy_from_slice(&1u32.to_le_bytes());
+                        }
+                        Ok(())
+                    },
+                ),
+            ),
             StyxHook::MemoryRead(
                 (0xe001030..(0xe001030 + 0xb0)).into(),
                 Box::new(
@@ -219,6 +237,29 @@ impl HexagonDevice for S22 {
                             "chipinfo memory write pc {:x?} {address:x} size {size} data {data:?}",
                             proc.cpu.pc()
                         );
+                        Ok(())
+                    },
+                ),
+            ),
+            // pdc related
+            // should write stuff to 0xc
+            StyxHook::MemoryReadVirtual(
+                (0xa42e1000..0xa42ee000).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &mut [u8]|
+                     -> Result<(), UnknownError> {
+                        if address == 0xa42e1004 {
+                            data.copy_from_slice(&0x54c0u32.to_le_bytes());
+                        } else if address == 0xa42e1008 {
+                            data.copy_from_slice(&0x30_0000u32.to_le_bytes());
+                        } else {
+                            info!(
+                                "unknown pdc access size {size} address {address:x} data {data:x?} pc {:x?}", proc.cpu.pc()
+                            );
+                        }
                         Ok(())
                     },
                 ),

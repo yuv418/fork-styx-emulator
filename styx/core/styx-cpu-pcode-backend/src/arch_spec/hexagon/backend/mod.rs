@@ -622,14 +622,14 @@ impl CpuBackend for HexagonPcodeBackend {
 
         let htid = self.read_register::<u32>(HexagonRegister::Htid).unwrap();
         if !self.running {
-            warn!("bailing because thread {htid} is not running");
+            trace!("bailing because thread {htid} is not running");
             Ok(ExecutionReport {
                 instructions_executed: Some(0),
                 last_packet_order: None,
                 exit_reason: TargetExitReason::InstructionCountComplete,
             })
         } else {
-            warn!("running htid {htid} pc {:x?}", self.pc());
+            trace!("running htid {htid} pc {:x?}", self.pc());
             self.execute_helper(mmu, event_controller, count)
                 .map(|mut i| {
                     // Add the packet order to the execution report
@@ -1157,10 +1157,10 @@ impl HexagonPcodeBackend {
         if let Some((k, _)) = self.cache.as_ref().unwrap().first_key_value() {
             // The page boundary has changed
             if k & !0xfff != initial_pc & !0xfff {
-                trace!(
+                info!(
                     "invalidating pcode cache, cache at page {k:x} and pc at page {initial_pc:x}"
                 );
-                self.cache.as_mut().unwrap().clear()
+                // self.cache.as_mut().unwrap().clear()
             }
         }
 
@@ -1365,7 +1365,7 @@ impl HexagonPcodeBackend {
             {
                 execution_helper.post_insn_fetch(bytes_consumed, self);
 
-                trace!("advancing fetch pc to {pc}");
+                warn!("advancing fetch pc to {pc:x}");
                 pc += bytes_consumed as u32;
             }
             self.execution_helper = Some(execution_helper);
@@ -1553,6 +1553,10 @@ impl HexagonPcodeBackend {
         };
 
         // Cache before we return, and indicate that the result is cached.
+        info!(
+            "inserting pc {initial_pc:x} into cache, cache length is {}",
+            self.cache.as_ref().unwrap().len()
+        );
         self.cache.as_mut().unwrap().insert(
             initial_pc,
             CachedFetchDecodeResult {

@@ -122,7 +122,7 @@ pub struct SmemItem {
 pub struct SmemItemMap(HashMap<u16, SmemItem>);
 
 const SMEM_SIZE: u32 = 0x100000;
-const SMEM_GLOBALPART_SIZE: u32 = 0x10000;
+const SMEM_GLOBALPART_SIZE: u32 = 0xda000;
 
 // From lk2nd (table of contents magic)
 const SMEM_TARGET_INFO_IDENTIFIER: u32 = 0x49494953;

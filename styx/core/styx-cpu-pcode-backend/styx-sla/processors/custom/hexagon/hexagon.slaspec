@@ -32467,7 +32467,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local tmp7:1;
   tmp7 = tmp0;
   local tmp8:1;
-  tmp8 = zext(tmp7) s> A4_cmpbgti_s8;
+  tmp8 = tmp7 s> A4_cmpbgti_s8:1;
   A4_cmpbgti_Pd4 = (tmp8 << 7) s>> 7;
 }
 
@@ -35853,7 +35853,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local tmp7:2;
   tmp7 = tmp0;
   local tmp8:1;
-  tmp8 = zext(tmp7) s> A4_cmphgti_s8;
+  tmp8 = tmp7 s> A4_cmphgti_s8:2;
   A4_cmphgti_Pd4 = (tmp8 << 7) s>> 7;
 }
 
@@ -61769,7 +61769,82 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :F2_dfmin F2_dfmin_Rdd32 F2_dfmin_Rss32 F2_dfmin_Rtt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 1 & b7 = 0 & b13 = 0 & b21 = 0 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 1 & b30 = 1 & b31 = 1 & F2_dfmin_Rdd32 & F2_dfmin_Rss32 & F2_dfmin_Rtt32 unimpl
 
-:F2_dfmpyfix F2_dfmpyfix_Rdd32 F2_dfmpyfix_Rss32 F2_dfmpyfix_Rtt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 1 & b7 = 0 & b13 = 0 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 1 & b30 = 1 & b31 = 1 & F2_dfmpyfix_Rdd32 & F2_dfmpyfix_Rss32 & F2_dfmpyfix_Rtt32 unimpl
+
+macro get_rnd_mode(res) { res = (C8 >> 22) & 3; }                                                                                                
+macro raise_usr_flag(mask)   { D_C8 = C8 | mask; }      
+
+macro is_denorm64(flt, out) {
+      out = (((flt >> 52) & 0x7ff) == 0) && ((flt & 0xfffffffffffff) != 0);
+}
+macro is_infinity(flt, out) {
+      out = ((flt >> 52) & 0x7ff) == 0x7ff && ((flt & 0xfffffffffffff) == 0);
+}
+macro is_any_nan(flt, out) {
+      out = ((flt >> 52) & 0x7ff) == 0x7ff && ((flt & 0xfffffffffffff) != 0);
+}
+macro is_norm64(flt, out) {
+    local exp = ((flt >> 52) & 0x7ff);
+    out = (exp != 0) && (exp != 0x7ff);
+}
+macro is_negative(flt, out) {
+    out = (flt & (1 << 63)) == 1;
+}
+macro is_expbig(flt, out) {
+      out = ((flt >> 52) & 0x7ff) >= 512;
+}
+
+macro f64_getmant(x, res) {
+    local e:8 = (x >> 52) & 0x7ff;
+    local hidden:8 = zext(e != 0);
+    res = (x & 0x000fffffffffffff) | (hidden << 52);
+}
+macro f64_getexp(x, res) {
+    local e64:8 = (x >> 52) & 0x7ff;
+    local e:4 = e64:4;
+    local isden:4 = zext(e == 0);
+    res = e + isden;
+}
+
+
+
+:F2_dfmpyfix F2_dfmpyfix_Rdd32 F2_dfmpyfix_Rss32 F2_dfmpyfix_Rtt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 1 & b7 = 0 & b13 = 0 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 1 & b30 = 1 & b31 = 1 & F2_dfmpyfix_Rdd32 & F2_dfmpyfix_Rss32 & F2_dfmpyfix_Rtt32 {
+    local Rtt_is_denorm:1;
+    local Rss_is_denorm:1;
+    local Rtt_is_expbig:1;
+    local Rss_is_expbig:1;
+    local Rtt_is_norm:1;
+    local Rss_is_norm:1;
+    local out:8;
+
+    is_denorm64(F2_dfmpyfix_Rss32, Rss_is_denorm);
+    is_denorm64(F2_dfmpyfix_Rtt32, Rtt_is_denorm);
+    is_expbig(F2_dfmpyfix_Rss32, Rss_is_expbig);
+    is_expbig(F2_dfmpyfix_Rtt32, Rtt_is_expbig);
+    is_norm64(F2_dfmpyfix_Rss32, Rss_is_norm);
+    is_norm64(F2_dfmpyfix_Rtt32, Rtt_is_norm);
+
+    local check1 = Rss_is_denorm && Rtt_is_expbig && Rtt_is_norm;
+    local check2 = Rtt_is_denorm && Rss_is_expbig && Rss_is_norm;
+
+    if (check1) goto <a>;
+    if (check2) goto <b>;
+    goto <c>;
+
+<a>
+    out = F2_dfmpyfix_Rss32 f* 0x4330000000000000:8;
+    goto <end>;
+
+<b>
+    out = F2_dfmpyfix_Rtt32 f* 0x3cb0000000000000:8; 
+    goto <end>;
+
+<c>
+    out = F2_dfmpyfix_Rss32;
+
+<end>
+    F2_dfmpyfix_Rdd32 = out;
+
+}
 
 :F2_dfmpyll F2_dfmpyll_Rdd32 F2_dfmpyll_Rss32 F2_dfmpyll_Rtt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 1 & b7 = 0 & b13 = 0 & b21 = 1 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 1 & b30 = 1 & b31 = 1 & F2_dfmpyll_Rdd32 & F2_dfmpyll_Rss32 & F2_dfmpyll_Rtt32 {
   local prod:8;
@@ -61961,7 +62036,292 @@ gp: reloc is epsilon [ reloc = 0; ] {
   F2_dfmpylh_Rxx32d = tmp32;
 }
 
-:F2_dfmpyhh F2_dfmpyhh_Rxx32 F2_dfmpyhh_Rxx32d F2_dfmpyhh_Rss32 F2_dfmpyhh_Rtt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 1 & b7 = 0 & b13 = 0 & b21 = 0 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 1 & b30 = 1 & b31 = 1 & F2_dfmpyhh_Rxx32 & F2_dfmpyhh_Rxx32d & F2_dfmpyhh_Rss32 & F2_dfmpyhh_Rtt32 unimpl
+:F2_dfmpyhh F2_dfmpyhh_Rxx32 F2_dfmpyhh_Rxx32d F2_dfmpyhh_Rss32 F2_dfmpyhh_Rtt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 1 & b7 = 0 & b13 = 0 & b21 = 0 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 1 & b30 = 1 & b31 = 1 & F2_dfmpyhh_Rxx32 & F2_dfmpyhh_Rxx32d & F2_dfmpyhh_Rss32 & F2_dfmpyhh_Rtt32 { 
+
+      local Rss:8 = F2_dfmpyhh_Rss32;
+      local Rtt:8 = F2_dfmpyhh_Rtt32;
+      local acc:8 = F2_dfmpyhh_Rxx32;         # the "accumulated" argument
+
+      # the Accum struct
+      local mant:16;
+      local exp:4;                            # int32_t, signed throughout
+      local sign:1;
+      local guard:1;
+      local Around:1;
+      local sticky:1;
+
+      local result:8;
+      local zero16:16 = 0;
+      local one16:16  = 1;
+      local amt:4;
+      local rmode:4;
+      local lo:8;
+      local t16:16;
+      local u16:16;
+      local tmp8:8;
+      local expfield:8;
+      local sgn64:8;
+
+      # every branch condition is materialized here before the if
+      local cc:1;
+      local grs:1;                            # guard | round | sticky
+      local nz:1;
+
+      # ======================= internal_mpyhh ==============================
+      # accum_init()
+      guard = 0;
+      Around = 0;
+      sign  = 0;
+
+      # sticky = accumulated & 1;  accumulated >>= 1;
+      sticky = (acc & 1) != 0;
+      acc = acc >> 1;
+
+      # zero / NaN / Inf on either operand -> return float64_mul(a, b)
+      local Rss_zero = F2_dfmpyhh_Rss32 == 0;
+      local Rss_anynan:1; is_any_nan(F2_dfmpyhh_Rss32, Rss_anynan);
+      local Rss_inf:1; is_infinity(F2_dfmpyhh_Rss32, Rss_inf);
+
+      local Rtt_zero = F2_dfmpyhh_Rtt32 == 0;
+      local Rtt_anynan:1; is_any_nan(F2_dfmpyhh_Rtt32, Rtt_anynan);
+      local Rtt_inf:1; is_infinity(F2_dfmpyhh_Rtt32, Rtt_inf);
+
+      local sp_Rss = Rss_zero || Rss_anynan || Rss_inf;
+      local sp_Rtt = Rtt_zero || Rtt_anynan || Rtt_inf;
+
+      local is_special:1 = sp_Rss || sp_Rtt;
+      cc = is_special == 0;
+      if (cc) goto <mpyhh_general>;
+          result = Rss f* Rtt;
+          goto <store>;
+
+      <mpyhh_general>
+      local mant_Rss:8;  f64_getmant(Rss, mant_Rss);
+      local mant_Rtt:8;  f64_getmant(Rtt, mant_Rtt);
+
+      # prod = fGETUWORD(1, mant_a) * fGETUWORD(1, mant_b)
+      # fGETUWORD widens back to 64 bits, so this is a 64x64 multiply. Each
+      # mantissa is <= 53 bits, so each high word is <= 21 bits, prod <= 2^42,
+      # and the 0xffffffff masks are no-ops (kept for fidelity).
+      local hi_Rss:8 = (mant_Rss >> 32) & 0xffffffff;
+      local hi_Rtt:8 = (mant_Rtt >> 32) & 0xffffffff;
+      local prod:8 = hi_Rss * hi_Rtt;
+
+      # x.mant = int128_make64(accumulated) + int128_mul_6464(prod, 0x100000000)
+      mant = zext(acc);
+      t16  = zext(prod);
+      t16  = t16 << 32;
+      mant = mant + t16;
+
+      # x.exp = float64_getexp(a) + float64_getexp(b) - DF_BIAS - 20
+      local exp_Rss:4;  f64_getexp(Rss, exp_Rss);
+      local exp_Rtt:4;  f64_getexp(Rtt, exp_Rtt);
+      exp = exp_Rss + exp_Rtt - 1043;         # DF_BIAS(1023) + 20
+
+      # if (!float64_is_normal(a) || !float64_is_normal(b)) crush to inexact zero
+      local norm_Rss:1;  is_norm64(Rss, norm_Rss);
+      local norm_Rtt:1;  is_norm64(Rtt, norm_Rtt);
+      cc = norm_Rss && norm_Rtt;
+      if (cc) goto <exp_ok>;
+          sticky = 1;
+          exp = 0xfffff000;                   # -4096
+      <exp_ok>
+
+      local sgn_Rss:1;  is_negative(Rss, sgn_Rss);
+      local sgn_Rtt:1;  is_negative(Rtt, sgn_Rtt);
+      sign = sgn_Rss ^ sgn_Rtt;
+
+      # ==================== accum_round_float64 ============================
+
+      # mant == 0 and no guard/round/sticky -> signed zero
+      cc = mant != zero16;
+      if (cc) goto <ar_normr>;
+      grs = guard | Around | sticky;
+      if (grs) goto <ar_normr>;
+          get_rnd_mode(rmode);
+          result = 0;
+          cc = rmode != 2;                    # anything but float_round_down
+          if (cc) goto <store>;
+          result = 0x8000000000000000;
+          goto <store>;
+
+      # Normalize right while any bit above DF_MANTBITS+1 is set. The C tests
+      # (gethi != 0) || (getlo >> 53) — together that is just "any bit >= 53".
+      # Body is accum_norm_right(a, 1) unrolled.
+      <ar_normr>
+      t16 = mant >> 53;
+      cc = t16 == zero16;
+      if (cc) goto <ar_norml>; # ???
+          exp = exp + 1;
+          sticky = sticky | Around;
+          Around = guard;
+          u16 = mant & one16;
+          guard = u16 != zero16;
+          mant = mant >> 1;
+          goto <ar_normr>;
+
+      # Normalize left until the leading one sits in bit DF_MANTBITS.
+      # Body is accum_norm_left(a).
+      <ar_norml>
+      lo = mant:8;
+      tmp8 = lo & 0x0010000000000000;
+      cc = tmp8 != 0;
+      if (cc) goto <ar_denorm>;
+          exp = exp - 1;
+          mant = mant << 1;
+          t16 = zext(guard);
+          mant = mant | t16;
+          guard = Around;
+          Around = sticky;                     # sticky itself is left alone
+          goto <ar_norml>;
+
+      # while (a.exp <= 0) a = accum_norm_right(a, 1 - a.exp);
+      <ar_denorm>
+      cc = exp s> 0;
+      if (cc) goto <ar_round>;
+          amt = 1 - exp;
+
+          # ---- accum_norm_right(a, amt), full version ----
+          cc = amt s<= 130;
+          if (cc) goto <nr_64>;
+              # everything shifts out
+              nz = mant != zero16;
+              sticky = sticky | Around | guard | nz;
+              guard = 0;
+              Around = 0;
+              mant = zero16;
+              exp = exp + amt;
+              goto <nr_end>;
+          <nr_64>
+          cc = amt s< 64;
+          if (cc) goto <nr_1>;
+              lo = mant:8;
+              nz = lo != 0;
+              sticky = sticky | Around | guard | nz;
+              t16 = mant >> 63;   u16 = t16 & one16;   guard = u16 != zero16;
+              t16 = mant >> 62;   u16 = t16 & one16;   Around = u16 != zero16;
+              mant = mant >> 64;                  # int128_make64(gethi(mant))
+              exp = exp + 64;
+              amt = amt - 64;
+              goto <nr_64>;
+          <nr_1>
+          cc = amt s<= 0;
+          if (cc) goto <nr_end>;
+              exp = exp + 1;
+              sticky = sticky | Around;
+              Around = guard;
+              u16 = mant & one16;
+              guard = u16 != zero16;
+              mant = mant >> 1;
+              amt = amt - 1;
+              goto <nr_1>;
+          <nr_end>
+
+          # inexact answer out of a denormal == underflow
+          grs = guard | Around | sticky;
+          cc = grs == 0;
+          if (cc) goto <ar_denorm>;
+          raise_usr_flag(0x10);                     # float_flag_underflow
+          goto <ar_denorm>;
+
+      # ---- round ----
+      <ar_round>
+      grs = guard || Around || sticky;
+      cc = grs == 0;
+      if (cc) goto <ar_carry>;
+          raise_usr_flag(0x20);                     # float_flag_inexact
+          get_rnd_mode(rmode);
+          cc = rmode == 1;                    # float_round_to_zero: chop
+          if (cc) goto <ar_carry>;
+          cc = rmode == 3;                    # float_round_up
+          if (cc) goto <rnd_up>;
+          cc = rmode == 2;                    # float_round_down
+          if (cc) goto <rnd_down>;
+          # default: nearest-even
+          cc = Around || sticky;
+          if (cc) goto <rnd_gs>;
+              cc = guard == 0;
+              if (cc) goto <ar_carry>;
+              u16 = mant & one16;             # exactly .5 -> round up if odd
+              mant = mant + u16;
+              goto <ar_carry>;
+          <rnd_gs>
+              t16 = zext(guard);              # up if guard set, down if not
+              mant = mant + t16;
+              goto <ar_carry>;
+          <rnd_up>
+              cc = sign != 0;
+              if (cc) goto <ar_carry>;
+              mant = mant + one16;
+              goto <ar_carry>;
+          <rnd_down>
+              cc = sign == 0;
+              if (cc) goto <ar_carry>;
+              mant = mant + one16;
+
+      # rounding may have carried all the way out; accum_norm_right(a, 1)
+      <ar_carry>
+      lo = mant:8;
+      tmp8 = lo >> 53;
+      cc = tmp8 == 0;
+      if (cc) goto <ar_ovf>;
+          exp = exp + 1;
+          sticky = sticky | Around;
+          Around = guard;
+          u16 = mant & one16;
+          guard = u16 != zero16;
+          mant = mant >> 1;
+
+      # ---- overflow? ----
+      <ar_ovf>
+      cc = exp s< 0x7ff;
+      if (cc) goto <ar_pack>;
+          raise_usr_flag(0x08);                     # float_flag_overflow
+          raise_usr_flag(0x20);                     # float_flag_inexact
+          get_rnd_mode(rmode);
+          result = 0x7ff0000000000000;        # DF_INF, sign applied below
+          cc = rmode == 1;                    # to zero  -> maxfinite
+          if (cc) goto <ovf_max>;
+          cc = rmode == 3;
+          if (cc) goto <ovf_up>;
+          cc = rmode == 2;
+          if (cc) goto <ovf_down>;
+          goto <ovf_sign>;                    # nearest  -> infinity
+        <ovf_up>
+          cc = sign == 0;
+          if (cc) goto <ovf_sign>;
+          goto <ovf_max>;
+        <ovf_down>
+          cc = sign != 0;
+          if (cc) goto <ovf_sign>;
+        <ovf_max>
+          result = 0x7fefffffffffffff;        # DF_MAXF
+        <ovf_sign>
+          sgn64 = zext(sign);
+          result = result | (sgn64 << 63);
+          goto <store>;
+
+      # ---- pack ----
+      # deposit64(ret, 52, 11, exp) overwrites bit 52, which is exactly right:
+      # the hidden bit is dropped and replaced by the exponent's LSB.
+      <ar_pack>
+      result = mant:8;
+      expfield = 0;
+      tmp8 = result & 0x0010000000000000;
+      cc = tmp8 == 0;
+      if (cc) goto <ar_deposit>;
+          local e64:8 = zext(exp);
+          expfield = e64 & 0x7ff;
+      <ar_deposit>
+      result = (result & 0x000fffffffffffff) | (expfield << 52);
+      sgn64 = zext(sign);
+      result = result | (sgn64 << 63);
+
+      <store>
+      F2_dfmpyhh_Rxx32d = result;
+
+
+}
 
 :F2_dfcmpeq F2_dfcmpeq_Pd4 F2_dfcmpeq_Rss32 F2_dfcmpeq_Rtt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 0 & b6 = 0 & b7 = 0 & b21 = 1 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 1 & F2_dfcmpeq_Pd4 & F2_dfcmpeq_Rss32 & F2_dfcmpeq_Rtt32 unimpl
 
@@ -62048,7 +62408,12 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :F2_conv_uw2sf F2_conv_uw2sf_Rd32 F2_conv_uw2sf_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 0 & b6 = 0 & b7 = 0 & b21 = 1 & b22 = 0 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 0 & b30 = 0 & b31 = 1 & F2_conv_uw2sf_Rd32 & F2_conv_uw2sf_Rs32 unimpl
 
-:F2_conv_uw2df F2_conv_uw2df_Rdd32 F2_conv_uw2df_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 0 & b7 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 0 & b28 = 0 & b29 = 0 & b30 = 0 & b31 = 1 & F2_conv_uw2df_Rdd32 & F2_conv_uw2df_Rs32 unimpl
+:F2_conv_uw2df F2_conv_uw2df_Rdd32 F2_conv_uw2df_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 0 & b7 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 0 & b28 = 0 & b29 = 0 & b30 = 0 & b31 = 1 & F2_conv_uw2df_Rdd32 & F2_conv_uw2df_Rs32 {
+	       local big:8;
+	       # by making it 64 bits the unsigned 32 bit will always fit into the signed 64 bit.
+	       big = sext(F2_conv_uw2df_Rs32);
+	       F2_conv_uw2df_Rdd32 = int2float(big);
+}
 
 :F2_conv_w2sf F2_conv_w2sf_Rd32 F2_conv_w2sf_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 0 & b6 = 0 & b7 = 0 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 0 & b30 = 0 & b31 = 1 & F2_conv_w2sf_Rd32 & F2_conv_w2sf_Rs32 unimpl
 

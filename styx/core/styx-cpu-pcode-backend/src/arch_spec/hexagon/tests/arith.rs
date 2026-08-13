@@ -1404,8 +1404,8 @@ pub fn cmphgt_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
 pub fn cmpheqi_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
     let (cpu, mmu, ev) = setup_objdump(
         r#"
-	0:	ff 41 00 00	000041ff { 	immext(#0x7fc0)
-	4:	e8 c7 01 dd	dd01c7e8   	p0 = cmph.eq(r1,##0x7fff) }
+	0:	ff 43 00 00	000043ff { 	immext(#0xffc0)
+	4:	e8 c7 01 dd	dd01c7e8   	p0 = cmph.eq(r1,##0xffff) }
 "#,
     );
 
@@ -1518,7 +1518,7 @@ pub fn cmpb(
                 info!(
                     "signed (8) expects {} > {}, size {sz}",
                     (inp & mask) as i8,
-                    smask as i8
+                    smask as i8,
                 );
                 (inp & mask) as i8 > smask as i8
             } else {

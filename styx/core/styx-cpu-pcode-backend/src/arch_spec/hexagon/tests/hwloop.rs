@@ -329,3 +329,32 @@ fn test_hwloop_register() {
     assert_eq!(r0, 2u32.pow(ITERS) * R0_INITIAL);
     assert_eq!(r1, R1_INITIAL + ITERS);
 }
+
+/// If we have a p-code cache that caches the result of the end-loop instruction when
+/// lc0 = 1 (eg. the loop only runs once), then the p-code output does not include the logic
+/// to re-loop if the loop is run later with lc0 > 1.
+#[test]
+fn test_hwloop_cache() {
+    let (mut cpu, mut mmu, mut ev) = setup_objdump(
+        r#"
+       0:	08 c0 03 60	6003c008 { 	loop0(0x4,r3) }
+       4:	00 81 00 f3	f3008100 { 	r0 = add(r0,r1)
+       8:	00 c0 00 7f	7f00c000   	nop }  :endloop0
+       c:	63 40 03 b0	b0034063 { 	r3 = add(r3,#0x3)
+      10:	fa c1 33 10	1033c1fa   	p0 = cmp.eq(r3,#0x1); if (p0.new) jump:nt 0x0 <start> }
+      14:	00 40 00 7f	7f004000 { 	nop
+      18:	00 c0 00 58	5800c000   	jump 0x14 <nothing> }
+        "#,
+    );
+
+    cpu.write_register(HexagonRegister::R0, 0u32).unwrap();
+    cpu.write_register(HexagonRegister::R1, 1u32).unwrap();
+    cpu.write_register(HexagonRegister::R3, 1u32).unwrap();
+
+    let exit = cpu.execute(&mut mmu, &mut ev, 8).unwrap();
+    assert_eq!(exit.exit_reason, TargetExitReason::InstructionCountComplete);
+
+    let r0 = cpu.read_register::<u32>(HexagonRegister::R0).unwrap();
+
+    assert_eq!(r0, 5);
+}
