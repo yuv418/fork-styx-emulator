@@ -41,7 +41,8 @@ pub enum SimpleStoreMemoryErr {
 // slow (each byte is a memory operation). Ideally [SimpleStore] alignment would match the processor
 // architecture meaning most emulated memory operations would be a single memory operation.
 impl<T: SimpleStore<1>> IsSpaceMemory for T {
-    fn get_chunk(&self, offset: u64, buf: &mut [u8]) -> Result<(), MmuOpError> {
+    fn get_chunk(&self, offset: u128, buf: &mut [u8]) -> Result<(), MmuOpError> {
+        let offset = offset as u64;
         for (idx, byte) in buf.iter_mut().enumerate() {
             let result = self.find(offset + idx as u64);
             let value = match result {
@@ -56,7 +57,8 @@ impl<T: SimpleStore<1>> IsSpaceMemory for T {
         Ok(())
     }
 
-    fn set_chunk(&mut self, offset: u64, buf: &[u8]) -> Result<(), MmuOpError> {
+    fn set_chunk(&mut self, offset: u128, buf: &[u8]) -> Result<(), MmuOpError> {
+        let offset = offset as u64;
         for (idx, byte) in buf.iter().enumerate() {
             let result = self.insert(offset + idx as u64, *byte as u64);
             match result {

@@ -76,7 +76,7 @@ impl Space {
 
         let mut buf = [0u8; SizedValue::SIZE_BYTES];
         let buf_ref = &mut buf[0..size as usize];
-        self.memory.get_chunk(offset, buf_ref)?;
+        self.memory.get_chunk(offset as u128, buf_ref)?;
 
         let value = match self.info.endian {
             ArchEndian::LittleEndian => SizedValue::from_le_bytes(buf_ref),
@@ -97,17 +97,19 @@ impl Space {
             ArchEndian::BigEndian => value.to_be_bytes(&mut bytes_buf),
         };
 
-        self.memory.set_chunk(offset, bytes).map_err(Into::into)
+        self.memory
+            .set_chunk(offset as u128, bytes)
+            .map_err(Into::into)
     }
 
     /// Get bytes from any offset.
     pub fn get_chunk(&self, offset: u64, buf: &mut [u8]) -> Result<(), MmuOpError> {
-        self.memory.get_chunk(offset, buf)
+        self.memory.get_chunk(offset as u128, buf)
     }
     /// Set bytes to any offset.
     #[allow(dead_code)] // TODO: why is this popping?
     pub fn set_chunk(&mut self, offset: u64, buf: &[u8]) -> Result<(), MmuOpError> {
-        self.memory.set_chunk(offset, buf)
+        self.memory.set_chunk(offset as u128, buf)
     }
 
     pub fn write_global_register(
@@ -181,9 +183,9 @@ impl Space {
 #[enum_dispatch]
 pub trait IsSpaceMemory {
     /// Get bytes from any offset.
-    fn get_chunk(&self, offset: u64, buf: &mut [u8]) -> Result<(), MmuOpError>;
+    fn get_chunk(&self, offset: u128, buf: &mut [u8]) -> Result<(), MmuOpError>;
     /// Set bytes to any offset.
-    fn set_chunk(&mut self, offset: u64, buf: &[u8]) -> Result<(), MmuOpError>;
+    fn set_chunk(&mut self, offset: u128, buf: &[u8]) -> Result<(), MmuOpError>;
 }
 
 /// Usable memory backings for spaces.

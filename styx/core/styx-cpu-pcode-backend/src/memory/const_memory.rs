@@ -26,9 +26,9 @@ impl ConstMemory {
 }
 
 impl IsSpaceMemory for ConstMemory {
-    fn get_chunk(&self, offset: u64, buf: &mut [u8]) -> Result<(), MmuOpError> {
+    fn get_chunk(&self, offset: u128, buf: &mut [u8]) -> Result<(), MmuOpError> {
         let buf_len = buf.len();
-        debug_assert!(buf_len <= 8);
+        // debug_assert!(buf_len <= 8);
 
         let sized_bytes = match self.endian {
             ArchEndian::LittleEndian => &offset.to_le_bytes()[0..buf_len],
@@ -39,7 +39,7 @@ impl IsSpaceMemory for ConstMemory {
         Ok(())
     }
 
-    fn set_chunk(&mut self, _offset: u64, _buf: &[u8]) -> Result<(), MmuOpError> {
+    fn set_chunk(&mut self, _offset: u128, _buf: &[u8]) -> Result<(), MmuOpError> {
         panic!("Write to constant space.");
     }
 }

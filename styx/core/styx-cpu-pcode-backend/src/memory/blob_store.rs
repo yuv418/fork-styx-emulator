@@ -36,19 +36,19 @@ impl Debug for BlobStore {
 }
 
 impl IsSpaceMemory for BlobStore {
-    fn get_chunk(&self, offset: u64, buf: &mut [u8]) -> Result<(), MmuOpError> {
+    fn get_chunk(&self, offset: u128, buf: &mut [u8]) -> Result<(), MmuOpError> {
         let offset_usize = offset as usize;
 
         let data_chunk = self
             .data
             .get(offset_usize..offset_usize + buf.len())
-            .ok_or(self.make_invalid_memory_range(offset))?;
+            .ok_or(self.make_invalid_memory_range(offset as u64))?;
 
         buf.copy_from_slice(data_chunk);
         Ok(())
     }
 
-    fn set_chunk(&mut self, offset: u64, buf: &[u8]) -> Result<(), MmuOpError> {
+    fn set_chunk(&mut self, offset: u128, buf: &[u8]) -> Result<(), MmuOpError> {
         let offset_usize = offset as usize;
 
         let result = self.data.get_mut(offset_usize..offset_usize + buf.len());
@@ -56,7 +56,7 @@ impl IsSpaceMemory for BlobStore {
             data_chunk.copy_from_slice(buf);
             Ok(())
         } else {
-            Err(self.make_invalid_memory_range(offset))
+            Err(self.make_invalid_memory_range(offset as u64))
         }
     }
 }

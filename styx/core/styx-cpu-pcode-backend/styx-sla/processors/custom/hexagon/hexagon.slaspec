@@ -61776,20 +61776,23 @@ macro raise_usr_flag(mask)   { D_C8 = C8 | mask; }
 macro is_denorm64(flt, out) {
       out = (((flt >> 52) & 0x7ff) == 0) && ((flt & 0xfffffffffffff) != 0);
 }
-macro is_infinity(flt, out) {
+macro is_infinity64(flt, out) {
       out = ((flt >> 52) & 0x7ff) == 0x7ff && ((flt & 0xfffffffffffff) == 0);
 }
-macro is_any_nan(flt, out) {
+macro is_any_nan64(flt, out) {
       out = ((flt >> 52) & 0x7ff) == 0x7ff && ((flt & 0xfffffffffffff) != 0);
 }
 macro is_norm64(flt, out) {
     local exp = ((flt >> 52) & 0x7ff);
     out = (exp != 0) && (exp != 0x7ff);
 }
-macro is_negative(flt, out) {
+macro is_negative64(flt, out) {
     out = (flt & (1 << 63)) == 1;
 }
-macro is_expbig(flt, out) {
+macro is_zero64(flt, out) {
+    out = (flt == 0x8000000000000000) || (flt == 0);
+}
+macro is_expbig64(flt, out) {
       out = ((flt >> 52) & 0x7ff) >= 512;
 }
 
@@ -61818,8 +61821,8 @@ macro f64_getexp(x, res) {
 
     is_denorm64(F2_dfmpyfix_Rss32, Rss_is_denorm);
     is_denorm64(F2_dfmpyfix_Rtt32, Rtt_is_denorm);
-    is_expbig(F2_dfmpyfix_Rss32, Rss_is_expbig);
-    is_expbig(F2_dfmpyfix_Rtt32, Rtt_is_expbig);
+    is_expbig64(F2_dfmpyfix_Rss32, Rss_is_expbig);
+    is_expbig64(F2_dfmpyfix_Rtt32, Rtt_is_expbig);
     is_norm64(F2_dfmpyfix_Rss32, Rss_is_norm);
     is_norm64(F2_dfmpyfix_Rtt32, Rtt_is_norm);
 
@@ -62078,13 +62081,13 @@ macro f64_getexp(x, res) {
       acc = acc >> 1;
 
       # zero / NaN / Inf on either operand -> return float64_mul(a, b)
-      local Rss_zero = F2_dfmpyhh_Rss32 == 0;
-      local Rss_anynan:1; is_any_nan(F2_dfmpyhh_Rss32, Rss_anynan);
-      local Rss_inf:1; is_infinity(F2_dfmpyhh_Rss32, Rss_inf);
+      local Rss_zero:1; is_zero64(F2_dfmpyhh_Rss32, Rss_zero);
+      local Rss_anynan:1; is_any_nan64(F2_dfmpyhh_Rss32, Rss_anynan);
+      local Rss_inf:1; is_infinity64(F2_dfmpyhh_Rss32, Rss_inf);
 
-      local Rtt_zero = F2_dfmpyhh_Rtt32 == 0;
-      local Rtt_anynan:1; is_any_nan(F2_dfmpyhh_Rtt32, Rtt_anynan);
-      local Rtt_inf:1; is_infinity(F2_dfmpyhh_Rtt32, Rtt_inf);
+      local Rtt_zero; is_zero64(F2_dfmpyhh_Rtt32, Rtt_zero);
+      local Rtt_anynan:1; is_any_nan64(F2_dfmpyhh_Rtt32, Rtt_anynan);
+      local Rtt_inf:1; is_infinity64(F2_dfmpyhh_Rtt32, Rtt_inf);
 
       local sp_Rss = Rss_zero || Rss_anynan || Rss_inf;
       local sp_Rtt = Rtt_zero || Rtt_anynan || Rtt_inf;
@@ -62127,8 +62130,8 @@ macro f64_getexp(x, res) {
           exp = 0xfffff000;                   # -4096
       <exp_ok>
 
-      local sgn_Rss:1;  is_negative(Rss, sgn_Rss);
-      local sgn_Rtt:1;  is_negative(Rtt, sgn_Rtt);
+      local sgn_Rss:1;  is_negative64(Rss, sgn_Rss);
+      local sgn_Rtt:1;  is_negative64(Rtt, sgn_Rtt);
       sign = sgn_Rss ^ sgn_Rtt;
 
       # ==================== accum_round_float64 ============================
@@ -62221,7 +62224,7 @@ macro f64_getexp(x, res) {
           grs = guard | Around | sticky;
           cc = grs == 0;
           if (cc) goto <ar_denorm>;
-          raise_usr_flag(0x10);                     # float_flag_underflow
+          raise_usr_flag(0x1c);                     # float_flag_underflow
           goto <ar_denorm>;
 
       # ---- round ----
@@ -62229,7 +62232,7 @@ macro f64_getexp(x, res) {
       grs = guard || Around || sticky;
       cc = grs == 0;
       if (cc) goto <ar_carry>;
-          raise_usr_flag(0x20);                     # float_flag_inexact
+          raise_usr_flag(0x1d);                     # float_flag_inexact
           get_rnd_mode(rmode);
           cc = rmode == 1;                    # float_round_to_zero: chop
           if (cc) goto <ar_carry>;
@@ -62276,8 +62279,8 @@ macro f64_getexp(x, res) {
       <ar_ovf>
       cc = exp s< 0x7ff;
       if (cc) goto <ar_pack>;
-          raise_usr_flag(0x08);                     # float_flag_overflow
-          raise_usr_flag(0x20);                     # float_flag_inexact
+          raise_usr_flag(0x1b);                     # float_flag_overflow
+          raise_usr_flag(0x1d);                     # float_flag_inexact
           get_rnd_mode(rmode);
           result = 0x7ff0000000000000;        # DF_INF, sign applied below
           cc = rmode == 1;                    # to zero  -> maxfinite
@@ -62451,7 +62454,145 @@ macro f64_getexp(x, res) {
 
 :F2_conv_sf2d_chop F2_conv_sf2d_chop_Rdd32 F2_conv_sf2d_chop_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 0 & b6 = 1 & b7 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 0 & b28 = 0 & b29 = 0 & b30 = 0 & b31 = 1 & F2_conv_sf2d_chop_Rdd32 & F2_conv_sf2d_chop_Rs32 unimpl
 
-:F2_conv_df2uw_chop F2_conv_df2uw_chop_Rd32 F2_conv_df2uw_chop_Rss32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 0 & b7 = 0 & b21 = 1 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 0 & b30 = 0 & b31 = 1 & F2_conv_df2uw_chop_Rd32 & F2_conv_df2uw_chop_Rss32 unimpl
+:F2_conv_df2uw_chop F2_conv_df2uw_chop_Rd32 F2_conv_df2uw_chop_Rss32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 0 & b7 = 0 & b21 = 1 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 0 & b30 = 0 & b31 = 1 & F2_conv_df2uw_chop_Rd32 & F2_conv_df2uw_chop_Rss32 {
+      local Rss:8 = F2_conv_df2uw_chop_Rss32;
+      local result:4;
+      local flags:4 = 0;              # softfloat flags; float_raise'd once at the end
+      local cc:1;
+      local E:4;                      # canonical exponent, signed
+      local F:8;                      # canonical fraction, binary point at bit 63
+      local k:4;
+      local shamt:4;
+      local rnd_mask:8;
+      local r:8;
+      local umax64:8 = 0xffffffff;    # UINT32_MAX
+
+      local is_neg:1;  is_negative64(Rss, is_neg);
+      local is_nan:1; is_any_nan64(Rss, is_nan);
+      local is_inf:1; is_infinity64(Rss, is_inf);
+      local is_zero:1; is_zero64(Rss, is_zero);
+
+      # ============ HELPER(conv_df2uw_chop) ============
+      # "Hexagon checks the sign before rounding"
+      local not_nan = is_nan == 0;
+      local not_zero = is_zero == 0;
+      local neg_guard = is_neg && not_nan && not_zero;
+      cc = neg_guard == 0;
+      if (cc) goto <to_uint>;
+          flags = 0x19;               # float_flag_invalid
+          result = 0;
+          goto <done>;
+
+      # ============ float64_to_uint32_round_to_zero ============
+      #   -> float64_to_uint32_scalbn(a, float_round_to_zero, 0, s)
+      #   -> parts64_float_to_uint(p, float_round_to_zero, 0, UINT32_MAX, s)
+      <to_uint>
+      local t8:8 = (Rss >> 52) & 0x7ff;
+      local rawexp:4 = t8:4;
+      local frac52:8 = Rss & 0x000fffffffffffff;
+
+      # ---- float_class_snan / float_class_qnan ----
+      # SNaN also sets float_flag_invalid_snan, but USR has a single FPINVF bit,
+      # so both classes raise the same thing on Hexagon.
+      cc = is_nan == 0;
+      if (cc) goto <not_nan_cls>;
+          flags = 0x19;               # float_flag_invalid
+          result = 0xffffffff;        # r = max
+          goto <done>;
+      <not_nan_cls>
+
+      # ---- float_class_inf ----
+      cc = is_inf == 0;
+      if (cc) goto <not_inf_cls>;
+          flags = 0x19;               # float_flag_invalid | float_flag_invalid_cvti
+          result = 0xffffffff;        # r = p->sign ? 0 : max
+          cc = is_neg == 0;
+          if (cc) goto <done>;
+          result = 0;                 # unreachable: -Inf is caught by the guard
+          goto <done>;
+      <not_inf_cls>
+
+      # ---- float_class_zero: returns 0 without raising anything ----
+      cc = is_zero == 0;
+      if (cc) goto <not_zero_cls>;
+          result = 0;
+          goto <done>;
+      <not_zero_cls>
+
+      # ---- float_class_normal / float_class_denormal ----
+      # canonicalize(): a normal gives exp = rawexp - exp_bias and
+      # frac = (frac52 << frac_shift) | DECOMPOSED_IMPLICIT_BIT, frac_shift = 11.
+      # A denormal gives exp = frac_shift - exp_bias - clz64(frac) + 1, which is
+      # <= -1023 for every denormal, so it always takes the "all fractional" arm
+      # below. That is why no clz is needed here.
+      cc = rawexp == 0;
+      if (cc) goto <all_fractional>;
+      E = rawexp - 1023;
+      F = (frac52 << 11) | 0x8000000000000000;
+
+      # ---- round_to_int_normal(p, float_round_to_zero, 0, N - 2) ----
+      # rmode is to_zero, so inc == 0 and one == false: this only truncates and
+      # reports whether any bits were dropped. scale == 0, so exp is unchanged.
+      cc = E s< 0;
+      if (cc) goto <all_fractional>;
+
+      # frac_lsb = DECOMPOSED_IMPLICIT_BIT >> MIN(exp, frac_size); rnd_mask = frac_lsb - 1
+      k = E;
+      cc = k s<= 62;
+      if (cc) goto <k_done>;
+      k = 62;
+      <k_done>
+      shamt = 63 - k;
+      rnd_mask = 1;
+      rnd_mask = rnd_mask << shamt;
+      rnd_mask = rnd_mask - 1;
+
+      local dropped:8 = F & rnd_mask;
+      local inexact:1 = dropped != 0;
+      cc = inexact == 0;
+      if (cc) goto <rti_done>;
+          flags = 0x20;               # float_flag_inexact
+          F = F & ~rnd_mask;          # p->frac_lo &= ~rnd_mask
+      <rti_done>
+
+      # ---- back in parts64_float_to_uint ----
+      # Note: each arm below ASSIGNS flags, so it discards any inexact set above.
+      cc = is_neg == 0;
+      if (cc) goto <sign_ok>;
+          flags = 0x02;               # unreachable: negatives are caught by the guard
+          result = 0;
+          goto <done>;
+      <sign_ok>
+
+      cc = E s<= 63;                  # p->exp > DECOMPOSED_BINARY_POINT
+      if (cc) goto <in_range>;
+          flags = 0x02;               # invalid | invalid_cvti
+          result = 0xffffffff;        # r = max
+          goto <done>;
+      <in_range>
+
+      shamt = 63 - E;
+      r = F >> shamt;                 # r = p->frac_hi >>  (DECOMPOSED_BINARY_POINT - p->exp)
+      cc = r > umax64;
+      if (cc) goto <clamp>;
+          result = r:4;
+          goto <done>;
+      <clamp>
+          flags = 0x19;               # invalid | invalid_cvti
+          result = 0xffffffff;
+          goto <done>;
+
+      # exp < 0: round_to_int_normal cleared the value and set cls = float_class_zero,
+      # so float_to_uint takes "flags = inexact; if (cls == zero) { r = 0; break; }"
+      <all_fractional>
+      flags = 0x1d;                   # float_flag_inexact
+      result = 0;
+
+      <done>
+      raise_usr_flag(flags);
+      F2_conv_df2uw_chop_Rd32 = result;
+
+}
 
 :F2_conv_df2w_chop F2_conv_df2w_chop_Rd32 F2_conv_df2w_chop_Rss32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 0 & b7 = 0 & b21 = 1 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 0 & b30 = 0 & b31 = 1 & F2_conv_df2w_chop_Rd32 & F2_conv_df2w_chop_Rss32 unimpl
 

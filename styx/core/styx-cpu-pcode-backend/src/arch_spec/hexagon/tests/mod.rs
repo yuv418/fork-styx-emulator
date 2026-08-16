@@ -25,6 +25,7 @@ mod compound;
 mod dotnew;
 mod dual_jumps;
 mod duplex;
+mod float;
 mod general;
 mod hwloop;
 mod immediate;
