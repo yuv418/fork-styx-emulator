@@ -1552,6 +1552,7 @@ pub fn bitsset() {
     cpu.write_register(HexagonRegister::R16, 0xffffu32).unwrap();
 
     let res = cpu.execute(&mut mmu, &mut ev, 1).unwrap();
+    assert_eq!(res.exit_reason, TargetExitReason::InstructionCountComplete);
 
     let p0 = cpu.read_register::<u8>(HexagonRegister::P0).unwrap();
 

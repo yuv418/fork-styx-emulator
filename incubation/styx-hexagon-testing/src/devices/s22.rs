@@ -207,7 +207,37 @@ impl HexagonDevice for S22 {
                     },
                 ),
             ),
-            // rsc peripheral
+            // rsc for real
+            StyxHook::MemoryReadVirtual(
+                (0xeb20_0000..(0xeb20_0000 + 0xa0000)).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &mut [u8]|
+                     -> Result<(), UnknownError> {
+                        warn!(
+                            "rsc read pc {:x?} write {address:x} data {data:x?}",
+                            proc.cpu.pc()
+                        );
+                        let offset = address - 0xeb20_0000;
+                        // DRV_PRNT_CHLD_CONFIG
+                        //
+                        // Number of TCS has to be greater than 0xe
+                        if offset == 0xc {
+                            info!("access DRV_PRNT_CHLD_CONFIG");
+                            data.copy_from_slice(&((0x11u32 << 27) | 0xfu32).to_le_bytes());
+                        } else if offset == 0x1000c {
+                            info!("access DRV_PRNT_CHLD_CONFIG");
+                            data.copy_from_slice(&((0x11u32 << 27) | 0x5u32).to_le_bytes());
+                        } else if offset == 0xfb8 {
+                            data.copy_from_slice(&1u32.to_le_bytes());
+                        }
+                        Ok(())
+                    },
+                ),
+            ),
+            // rsc peripheral (??? no)
             StyxHook::MemoryReadVirtual(
                 (0xa2163020..0xa2163030).into(),
                 Box::new(

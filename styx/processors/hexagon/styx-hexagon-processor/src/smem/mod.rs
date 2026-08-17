@@ -121,8 +121,9 @@ pub struct SmemItem {
 #[derive(Debug)]
 pub struct SmemItemMap(HashMap<u16, SmemItem>);
 
-const SMEM_SIZE: u32 = 0x100000;
+const SMEM_SIZE: u32 = 0x200000;
 const SMEM_GLOBALPART_SIZE: u32 = 0xda000;
+const SMEM_OTHERPART_SIZE: u32 = 0x10000;
 
 // From lk2nd (table of contents magic)
 const SMEM_TARGET_INFO_IDENTIFIER: u32 = 0x49494953;
@@ -311,9 +312,15 @@ impl Peripheral for Smem {
                         }],
                     },
                     SmemPartition {
-                        smem_partition_size: SMEM_GLOBALPART_SIZE,
+                        smem_partition_size: SMEM_OTHERPART_SIZE,
                         host0: 1,
                         host1: 0xe,
+                        entries: vec![],
+                    },
+                    SmemPartition {
+                        smem_partition_size: SMEM_OTHERPART_SIZE,
+                        host0: 1,
+                        host1: 0,
                         entries: vec![],
                     },
                 ],
