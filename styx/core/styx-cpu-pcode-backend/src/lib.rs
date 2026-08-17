@@ -7,6 +7,7 @@ mod get_pcode;
 mod hooks;
 mod memory;
 mod pcode_gen;
+mod profiler;
 mod register_manager;
 mod types;
 

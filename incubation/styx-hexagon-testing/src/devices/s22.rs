@@ -294,6 +294,21 @@ impl HexagonDevice for S22 {
                     },
                 ),
             ),
+            StyxHook::CodeVirtual(
+                (0xd8b03980..0xd8b03984).into(),
+                Box::new(|proc: CoreHandle| -> Result<(), UnknownError> {
+                    // add a memory hook
+                    proc.cpu.add_hook(StyxHook::MemoryWriteVirtual(
+                        (..).into(),
+                        Box::new(|proc: CoreHandle, address: u64, size: u32, data: &[u8]| {
+                            info!("wrote {address:x} size {size} data {data:x?}");
+                            Ok(())
+                        }),
+                    ));
+
+                    Ok(())
+                }),
+            ),
             // Something related to waipio chipset/revision/whatever. Firmware needs this.
             /*StyxHook::MemoryRead(
                 (0x1fc8000..0x1fc8004).into(),
