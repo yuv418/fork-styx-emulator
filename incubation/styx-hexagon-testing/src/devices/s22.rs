@@ -36,16 +36,20 @@ impl HexagonDevice for S22 {
             .collect(),
             qtimer_config: QTimerConfig {
                 irq: 2,
-                pcycles_per_packet: 32000,
+                pcycles_per_packet: 800,
                 ..Default::default()
             },
+            profiling_range: Some((0xbbb114e4, 0xbbb114ec)), // Some( (0xd8b03774, 0xd8b03978)), // Some((0xfe10c028, 0xfe102f90)),
+            profiling_export_file: Some(String::from(
+                std::env::var("HOME").unwrap() + "/profiling_range.txt",
+            )),
             ..Default::default()
         })
     }
 
     fn hooks(&self) -> Result<Vec<StyxHook>, UnknownError> {
         Ok(vec![
-            // This instruction takes far too long, so we must fixing.
+            //oThis instruction takes far too long, so we must fixing.
             /*
             bc499670  00674014   { p0 = cmp.eq(r0,r7); if (!p0.new) jump:t 0xbc499670;
             bc499674  004400b0     r0 = add(r0,#32);
@@ -308,6 +312,22 @@ impl HexagonDevice for S22 {
 
                     Ok(())
                 }),
+            ),
+            StyxHook::MemoryWriteVirtual(
+                (0x8b4473a0..0x8b4473b8).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &[u8]|
+                     -> Result<(), UnknownError> {
+                        warn!(
+                            "stack write pc {:x?} write {address:x} data {data:x?}",
+                            proc.cpu.pc()
+                        );
+                        Ok(())
+                    },
+                ),
             ),
             // Something related to waipio chipset/revision/whatever. Firmware needs this.
             /*StyxHook::MemoryRead(

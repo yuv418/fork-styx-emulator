@@ -76,6 +76,7 @@ pub fn setup_cpu() -> (HexagonPcodeBackend, Mmu, EventController) {
             ..Default::default()
         },
         None,
+        None,
     );
 
     let mmu = Mmu::default();

@@ -125,7 +125,11 @@ impl<T: CpuBackend + 'static> CallOtherCallback<T> for MemLoadlinkedHandler {
                 .to_u64()
                 .with_context(|| "couldn't convert load link address to u64")?,
         );
-        trace!("size of load linked is {:?} pc {:x?}", self.size, cpu.pc());
+        trace!(
+            "size of load linked is {:?} pc {:x?} vaddr {addr:x}",
+            self.size,
+            cpu.pc()
+        );
 
         match mmu.virt_load_linked_data(addr, self.size, cpu) {
             Ok(load_value) => {

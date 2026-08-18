@@ -21,7 +21,7 @@ use styx_core::loader::LoaderHints;
 use styx_core::memory::physical::PhysicalMemoryVariant;
 use styx_core::memory::{MemoryBackend, MemoryPermissions, Mmu};
 use styx_core::prelude::log::info;
-use styx_core::prelude::{BuildingProcessor, Context, Config, EventDistributor, Peripheral};
+use styx_core::prelude::{BuildingProcessor, Config, Context, EventDistributor, Peripheral};
 use styx_core::{
     core::{
         builder::{BuildProcessorImplArgs, ProcessorImpl},
@@ -71,11 +71,14 @@ impl Default for HexagonBuilder {
 
 impl ProcessorImpl for HexagonBuilder {
     fn build(&self, args: &BuildProcessorImplArgs) -> Result<ProcessorBundle, UnknownError> {
-        let thread_count = args
+        let config = args
             .config
             .get::<HexagonProcessorConfig>()
-            .with_context(|| "expected hexagon processor config")?
-            .hardware_threads;
+            .with_context(|| "expected hexagon processor config")?;
+
+        let thread_count = config.hardware_threads;
+        let range = config.profiling_range;
+        let export_file = config.profiling_export_file.as_ref();
 
         // One shared state for all tlbs
 
@@ -92,6 +95,15 @@ impl ProcessorImpl for HexagonBuilder {
                         exception: args.exception,
                     },
                     Some(thread_count),
+                    range.map(|f| {
+                        (
+                            f.0,
+                            f.1,
+                            export_file
+                                .expect("Expected a file for profiler to write")
+                                .clone(),
+                        )
+                    }),
                 )
             } else {
                 return Err(anyhow::anyhow!(

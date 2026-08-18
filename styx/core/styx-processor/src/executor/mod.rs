@@ -264,6 +264,7 @@ impl RunnerState {
             });
         }
 
+        info!("execution stride time {} idx {idx}", delta.time.as_nanos());
         post_stride_processing(vcpus, primary_ev, idx, &delta)?;
 
         let insn_exit = self
@@ -384,9 +385,9 @@ pub fn post_stride_processing(
 
     // Get the "latch_to" IRQs to the primary event controller (clears the latched IRQs as well)
     let vcpu_irqs = vcpus[idx].event_controller.vcpu_irqs()?;
-    info!("getting vcpu irqs");
+    // info!("getting vcpu irqs");
     for (irq, value) in vcpu_irqs {
-        info!("irq {irq}");
+        // info!("irq {irq}");
         // if core < vcpus.len() {
         dist.execute(idx, value, irq, vcpus)?;
 

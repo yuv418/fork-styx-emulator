@@ -52,6 +52,7 @@ use crate::{
     execute_pcode::PcodeHelpers,
     get_pcode::{FetchPcodeError, GetPcodeError},
     pcode_gen::{GeneratePcodeError, RegisterTranslator},
+    profiler::Profiler,
     HexagonInterruptCause, PcodeBackendConfiguration,
 };
 use crate::{
@@ -207,6 +208,9 @@ pub struct HexagonPcodeBackend {
     num_hthreads: u32,
     running: bool,
     waiting: bool,
+
+    // Profiling information
+    profiler: Option<Profiler>,
 }
 
 impl Hookable for HexagonPcodeBackend {
@@ -416,6 +420,12 @@ impl BackendHelper<HexagonExecuteSingleInfo, Vec<Pcode>> for HexagonPcodeBackend
             }
         };
 
+        let pc = self.pc().unwrap();
+        self.profiler
+            .as_mut()
+            .unwrap()
+            .start_instruction_profile(pc);
+
         let ordering = fetch_decode_data.ordering.clone();
 
         let mut i = 0;
@@ -498,6 +508,8 @@ impl BackendHelper<HexagonExecuteSingleInfo, Vec<Pcode>> for HexagonPcodeBackend
         if self.check_bestwait_resched(ev, &execution_regs_written)? {
             delayed_exit = Some(TargetExitReason::InstructionCountComplete)
         }
+
+        self.profiler.as_mut().unwrap().end_instruction_profile();
 
         let mut execution_helper_outer = self.execution_helper.take().unwrap();
         {
@@ -876,6 +888,7 @@ impl HexagonPcodeBackend {
             endian,
             &PcodeBackendConfiguration::default(),
             None,
+            None,
         )
     }
 
@@ -886,6 +899,7 @@ impl HexagonPcodeBackend {
         // Pass this in instead of processor config since
         // the processor config isn't accessible from here.
         num_hthreads: Option<u32>,
+        profiler_args: Option<(u64, u64, String)>,
     ) -> HexagonPcodeBackend {
         let arch_variant = arch_variant.into();
 
@@ -947,9 +961,10 @@ impl HexagonPcodeBackend {
             hexagon_predicate_end,
             bestwait_start,
             cache: Some(BTreeMap::new()),
-            num_hthreads: num_hthreads.unwrap_or(6),
+            num_hthreads: num_hthreads.unwrap_or(1),
             running: true,
             waiting: false,
+            profiler: profiler_args.map(|args| Profiler::new(args.0, args.1, args.2)),
         };
 
         system::regs::add_regs_handlers(&mut backend);

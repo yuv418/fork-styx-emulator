@@ -443,7 +443,7 @@ fn qtimer_mmio_write_hook(
 
     let pc = proc.cpu.pc().unwrap();
 
-    info!("qtimer mmio write hook");
+    info!("qtimer mmio write hook pc {pc:x?}");
 
     let mut timer_state = timer_state_mutex
         .lock()
@@ -458,7 +458,7 @@ fn qtimer_mmio_write_hook(
     if offset < 0x1000 {
         let qtimer_register = QTimerCNTCTLBaseFrame::new_with_raw_value(offset as u16);
 
-        trace!(
+        debug!(
             "accessed CNTCTL offset {offset} size {size} access_type WRITE data {data:x?} reg {qtimer_register:?} pc {pc:x}",
         );
 

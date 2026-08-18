@@ -60,7 +60,7 @@ pub struct L2VicConfig {
 pub struct HexagonProcessorConfig {
     #[derivative(Default(value = "729600000"))]
     pub dsp_freq: u32,
-    #[derivative(Default(value = "0xfc900000"))]
+    #[derivative(Default(value = "0x410_0000"))]
     pub subsystem_base: u64,
     #[derivative(Default(value = "0xd8380000"))]
     pub cfgbase: u64,
@@ -84,4 +84,8 @@ pub struct HexagonProcessorConfig {
     /// debugging/tracing output put in shared memory between AP and CP
     /// UART, etc.
     pub semihosting_tx: Option<Arc<broadcast::Sender<u8>>>,
+
+    /// Profiling
+    pub profiling_range: Option<(u64, u64)>,
+    pub profiling_export_file: Option<String>,
 }
