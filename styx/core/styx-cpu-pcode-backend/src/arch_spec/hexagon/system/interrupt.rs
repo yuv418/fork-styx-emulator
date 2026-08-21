@@ -80,6 +80,8 @@ pub enum HexagonInterruptType {
     LockSleep = 0x7000,
     LockWake = 0x8000,
     Resched = 0x9000,
+    // This is just to artificially fix performance issues.
+    StopSride = 0xb000,
 }
 
 impl From<ExceptionNumber> for HexagonInterruptType {

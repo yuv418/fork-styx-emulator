@@ -13118,7 +13118,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumpt J2_jumpt_Pu4 J2_jumpt_r15_2 is phase = 1 & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 0 & b21 = 0 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumpt_Pu4 & J2_jumpt_r15_2 {
   local tmp0:1;
-  tmp0 = J2_jumpt_Pu4;
+  tmp0 = J2_jumpt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <done_2>;
 <t_branch_2>
@@ -13129,7 +13129,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumpf J2_jumpf_Pu4 J2_jumpf_r15_2 is phase = 1 & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 0 & b21 = 1 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumpf_Pu4 & J2_jumpf_r15_2 {
   local tmp0:1;
-  tmp0 = ! J2_jumpf_Pu4;
+  tmp0 = ! (J2_jumpf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -13142,7 +13142,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumptpt J2_jumptpt_Pu4 J2_jumptpt_r15_2 is phase = 1 & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 1 & b21 = 0 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumptpt_Pu4 & J2_jumptpt_r15_2 {
   local tmp0:1;
-  tmp0 = J2_jumptpt_Pu4;
+  tmp0 = J2_jumptpt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <done_2>;
 <t_branch_2>
@@ -13153,7 +13153,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumpfpt J2_jumpfpt_Pu4 J2_jumpfpt_r15_2 is phase = 1 & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 1 & b21 = 1 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumpfpt_Pu4 & J2_jumpfpt_r15_2 {
   local tmp0:1;
-  tmp0 = ! J2_jumpfpt_Pu4;
+  tmp0 = ! (J2_jumpfpt_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -13166,7 +13166,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumprt J2_jumprt_Pu4 J2_jumprt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 0 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprt_Pu4 & J2_jumprt_Rs32 {
   local tmp0:1;
-  tmp0 = J2_jumprt_Pu4;
+  tmp0 = J2_jumprt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <done_2>;
 <t_branch_2>
@@ -13177,7 +13177,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumprf J2_jumprf_Pu4 J2_jumprf_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 0 & b21 = 1 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprf_Pu4 & J2_jumprf_Rs32 {
   local tmp0:1;
-  tmp0 = ! J2_jumprf_Pu4;
+  tmp0 = ! (J2_jumprf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -13190,7 +13190,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumprtpt J2_jumprtpt_Pu4 J2_jumprtpt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 1 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprtpt_Pu4 & J2_jumprtpt_Rs32 {
   local tmp0:1;
-  tmp0 = J2_jumprtpt_Pu4;
+  tmp0 = J2_jumprtpt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <done_2>;
 <t_branch_2>
@@ -13201,7 +13201,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumprfpt J2_jumprfpt_Pu4 J2_jumprfpt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 1 & b21 = 1 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprfpt_Pu4 & J2_jumprfpt_Rs32 {
   local tmp0:1;
-  tmp0 = ! J2_jumprfpt_Pu4;
+  tmp0 = ! (J2_jumprfpt_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -13214,7 +13214,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumptnew J2_jumptnew_Pu4 J2_jumptnew_r15_2 is phase = 1 & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 0 & b21 = 0 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumptnew_Pu4 & J2_jumptnew_r15_2 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumptnew_Pu4);
+  tmp0 = newreg(J2_jumptnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -13227,7 +13227,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumpfnew J2_jumpfnew_Pu4 J2_jumpfnew_r15_2 is phase = 1 & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 0 & b21 = 1 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumpfnew_Pu4 & J2_jumpfnew_r15_2 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumpfnew_Pu4);
+  tmp0 = newreg(J2_jumpfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -13242,7 +13242,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumptnewpt J2_jumptnewpt_Pu4 J2_jumptnewpt_r15_2 is phase = 1 & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 1 & b21 = 0 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumptnewpt_Pu4 & J2_jumptnewpt_r15_2 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumptnewpt_Pu4);
+  tmp0 = newreg(J2_jumptnewpt_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -13255,7 +13255,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumpfnewpt J2_jumpfnewpt_Pu4 J2_jumpfnewpt_r15_2 is phase = 1 & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 1 & b21 = 1 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumpfnewpt_Pu4 & J2_jumpfnewpt_r15_2 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumpfnewpt_Pu4);
+  tmp0 = newreg(J2_jumpfnewpt_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -13270,7 +13270,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumprtnew J2_jumprtnew_Pu4 J2_jumprtnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 0 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprtnew_Pu4 & J2_jumprtnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumprtnew_Pu4);
+  tmp0 = newreg(J2_jumprtnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -13283,7 +13283,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumprfnew J2_jumprfnew_Pu4 J2_jumprfnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 0 & b21 = 1 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprfnew_Pu4 & J2_jumprfnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumprfnew_Pu4);
+  tmp0 = newreg(J2_jumprfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -13298,7 +13298,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumprtnewpt J2_jumprtnewpt_Pu4 J2_jumprtnewpt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 1 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprtnewpt_Pu4 & J2_jumprtnewpt_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumprtnewpt_Pu4);
+  tmp0 = newreg(J2_jumprtnewpt_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -13311,7 +13311,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_jumprfnewpt J2_jumprfnewpt_Pu4 J2_jumprfnewpt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 1 & b21 = 1 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprfnewpt_Pu4 & J2_jumprfnewpt_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumprfnewpt_Pu4);
+  tmp0 = newreg(J2_jumprfnewpt_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -17215,7 +17215,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_callt J2_callt_Pu4 J2_callt_r15_2 is pkt_next & phase = 1 & Parse != 0b00 & subinsn = 0 & b11 = 0 & b21 = 0 & b24 = 1 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_callt_Pu4 & J2_callt_r15_2 {
   local tmp0:1;
-  tmp0 = J2_callt_Pu4;
+  tmp0 = J2_callt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <done_2>;
 <t_branch_2>
@@ -17227,7 +17227,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_callf J2_callf_Pu4 J2_callf_r15_2 is pkt_next & phase = 1 & Parse != 0b00 & subinsn = 0 & b11 = 0 & b21 = 1 & b24 = 1 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_callf_Pu4 & J2_callf_r15_2 {
   local tmp0:1;
-  tmp0 = ! J2_callf_Pu4;
+  tmp0 = ! (J2_callf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -17246,7 +17246,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_callrt J2_callrt_Pu4 J2_callrt_Rs32 is pkt_next & phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b21 = 0 & b22 = 0 & b23 = 0 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_callrt_Pu4 & J2_callrt_Rs32 {
   local tmp0:1;
-  tmp0 = J2_callrt_Pu4;
+  tmp0 = J2_callrt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <done_2>;
 <t_branch_2>
@@ -17258,7 +17258,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :J2_callrf J2_callrf_Pu4 J2_callrf_Rs32 is pkt_next & phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b21 = 1 & b22 = 0 & b23 = 0 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_callrf_Pu4 & J2_callrf_Rs32 {
   local tmp0:1;
-  tmp0 = ! J2_callrf_Pu4;
+  tmp0 = ! (J2_callrf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -21476,7 +21476,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_return_t_Rs32;
   local tmp0:1;
-  tmp0 = L4_return_t_Pv4;
+  tmp0 = L4_return_t_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -21516,7 +21516,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_return_f_Rs32;
   local tmp0:1;
-  tmp0 = ! L4_return_f_Pv4;
+  tmp0 = ! (L4_return_f_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -21558,7 +21558,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_return_tnew_pt_Rs32;
   local tmp0:1;
-  tmp0 = newreg(L4_return_tnew_pt_Pv4);
+  tmp0 = newreg(L4_return_tnew_pt_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -21600,7 +21600,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_return_fnew_pt_Rs32;
   local tmp0:1;
-  tmp0 = newreg(L4_return_fnew_pt_Pv4);
+  tmp0 = newreg(L4_return_fnew_pt_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -21644,7 +21644,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_return_tnew_pnt_Rs32;
   local tmp0:1;
-  tmp0 = newreg(L4_return_tnew_pnt_Pv4);
+  tmp0 = newreg(L4_return_tnew_pnt_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -21686,7 +21686,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_return_fnew_pnt_Rs32;
   local tmp0:1;
-  tmp0 = newreg(L4_return_fnew_pnt_Pv4);
+  tmp0 = newreg(L4_return_fnew_pnt_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -21777,7 +21777,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrubt_io_Rs32 + L2_ploadrubt_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = L2_ploadrubt_io_Pt4;
+  tmp1 = L2_ploadrubt_io_Pt4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -21793,7 +21793,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrubt_pi_Rx32;
   local tmp0:1;
-  tmp0 = L2_ploadrubt_pi_Pt4;
+  tmp0 = L2_ploadrubt_pi_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -21814,7 +21814,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrubf_io_Rs32 + L2_ploadrubf_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! L2_ploadrubf_io_Pt4;
+  tmp1 = ! (L2_ploadrubf_io_Pt4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -21832,7 +21832,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrubf_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! L2_ploadrubf_pi_Pt4;
+  tmp0 = ! (L2_ploadrubf_pi_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -21855,7 +21855,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrubtnew_io_Rs32 + L2_ploadrubtnew_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadrubtnew_io_Pt4);
+  tmp1 = newreg(L2_ploadrubtnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -21875,7 +21875,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrubfnew_io_Rs32 + L2_ploadrubfnew_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadrubfnew_io_Pt4);
+  tmp1 = newreg(L2_ploadrubfnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -21899,7 +21899,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrubt_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = L4_ploadrubt_rr_Pv4;
+  tmp2 = L4_ploadrubt_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -21919,7 +21919,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrubf_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! L4_ploadrubf_rr_Pv4;
+  tmp2 = ! (L4_ploadrubf_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -21941,7 +21941,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrubtnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadrubtnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadrubtnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -21963,7 +21963,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrubfnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadrubfnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadrubfnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -21983,7 +21983,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrubtnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadrubtnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadrubtnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22004,7 +22004,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrubfnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadrubfnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadrubfnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -22027,7 +22027,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrubt_abs_u6;
   local tmp0:1;
-  tmp0 = L4_ploadrubt_abs_Pt4;
+  tmp0 = L4_ploadrubt_abs_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -22043,7 +22043,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrubf_abs_u6;
   local tmp0:1;
-  tmp0 = ! L4_ploadrubf_abs_Pt4;
+  tmp0 = ! (L4_ploadrubf_abs_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22061,7 +22061,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrubtnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadrubtnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadrubtnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22079,7 +22079,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrubfnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadrubfnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadrubfnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -22113,7 +22113,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrbt_io_Rs32 + L2_ploadrbt_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = L2_ploadrbt_io_Pt4;
+  tmp1 = L2_ploadrbt_io_Pt4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -22129,7 +22129,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrbt_pi_Rx32;
   local tmp0:1;
-  tmp0 = L2_ploadrbt_pi_Pt4;
+  tmp0 = L2_ploadrbt_pi_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -22150,7 +22150,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrbf_io_Rs32 + L2_ploadrbf_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! L2_ploadrbf_io_Pt4;
+  tmp1 = ! (L2_ploadrbf_io_Pt4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -22168,7 +22168,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrbf_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! L2_ploadrbf_pi_Pt4;
+  tmp0 = ! (L2_ploadrbf_pi_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22191,7 +22191,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrbtnew_io_Rs32 + L2_ploadrbtnew_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadrbtnew_io_Pt4);
+  tmp1 = newreg(L2_ploadrbtnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -22211,7 +22211,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrbfnew_io_Rs32 + L2_ploadrbfnew_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadrbfnew_io_Pt4);
+  tmp1 = newreg(L2_ploadrbfnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -22235,7 +22235,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrbt_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = L4_ploadrbt_rr_Pv4;
+  tmp2 = L4_ploadrbt_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -22255,7 +22255,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrbf_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! L4_ploadrbf_rr_Pv4;
+  tmp2 = ! (L4_ploadrbf_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -22277,7 +22277,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrbtnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadrbtnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadrbtnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -22299,7 +22299,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrbfnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadrbfnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadrbfnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -22319,7 +22319,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrbtnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadrbtnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadrbtnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22340,7 +22340,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrbfnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadrbfnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadrbfnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -22363,7 +22363,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrbt_abs_u6;
   local tmp0:1;
-  tmp0 = L4_ploadrbt_abs_Pt4;
+  tmp0 = L4_ploadrbt_abs_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -22379,7 +22379,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrbf_abs_u6;
   local tmp0:1;
-  tmp0 = ! L4_ploadrbf_abs_Pt4;
+  tmp0 = ! (L4_ploadrbf_abs_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22397,7 +22397,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrbtnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadrbtnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadrbtnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22415,7 +22415,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrbfnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadrbfnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadrbfnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -22449,7 +22449,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadruht_io_Rs32 + L2_ploadruht_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = L2_ploadruht_io_Pt4;
+  tmp1 = L2_ploadruht_io_Pt4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -22465,7 +22465,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadruht_pi_Rx32;
   local tmp0:1;
-  tmp0 = L2_ploadruht_pi_Pt4;
+  tmp0 = L2_ploadruht_pi_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -22486,7 +22486,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadruhf_io_Rs32 + L2_ploadruhf_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! L2_ploadruhf_io_Pt4;
+  tmp1 = ! (L2_ploadruhf_io_Pt4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -22504,7 +22504,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadruhf_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! L2_ploadruhf_pi_Pt4;
+  tmp0 = ! (L2_ploadruhf_pi_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22527,7 +22527,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadruhtnew_io_Rs32 + L2_ploadruhtnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadruhtnew_io_Pt4);
+  tmp1 = newreg(L2_ploadruhtnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -22547,7 +22547,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadruhfnew_io_Rs32 + L2_ploadruhfnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadruhfnew_io_Pt4);
+  tmp1 = newreg(L2_ploadruhfnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -22571,7 +22571,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadruht_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = L4_ploadruht_rr_Pv4;
+  tmp2 = L4_ploadruht_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -22591,7 +22591,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadruhf_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! L4_ploadruhf_rr_Pv4;
+  tmp2 = ! (L4_ploadruhf_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -22613,7 +22613,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadruhtnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadruhtnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadruhtnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -22635,7 +22635,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadruhfnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadruhfnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadruhfnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -22655,7 +22655,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadruhtnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadruhtnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadruhtnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22676,7 +22676,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadruhfnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadruhfnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadruhfnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -22699,7 +22699,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadruht_abs_u6;
   local tmp0:1;
-  tmp0 = L4_ploadruht_abs_Pt4;
+  tmp0 = L4_ploadruht_abs_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -22715,7 +22715,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadruhf_abs_u6;
   local tmp0:1;
-  tmp0 = ! L4_ploadruhf_abs_Pt4;
+  tmp0 = ! (L4_ploadruhf_abs_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22733,7 +22733,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadruhtnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadruhtnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadruhtnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22751,7 +22751,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadruhfnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadruhfnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadruhfnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -22785,7 +22785,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrht_io_Rs32 + L2_ploadrht_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = L2_ploadrht_io_Pt4;
+  tmp1 = L2_ploadrht_io_Pt4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -22801,7 +22801,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrht_pi_Rx32;
   local tmp0:1;
-  tmp0 = L2_ploadrht_pi_Pt4;
+  tmp0 = L2_ploadrht_pi_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -22822,7 +22822,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrhf_io_Rs32 + L2_ploadrhf_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! L2_ploadrhf_io_Pt4;
+  tmp1 = ! (L2_ploadrhf_io_Pt4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -22840,7 +22840,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrhf_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! L2_ploadrhf_pi_Pt4;
+  tmp0 = ! (L2_ploadrhf_pi_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -22863,7 +22863,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrhtnew_io_Rs32 + L2_ploadrhtnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadrhtnew_io_Pt4);
+  tmp1 = newreg(L2_ploadrhtnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -22883,7 +22883,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrhfnew_io_Rs32 + L2_ploadrhfnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadrhfnew_io_Pt4);
+  tmp1 = newreg(L2_ploadrhfnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -22907,7 +22907,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrht_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = L4_ploadrht_rr_Pv4;
+  tmp2 = L4_ploadrht_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -22927,7 +22927,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrhf_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! L4_ploadrhf_rr_Pv4;
+  tmp2 = ! (L4_ploadrhf_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -22949,7 +22949,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrhtnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadrhtnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadrhtnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -22971,7 +22971,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrhfnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadrhfnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadrhfnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -22991,7 +22991,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrhtnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadrhtnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadrhtnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23012,7 +23012,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrhfnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadrhfnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadrhfnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -23035,7 +23035,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrht_abs_u6;
   local tmp0:1;
-  tmp0 = L4_ploadrht_abs_Pt4;
+  tmp0 = L4_ploadrht_abs_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -23051,7 +23051,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrhf_abs_u6;
   local tmp0:1;
-  tmp0 = ! L4_ploadrhf_abs_Pt4;
+  tmp0 = ! (L4_ploadrhf_abs_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23069,7 +23069,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrhtnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadrhtnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadrhtnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23087,7 +23087,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrhfnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadrhfnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadrhfnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -23119,7 +23119,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrit_io_Rs32 + L2_ploadrit_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = L2_ploadrit_io_Pt4;
+  tmp1 = L2_ploadrit_io_Pt4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -23133,7 +23133,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrit_pi_Rx32;
   local tmp0:1;
-  tmp0 = L2_ploadrit_pi_Pt4;
+  tmp0 = L2_ploadrit_pi_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -23152,7 +23152,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrif_io_Rs32 + L2_ploadrif_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! L2_ploadrif_io_Pt4;
+  tmp1 = ! (L2_ploadrif_io_Pt4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -23168,7 +23168,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrif_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! L2_ploadrif_pi_Pt4;
+  tmp0 = ! (L2_ploadrif_pi_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23189,7 +23189,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadritnew_io_Rs32 + L2_ploadritnew_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadritnew_io_Pt4);
+  tmp1 = newreg(L2_ploadritnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -23207,7 +23207,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrifnew_io_Rs32 + L2_ploadrifnew_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadrifnew_io_Pt4);
+  tmp1 = newreg(L2_ploadrifnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -23229,7 +23229,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrit_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = L4_ploadrit_rr_Pv4;
+  tmp2 = L4_ploadrit_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -23247,7 +23247,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrif_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! L4_ploadrif_rr_Pv4;
+  tmp2 = ! (L4_ploadrif_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -23267,7 +23267,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadritnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadritnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadritnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -23287,7 +23287,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrifnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadrifnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadrifnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -23305,7 +23305,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadritnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadritnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadritnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23324,7 +23324,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrifnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadrifnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadrifnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -23345,7 +23345,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrit_abs_u6;
   local tmp0:1;
-  tmp0 = L4_ploadrit_abs_Pt4;
+  tmp0 = L4_ploadrit_abs_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -23359,7 +23359,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrif_abs_u6;
   local tmp0:1;
-  tmp0 = ! L4_ploadrif_abs_Pt4;
+  tmp0 = ! (L4_ploadrif_abs_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23375,7 +23375,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadritnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadritnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadritnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23391,7 +23391,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrifnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadrifnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadrifnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -23421,7 +23421,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrdt_io_Rs32 + L2_ploadrdt_io_u6_3;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = L2_ploadrdt_io_Pt4;
+  tmp1 = L2_ploadrdt_io_Pt4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -23435,7 +23435,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrdt_pi_Rx32;
   local tmp0:1;
-  tmp0 = L2_ploadrdt_pi_Pt4;
+  tmp0 = L2_ploadrdt_pi_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -23454,7 +23454,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrdf_io_Rs32 + L2_ploadrdf_io_u6_3;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! L2_ploadrdf_io_Pt4;
+  tmp1 = ! (L2_ploadrdf_io_Pt4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -23470,7 +23470,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrdf_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! L2_ploadrdf_pi_Pt4;
+  tmp0 = ! (L2_ploadrdf_pi_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23491,7 +23491,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrdtnew_io_Rs32 + L2_ploadrdtnew_io_u6_3;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadrdtnew_io_Pt4);
+  tmp1 = newreg(L2_ploadrdtnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -23509,7 +23509,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = L2_ploadrdfnew_io_Rs32 + L2_ploadrdfnew_io_u6_3;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(L2_ploadrdfnew_io_Pt4);
+  tmp1 = newreg(L2_ploadrdfnew_io_Pt4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -23531,7 +23531,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrdt_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = L4_ploadrdt_rr_Pv4;
+  tmp2 = L4_ploadrdt_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -23549,7 +23549,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrdf_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! L4_ploadrdf_rr_Pv4;
+  tmp2 = ! (L4_ploadrdf_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -23569,7 +23569,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrdtnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadrdtnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadrdtnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -23589,7 +23589,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = L4_ploadrdfnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(L4_ploadrdfnew_rr_Pv4);
+  tmp2 = newreg(L4_ploadrdfnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -23607,7 +23607,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrdtnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadrdtnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadrdtnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23626,7 +23626,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L2_ploadrdfnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(L2_ploadrdfnew_pi_Pt4);
+  tmp0 = newreg(L2_ploadrdfnew_pi_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -23647,7 +23647,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrdt_abs_u6;
   local tmp0:1;
-  tmp0 = L4_ploadrdt_abs_Pt4;
+  tmp0 = L4_ploadrdt_abs_Pt4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -23661,7 +23661,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrdf_abs_u6;
   local tmp0:1;
-  tmp0 = ! L4_ploadrdf_abs_Pt4;
+  tmp0 = ! (L4_ploadrdf_abs_Pt4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23677,7 +23677,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrdtnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadrdtnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadrdtnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23693,7 +23693,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = L4_ploadrdfnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(L4_ploadrdfnew_abs_Pt4);
+  tmp0 = newreg(L4_ploadrdfnew_abs_Pt4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -23737,7 +23737,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerbt_io_Rs32 + S2_pstorerbt_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = S2_pstorerbt_io_Pv4;
+  tmp1 = S2_pstorerbt_io_Pv4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -23765,7 +23765,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerbt_pi_Rx32;
   local tmp0:1;
-  tmp0 = S2_pstorerbt_pi_Pv4;
+  tmp0 = S2_pstorerbt_pi_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -23798,7 +23798,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerbf_io_Rs32 + S2_pstorerbf_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! S2_pstorerbf_io_Pv4;
+  tmp1 = ! (S2_pstorerbf_io_Pv4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -23828,7 +23828,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerbf_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! S2_pstorerbf_pi_Pv4;
+  tmp0 = ! (S2_pstorerbf_pi_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -23865,7 +23865,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerbt_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = S4_pstorerbt_rr_Pv4;
+  tmp2 = S4_pstorerbt_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -23897,7 +23897,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerbf_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! S4_pstorerbf_rr_Pv4;
+  tmp2 = ! (S4_pstorerbf_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -23929,7 +23929,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerbtnew_io_Rs32 + S4_pstorerbtnew_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerbtnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerbtnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -23961,7 +23961,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerbfnew_io_Rs32 + S4_pstorerbfnew_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerbfnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerbfnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -23997,7 +23997,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerbtnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerbtnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerbtnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -24031,7 +24031,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerbfnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerbfnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerbfnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -24063,7 +24063,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerbtnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerbtnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerbtnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -24096,7 +24096,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerbfnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerbfnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerbfnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -24131,7 +24131,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerbt_abs_u6;
   local tmp0:1;
-  tmp0 = S4_pstorerbt_abs_Pv4;
+  tmp0 = S4_pstorerbt_abs_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -24159,7 +24159,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerbf_abs_u6;
   local tmp0:1;
-  tmp0 = ! S4_pstorerbf_abs_Pv4;
+  tmp0 = ! (S4_pstorerbf_abs_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -24189,7 +24189,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerbtnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerbtnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerbtnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -24219,7 +24219,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerbfnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerbfnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerbfnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -24277,7 +24277,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerht_io_Rs32 + S2_pstorerht_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = S2_pstorerht_io_Pv4;
+  tmp1 = S2_pstorerht_io_Pv4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -24305,7 +24305,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerht_pi_Rx32;
   local tmp0:1;
-  tmp0 = S2_pstorerht_pi_Pv4;
+  tmp0 = S2_pstorerht_pi_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -24338,7 +24338,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerhf_io_Rs32 + S2_pstorerhf_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! S2_pstorerhf_io_Pv4;
+  tmp1 = ! (S2_pstorerhf_io_Pv4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -24368,7 +24368,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerhf_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! S2_pstorerhf_pi_Pv4;
+  tmp0 = ! (S2_pstorerhf_pi_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -24405,7 +24405,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerht_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = S4_pstorerht_rr_Pv4;
+  tmp2 = S4_pstorerht_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -24437,7 +24437,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerhf_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! S4_pstorerhf_rr_Pv4;
+  tmp2 = ! (S4_pstorerhf_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -24469,7 +24469,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerhtnew_io_Rs32 + S4_pstorerhtnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerhtnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerhtnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -24501,7 +24501,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerhfnew_io_Rs32 + S4_pstorerhfnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerhfnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerhfnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -24537,7 +24537,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerhtnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerhtnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerhtnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -24571,7 +24571,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerhfnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerhfnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerhfnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -24603,7 +24603,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerhtnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerhtnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerhtnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -24636,7 +24636,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerhfnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerhfnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerhfnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -24671,7 +24671,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerht_abs_u6;
   local tmp0:1;
-  tmp0 = S4_pstorerht_abs_Pv4;
+  tmp0 = S4_pstorerht_abs_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -24699,7 +24699,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerhf_abs_u6;
   local tmp0:1;
-  tmp0 = ! S4_pstorerhf_abs_Pv4;
+  tmp0 = ! (S4_pstorerhf_abs_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -24729,7 +24729,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerhtnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerhtnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerhtnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -24759,7 +24759,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerhfnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerhfnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerhfnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -24817,7 +24817,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerft_io_Rs32 + S2_pstorerft_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = S2_pstorerft_io_Pv4;
+  tmp1 = S2_pstorerft_io_Pv4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -24845,7 +24845,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerft_pi_Rx32;
   local tmp0:1;
-  tmp0 = S2_pstorerft_pi_Pv4;
+  tmp0 = S2_pstorerft_pi_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -24878,7 +24878,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerff_io_Rs32 + S2_pstorerff_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! S2_pstorerff_io_Pv4;
+  tmp1 = ! (S2_pstorerff_io_Pv4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -24908,7 +24908,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerff_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! S2_pstorerff_pi_Pv4;
+  tmp0 = ! (S2_pstorerff_pi_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -24945,7 +24945,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerft_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = S4_pstorerft_rr_Pv4;
+  tmp2 = S4_pstorerft_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -24977,7 +24977,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerff_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! S4_pstorerff_rr_Pv4;
+  tmp2 = ! (S4_pstorerff_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -25009,7 +25009,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerftnew_io_Rs32 + S4_pstorerftnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerftnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerftnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -25041,7 +25041,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerffnew_io_Rs32 + S4_pstorerffnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerffnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerffnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -25077,7 +25077,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerftnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerftnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerftnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -25111,7 +25111,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerffnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerffnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerffnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -25143,7 +25143,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerftnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerftnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerftnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -25176,7 +25176,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerffnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerffnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerffnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -25211,7 +25211,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerft_abs_u6;
   local tmp0:1;
-  tmp0 = S4_pstorerft_abs_Pv4;
+  tmp0 = S4_pstorerft_abs_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -25239,7 +25239,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerff_abs_u6;
   local tmp0:1;
-  tmp0 = ! S4_pstorerff_abs_Pv4;
+  tmp0 = ! (S4_pstorerff_abs_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -25269,7 +25269,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerftnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerftnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerftnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -25299,7 +25299,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerffnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerffnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerffnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -25343,7 +25343,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerit_io_Rs32 + S2_pstorerit_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = S2_pstorerit_io_Pv4;
+  tmp1 = S2_pstorerit_io_Pv4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -25357,7 +25357,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerit_pi_Rx32;
   local tmp0:1;
-  tmp0 = S2_pstorerit_pi_Pv4;
+  tmp0 = S2_pstorerit_pi_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -25376,7 +25376,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerif_io_Rs32 + S2_pstorerif_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! S2_pstorerif_io_Pv4;
+  tmp1 = ! (S2_pstorerif_io_Pv4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -25392,7 +25392,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerif_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! S2_pstorerif_pi_Pv4;
+  tmp0 = ! (S2_pstorerif_pi_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -25415,7 +25415,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerit_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = S4_pstorerit_rr_Pv4;
+  tmp2 = S4_pstorerit_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -25433,7 +25433,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerif_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! S4_pstorerif_rr_Pv4;
+  tmp2 = ! (S4_pstorerif_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -25451,7 +25451,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstoreritnew_io_Rs32 + S4_pstoreritnew_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstoreritnew_io_Pv4);
+  tmp1 = newreg(S4_pstoreritnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -25469,7 +25469,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerifnew_io_Rs32 + S4_pstorerifnew_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerifnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerifnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -25491,7 +25491,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstoreritnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstoreritnew_rr_Pv4);
+  tmp2 = newreg(S4_pstoreritnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -25511,7 +25511,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerifnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerifnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerifnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -25529,7 +25529,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstoreritnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstoreritnew_pi_Pv4);
+  tmp0 = newreg(S2_pstoreritnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -25548,7 +25548,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerifnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerifnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerifnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -25569,7 +25569,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerit_abs_u6;
   local tmp0:1;
-  tmp0 = S4_pstorerit_abs_Pv4;
+  tmp0 = S4_pstorerit_abs_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -25583,7 +25583,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerif_abs_u6;
   local tmp0:1;
-  tmp0 = ! S4_pstorerif_abs_Pv4;
+  tmp0 = ! (S4_pstorerif_abs_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -25599,7 +25599,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstoreritnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstoreritnew_abs_Pv4);
+  tmp0 = newreg(S4_pstoreritnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -25615,7 +25615,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerifnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerifnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerifnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -25645,7 +25645,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerdt_io_Rs32 + S2_pstorerdt_io_u6_3;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = S2_pstorerdt_io_Pv4;
+  tmp1 = S2_pstorerdt_io_Pv4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -25659,7 +25659,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerdt_pi_Rx32;
   local tmp0:1;
-  tmp0 = S2_pstorerdt_pi_Pv4;
+  tmp0 = S2_pstorerdt_pi_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -25678,7 +25678,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerdf_io_Rs32 + S2_pstorerdf_io_u6_3;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! S2_pstorerdf_io_Pv4;
+  tmp1 = ! (S2_pstorerdf_io_Pv4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -25694,7 +25694,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerdf_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! S2_pstorerdf_pi_Pv4;
+  tmp0 = ! (S2_pstorerdf_pi_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -25717,7 +25717,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerdt_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = S4_pstorerdt_rr_Pv4;
+  tmp2 = S4_pstorerdt_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -25735,7 +25735,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerdf_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! S4_pstorerdf_rr_Pv4;
+  tmp2 = ! (S4_pstorerdf_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -25753,7 +25753,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerdtnew_io_Rs32 + S4_pstorerdtnew_io_u6_3;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerdtnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerdtnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -25771,7 +25771,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerdfnew_io_Rs32 + S4_pstorerdfnew_io_u6_3;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerdfnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerdfnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -25793,7 +25793,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerdtnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerdtnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerdtnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -25813,7 +25813,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerdfnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerdfnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerdfnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -25831,7 +25831,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerdtnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerdtnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerdtnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -25850,7 +25850,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerdfnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerdfnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerdfnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -25871,7 +25871,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerdt_abs_u6;
   local tmp0:1;
-  tmp0 = S4_pstorerdt_abs_Pv4;
+  tmp0 = S4_pstorerdt_abs_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -25885,7 +25885,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerdf_abs_u6;
   local tmp0:1;
-  tmp0 = ! S4_pstorerdf_abs_Pv4;
+  tmp0 = ! (S4_pstorerdf_abs_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -25901,7 +25901,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerdtnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerdtnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerdtnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -25917,7 +25917,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerdfnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerdfnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerdfnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -25953,7 +25953,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerinewt_io_Rs32 + S2_pstorerinewt_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = S2_pstorerinewt_io_Pv4;
+  tmp1 = S2_pstorerinewt_io_Pv4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -25971,7 +25971,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerinewt_pi_Rx32;
   local tmp0:1;
-  tmp0 = S2_pstorerinewt_pi_Pv4;
+  tmp0 = S2_pstorerinewt_pi_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -25994,7 +25994,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerinewf_io_Rs32 + S2_pstorerinewf_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! S2_pstorerinewf_io_Pv4;
+  tmp1 = ! (S2_pstorerinewf_io_Pv4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -26014,7 +26014,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerinewf_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! S2_pstorerinewf_pi_Pv4;
+  tmp0 = ! (S2_pstorerinewf_pi_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -26041,7 +26041,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerinewt_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = S4_pstorerinewt_rr_Pv4;
+  tmp2 = S4_pstorerinewt_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -26063,7 +26063,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerinewf_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! S4_pstorerinewf_rr_Pv4;
+  tmp2 = ! (S4_pstorerinewf_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -26085,7 +26085,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerinewtnew_io_Rs32 + S4_pstorerinewtnew_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerinewtnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerinewtnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -26107,7 +26107,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerinewfnew_io_Rs32 + S4_pstorerinewfnew_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerinewfnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerinewfnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -26133,7 +26133,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerinewtnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerinewtnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerinewtnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -26157,7 +26157,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerinewfnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerinewfnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerinewfnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -26179,7 +26179,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerinewtnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerinewtnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerinewtnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -26202,7 +26202,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerinewfnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerinewfnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerinewfnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -26227,7 +26227,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerinewt_abs_u6;
   local tmp0:1;
-  tmp0 = S4_pstorerinewt_abs_Pv4;
+  tmp0 = S4_pstorerinewt_abs_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -26245,7 +26245,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerinewf_abs_u6;
   local tmp0:1;
-  tmp0 = ! S4_pstorerinewf_abs_Pv4;
+  tmp0 = ! (S4_pstorerinewf_abs_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -26265,7 +26265,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerinewtnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerinewtnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerinewtnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -26285,7 +26285,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerinewfnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerinewfnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerinewfnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -26337,7 +26337,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerbnewt_io_Rs32 + S2_pstorerbnewt_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = S2_pstorerbnewt_io_Pv4;
+  tmp1 = S2_pstorerbnewt_io_Pv4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -26369,7 +26369,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerbnewt_pi_Rx32;
   local tmp0:1;
-  tmp0 = S2_pstorerbnewt_pi_Pv4;
+  tmp0 = S2_pstorerbnewt_pi_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -26406,7 +26406,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerbnewf_io_Rs32 + S2_pstorerbnewf_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! S2_pstorerbnewf_io_Pv4;
+  tmp1 = ! (S2_pstorerbnewf_io_Pv4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -26440,7 +26440,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerbnewf_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! S2_pstorerbnewf_pi_Pv4;
+  tmp0 = ! (S2_pstorerbnewf_pi_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -26481,7 +26481,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerbnewt_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = S4_pstorerbnewt_rr_Pv4;
+  tmp2 = S4_pstorerbnewt_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -26517,7 +26517,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerbnewf_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! S4_pstorerbnewf_rr_Pv4;
+  tmp2 = ! (S4_pstorerbnewf_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -26553,7 +26553,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerbnewtnew_io_Rs32 + S4_pstorerbnewtnew_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerbnewtnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerbnewtnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -26589,7 +26589,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerbnewfnew_io_Rs32 + S4_pstorerbnewfnew_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerbnewfnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerbnewfnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -26629,7 +26629,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerbnewtnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerbnewtnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerbnewtnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -26667,7 +26667,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerbnewfnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerbnewfnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerbnewfnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -26703,7 +26703,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerbnewtnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerbnewtnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerbnewtnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -26740,7 +26740,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerbnewfnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerbnewfnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerbnewfnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -26779,7 +26779,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerbnewt_abs_u6;
   local tmp0:1;
-  tmp0 = S4_pstorerbnewt_abs_Pv4;
+  tmp0 = S4_pstorerbnewt_abs_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -26811,7 +26811,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerbnewf_abs_u6;
   local tmp0:1;
-  tmp0 = ! S4_pstorerbnewf_abs_Pv4;
+  tmp0 = ! (S4_pstorerbnewf_abs_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -26845,7 +26845,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerbnewtnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerbnewtnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerbnewtnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -26879,7 +26879,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerbnewfnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerbnewfnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerbnewfnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -26945,7 +26945,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerhnewt_io_Rs32 + S2_pstorerhnewt_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = S2_pstorerhnewt_io_Pv4;
+  tmp1 = S2_pstorerhnewt_io_Pv4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -26977,7 +26977,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerhnewt_pi_Rx32;
   local tmp0:1;
-  tmp0 = S2_pstorerhnewt_pi_Pv4;
+  tmp0 = S2_pstorerhnewt_pi_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -27014,7 +27014,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S2_pstorerhnewf_io_Rs32 + S2_pstorerhnewf_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! S2_pstorerhnewf_io_Pv4;
+  tmp1 = ! (S2_pstorerhnewf_io_Pv4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -27048,7 +27048,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerhnewf_pi_Rx32;
   local tmp0:1;
-  tmp0 = ! S2_pstorerhnewf_pi_Pv4;
+  tmp0 = ! (S2_pstorerhnewf_pi_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -27089,7 +27089,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerhnewt_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = S4_pstorerhnewt_rr_Pv4;
+  tmp2 = S4_pstorerhnewt_rr_Pv4 & 1;
   if (tmp2) goto <t_branch_4>;
   goto <f_branch_4>;
 <t_branch_4>
@@ -27125,7 +27125,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerhnewf_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = ! S4_pstorerhnewf_rr_Pv4;
+  tmp2 = ! (S4_pstorerhnewf_rr_Pv4 & 1);
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -27161,7 +27161,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerhnewtnew_io_Rs32 + S4_pstorerhnewtnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerhnewtnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerhnewtnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -27197,7 +27197,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_pstorerhnewfnew_io_Rs32 + S4_pstorerhnewfnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_pstorerhnewfnew_io_Pv4);
+  tmp1 = newreg(S4_pstorerhnewfnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -27237,7 +27237,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerhnewtnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerhnewtnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerhnewtnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = tmp2;
   if (tmp3) goto <t_branch_5>;
@@ -27275,7 +27275,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp1 = S4_pstorerhnewfnew_rr_Rs32 + tmp0;
   EA = tmp1;
   local tmp2:1;
-  tmp2 = newreg(S4_pstorerhnewfnew_rr_Pv4);
+  tmp2 = newreg(S4_pstorerhnewfnew_rr_Pv4) & 1;
   local tmp3:1;
   tmp3 = ! tmp2;
   local tmp4:1;
@@ -27311,7 +27311,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerhnewtnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerhnewtnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerhnewtnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -27348,7 +27348,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S2_pstorerhnewfnew_pi_Rx32;
   local tmp0:1;
-  tmp0 = newreg(S2_pstorerhnewfnew_pi_Pv4);
+  tmp0 = newreg(S2_pstorerhnewfnew_pi_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -27387,7 +27387,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerhnewt_abs_u6;
   local tmp0:1;
-  tmp0 = S4_pstorerhnewt_abs_Pv4;
+  tmp0 = S4_pstorerhnewt_abs_Pv4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -27419,7 +27419,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerhnewf_abs_u6;
   local tmp0:1;
-  tmp0 = ! S4_pstorerhnewf_abs_Pv4;
+  tmp0 = ! (S4_pstorerhnewf_abs_Pv4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -27453,7 +27453,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerhnewtnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerhnewtnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerhnewtnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -27487,7 +27487,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   local EA:4;
   EA = S4_pstorerhnewfnew_abs_u6;
   local tmp0:1;
-  tmp0 = newreg(S4_pstorerhnewfnew_abs_Pv4);
+  tmp0 = newreg(S4_pstorerhnewfnew_abs_Pv4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -27897,7 +27897,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeirbt_io_Rs32 + S4_storeirbt_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = S4_storeirbt_io_Pv4;
+  tmp1 = S4_storeirbt_io_Pv4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -27913,7 +27913,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeirbf_io_Rs32 + S4_storeirbf_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! S4_storeirbf_io_Pv4;
+  tmp1 = ! (S4_storeirbf_io_Pv4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -27931,7 +27931,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeirbtnew_io_Rs32 + S4_storeirbtnew_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_storeirbtnew_io_Pv4);
+  tmp1 = newreg(S4_storeirbtnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -27949,7 +27949,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeirbfnew_io_Rs32 + S4_storeirbfnew_io_u6_0;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_storeirbfnew_io_Pv4);
+  tmp1 = newreg(S4_storeirbfnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -27969,7 +27969,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeirht_io_Rs32 + S4_storeirht_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = S4_storeirht_io_Pv4;
+  tmp1 = S4_storeirht_io_Pv4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -27985,7 +27985,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeirhf_io_Rs32 + S4_storeirhf_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! S4_storeirhf_io_Pv4;
+  tmp1 = ! (S4_storeirhf_io_Pv4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -28003,7 +28003,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeirhtnew_io_Rs32 + S4_storeirhtnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_storeirhtnew_io_Pv4);
+  tmp1 = newreg(S4_storeirhtnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -28021,7 +28021,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeirhfnew_io_Rs32 + S4_storeirhfnew_io_u6_1;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_storeirhfnew_io_Pv4);
+  tmp1 = newreg(S4_storeirhfnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -28041,7 +28041,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeirit_io_Rs32 + S4_storeirit_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = S4_storeirit_io_Pv4;
+  tmp1 = S4_storeirit_io_Pv4 & 1;
   if (tmp1) goto <t_branch_3>;
   goto <f_branch_3>;
 <t_branch_3>
@@ -28057,7 +28057,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeirif_io_Rs32 + S4_storeirif_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = ! S4_storeirif_io_Pv4;
+  tmp1 = ! (S4_storeirif_io_Pv4 & 1);
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -28075,7 +28075,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeiritnew_io_Rs32 + S4_storeiritnew_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_storeiritnew_io_Pv4);
+  tmp1 = newreg(S4_storeiritnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = tmp1;
   if (tmp2) goto <t_branch_4>;
@@ -28093,7 +28093,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
   tmp0 = S4_storeirifnew_io_Rs32 + S4_storeirifnew_io_u6_2;
   EA = tmp0;
   local tmp1:1;
-  tmp1 = newreg(S4_storeirifnew_io_Pv4);
+  tmp1 = newreg(S4_storeirifnew_io_Pv4) & 1;
   local tmp2:1;
   tmp2 = ! tmp1;
   local tmp3:1;
@@ -28695,7 +28695,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :C2_mux C2_mux_Rd32 C2_mux_Pu4 C2_mux_Rs32 C2_mux_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & C2_mux_Rd32 & C2_mux_Pu4 & C2_mux_Rs32 & C2_mux_Rt32 {
   local tmp0:1;
-  tmp0 = C2_mux_Pu4;
+  tmp0 = C2_mux_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -28708,7 +28708,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :C2_cmovenewit C2_cmovenewit_Rd32 C2_cmovenewit_Pu4 C2_cmovenewit_s12 is phase = 1 & Parse != 0b00 & subinsn = 0 & b13 = 1 & b20 = 0 & b23 = 0 & b24 = 0 & b25 = 1 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & C2_cmovenewit_Rd32 & C2_cmovenewit_Pu4 & C2_cmovenewit_s12 {
   local tmp0:1;
-  tmp0 = newreg(C2_cmovenewit_Pu4);
+  tmp0 = newreg(C2_cmovenewit_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -28722,7 +28722,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :C2_cmovenewif C2_cmovenewif_Rd32 C2_cmovenewif_Pu4 C2_cmovenewif_s12 is phase = 1 & Parse != 0b00 & subinsn = 0 & b13 = 1 & b20 = 0 & b23 = 1 & b24 = 0 & b25 = 1 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & C2_cmovenewif_Rd32 & C2_cmovenewif_Pu4 & C2_cmovenewif_s12 {
   local tmp0:1;
-  tmp0 = newreg(C2_cmovenewif_Pu4);
+  tmp0 = newreg(C2_cmovenewif_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -28738,7 +28738,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :C2_cmoveit C2_cmoveit_Rd32 C2_cmoveit_Pu4 C2_cmoveit_s12 is phase = 1 & Parse != 0b00 & subinsn = 0 & b13 = 0 & b20 = 0 & b23 = 0 & b24 = 0 & b25 = 1 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & C2_cmoveit_Rd32 & C2_cmoveit_Pu4 & C2_cmoveit_s12 {
   local tmp0:1;
-  tmp0 = C2_cmoveit_Pu4;
+  tmp0 = C2_cmoveit_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -28750,7 +28750,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :C2_cmoveif C2_cmoveif_Rd32 C2_cmoveif_Pu4 C2_cmoveif_s12 is phase = 1 & Parse != 0b00 & subinsn = 0 & b13 = 0 & b20 = 0 & b23 = 1 & b24 = 0 & b25 = 1 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & C2_cmoveif_Rd32 & C2_cmoveif_Pu4 & C2_cmoveif_s12 {
   local tmp0:1;
-  tmp0 = ! C2_cmoveif_Pu4;
+  tmp0 = ! (C2_cmoveif_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -28764,7 +28764,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :C2_muxii C2_muxii_Rd32 C2_muxii_Pu4 C2_muxii_s8 C2_muxii_S8 is phase = 1 & Parse != 0b00 & subinsn = 0 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & C2_muxii_Rd32 & C2_muxii_Pu4 & C2_muxii_s8 & C2_muxii_S8 {
   local tmp0:1;
-  tmp0 = C2_muxii_Pu4;
+  tmp0 = C2_muxii_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -28777,7 +28777,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :C2_muxir C2_muxir_Rd32 C2_muxir_Pu4 C2_muxir_Rs32 C2_muxir_s8 is phase = 1 & Parse != 0b00 & subinsn = 0 & b13 = 0 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & C2_muxir_Rd32 & C2_muxir_Pu4 & C2_muxir_Rs32 & C2_muxir_s8 {
   local tmp0:1;
-  tmp0 = C2_muxir_Pu4;
+  tmp0 = C2_muxir_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -28790,7 +28790,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :C2_muxri C2_muxri_Rd32 C2_muxri_Pu4 C2_muxri_Rs32 C2_muxri_s8 is phase = 1 & Parse != 0b00 & subinsn = 0 & b13 = 0 & b23 = 1 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & C2_muxri_Rd32 & C2_muxri_Pu4 & C2_muxri_Rs32 & C2_muxri_s8 {
   local tmp0:1;
-  tmp0 = C2_muxri_Pu4;
+  tmp0 = C2_muxri_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -40493,7 +40493,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_paddt A2_paddt_Rd32 A2_paddt_Pu4 A2_paddt_Rs32 A2_paddt_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 0 & b21 = 0 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_paddt_Rd32 & A2_paddt_Pu4 & A2_paddt_Rs32 & A2_paddt_Rt32 {
   local tmp0:1;
-  tmp0 = A2_paddt_Pu4;
+  tmp0 = A2_paddt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -40507,7 +40507,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_paddf A2_paddf_Rd32 A2_paddf_Pu4 A2_paddf_Rs32 A2_paddf_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 0 & b21 = 0 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_paddf_Rd32 & A2_paddf_Pu4 & A2_paddf_Rs32 & A2_paddf_Rt32 {
   local tmp0:1;
-  tmp0 = ! A2_paddf_Pu4;
+  tmp0 = ! (A2_paddf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40523,7 +40523,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_paddtnew A2_paddtnew_Rd32 A2_paddtnew_Pu4 A2_paddtnew_Rs32 A2_paddtnew_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 1 & b21 = 0 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_paddtnew_Rd32 & A2_paddtnew_Pu4 & A2_paddtnew_Rs32 & A2_paddtnew_Rt32 {
   local tmp0:1;
-  tmp0 = newreg(A2_paddtnew_Pu4);
+  tmp0 = newreg(A2_paddtnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40539,7 +40539,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_paddfnew A2_paddfnew_Rd32 A2_paddfnew_Pu4 A2_paddfnew_Rs32 A2_paddfnew_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 1 & b21 = 0 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_paddfnew_Rd32 & A2_paddfnew_Pu4 & A2_paddfnew_Rs32 & A2_paddfnew_Rt32 {
   local tmp0:1;
-  tmp0 = newreg(A2_paddfnew_Pu4);
+  tmp0 = newreg(A2_paddfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -40557,7 +40557,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_psubt A2_psubt_Rd32 A2_psubt_Pu4 A2_psubt_Rt32 A2_psubt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 0 & b21 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_psubt_Rd32 & A2_psubt_Pu4 & A2_psubt_Rt32 & A2_psubt_Rs32 {
   local tmp0:1;
-  tmp0 = A2_psubt_Pu4;
+  tmp0 = A2_psubt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -40571,7 +40571,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_psubf A2_psubf_Rd32 A2_psubf_Pu4 A2_psubf_Rt32 A2_psubf_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 0 & b21 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_psubf_Rd32 & A2_psubf_Pu4 & A2_psubf_Rt32 & A2_psubf_Rs32 {
   local tmp0:1;
-  tmp0 = ! A2_psubf_Pu4;
+  tmp0 = ! (A2_psubf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40587,7 +40587,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_psubtnew A2_psubtnew_Rd32 A2_psubtnew_Pu4 A2_psubtnew_Rt32 A2_psubtnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 1 & b21 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_psubtnew_Rd32 & A2_psubtnew_Pu4 & A2_psubtnew_Rt32 & A2_psubtnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A2_psubtnew_Pu4);
+  tmp0 = newreg(A2_psubtnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40603,7 +40603,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_psubfnew A2_psubfnew_Rd32 A2_psubfnew_Pu4 A2_psubfnew_Rt32 A2_psubfnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 1 & b21 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_psubfnew_Rd32 & A2_psubfnew_Pu4 & A2_psubfnew_Rt32 & A2_psubfnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A2_psubfnew_Pu4);
+  tmp0 = newreg(A2_psubfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -40621,7 +40621,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_paddit A2_paddit_Rd32 A2_paddit_Pu4 A2_paddit_Rs32 A2_paddit_s8 is phase = 1 & Parse != 0b00 & subinsn = 0 & b13 = 0 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A2_paddit_Rd32 & A2_paddit_Pu4 & A2_paddit_Rs32 & A2_paddit_s8 {
   local tmp0:1;
-  tmp0 = A2_paddit_Pu4;
+  tmp0 = A2_paddit_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -40635,7 +40635,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_paddif A2_paddif_Rd32 A2_paddif_Pu4 A2_paddif_Rs32 A2_paddif_s8 is phase = 1 & Parse != 0b00 & subinsn = 0 & b13 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A2_paddif_Rd32 & A2_paddif_Pu4 & A2_paddif_Rs32 & A2_paddif_s8 {
   local tmp0:1;
-  tmp0 = ! A2_paddif_Pu4;
+  tmp0 = ! (A2_paddif_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40651,7 +40651,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_padditnew A2_padditnew_Rd32 A2_padditnew_Pu4 A2_padditnew_Rs32 A2_padditnew_s8 is phase = 1 & Parse != 0b00 & subinsn = 0 & b13 = 1 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A2_padditnew_Rd32 & A2_padditnew_Pu4 & A2_padditnew_Rs32 & A2_padditnew_s8 {
   local tmp0:1;
-  tmp0 = newreg(A2_padditnew_Pu4);
+  tmp0 = newreg(A2_padditnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40667,7 +40667,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_paddifnew A2_paddifnew_Rd32 A2_paddifnew_Pu4 A2_paddifnew_Rs32 A2_paddifnew_s8 is phase = 1 & Parse != 0b00 & subinsn = 0 & b13 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 1 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A2_paddifnew_Rd32 & A2_paddifnew_Pu4 & A2_paddifnew_Rs32 & A2_paddifnew_s8 {
   local tmp0:1;
-  tmp0 = newreg(A2_paddifnew_Pu4);
+  tmp0 = newreg(A2_paddifnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -40685,7 +40685,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_pxort A2_pxort_Rd32 A2_pxort_Pu4 A2_pxort_Rs32 A2_pxort_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 0 & b21 = 1 & b22 = 1 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_pxort_Rd32 & A2_pxort_Pu4 & A2_pxort_Rs32 & A2_pxort_Rt32 {
   local tmp0:1;
-  tmp0 = A2_pxort_Pu4;
+  tmp0 = A2_pxort_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -40699,7 +40699,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_pxorf A2_pxorf_Rd32 A2_pxorf_Pu4 A2_pxorf_Rs32 A2_pxorf_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 0 & b21 = 1 & b22 = 1 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_pxorf_Rd32 & A2_pxorf_Pu4 & A2_pxorf_Rs32 & A2_pxorf_Rt32 {
   local tmp0:1;
-  tmp0 = ! A2_pxorf_Pu4;
+  tmp0 = ! (A2_pxorf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40715,7 +40715,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_pxortnew A2_pxortnew_Rd32 A2_pxortnew_Pu4 A2_pxortnew_Rs32 A2_pxortnew_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 1 & b21 = 1 & b22 = 1 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_pxortnew_Rd32 & A2_pxortnew_Pu4 & A2_pxortnew_Rs32 & A2_pxortnew_Rt32 {
   local tmp0:1;
-  tmp0 = newreg(A2_pxortnew_Pu4);
+  tmp0 = newreg(A2_pxortnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40731,7 +40731,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_pxorfnew A2_pxorfnew_Rd32 A2_pxorfnew_Pu4 A2_pxorfnew_Rs32 A2_pxorfnew_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 1 & b21 = 1 & b22 = 1 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_pxorfnew_Rd32 & A2_pxorfnew_Pu4 & A2_pxorfnew_Rs32 & A2_pxorfnew_Rt32 {
   local tmp0:1;
-  tmp0 = newreg(A2_pxorfnew_Pu4);
+  tmp0 = newreg(A2_pxorfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -40749,7 +40749,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_pandt A2_pandt_Rd32 A2_pandt_Pu4 A2_pandt_Rs32 A2_pandt_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 0 & b21 = 0 & b22 = 0 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_pandt_Rd32 & A2_pandt_Pu4 & A2_pandt_Rs32 & A2_pandt_Rt32 {
   local tmp0:1;
-  tmp0 = A2_pandt_Pu4;
+  tmp0 = A2_pandt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -40763,7 +40763,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_pandf A2_pandf_Rd32 A2_pandf_Pu4 A2_pandf_Rs32 A2_pandf_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 0 & b21 = 0 & b22 = 0 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_pandf_Rd32 & A2_pandf_Pu4 & A2_pandf_Rs32 & A2_pandf_Rt32 {
   local tmp0:1;
-  tmp0 = ! A2_pandf_Pu4;
+  tmp0 = ! (A2_pandf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40779,7 +40779,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_pandtnew A2_pandtnew_Rd32 A2_pandtnew_Pu4 A2_pandtnew_Rs32 A2_pandtnew_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 1 & b21 = 0 & b22 = 0 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_pandtnew_Rd32 & A2_pandtnew_Pu4 & A2_pandtnew_Rs32 & A2_pandtnew_Rt32 {
   local tmp0:1;
-  tmp0 = newreg(A2_pandtnew_Pu4);
+  tmp0 = newreg(A2_pandtnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40795,7 +40795,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_pandfnew A2_pandfnew_Rd32 A2_pandfnew_Pu4 A2_pandfnew_Rs32 A2_pandfnew_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 1 & b21 = 0 & b22 = 0 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_pandfnew_Rd32 & A2_pandfnew_Pu4 & A2_pandfnew_Rs32 & A2_pandfnew_Rt32 {
   local tmp0:1;
-  tmp0 = newreg(A2_pandfnew_Pu4);
+  tmp0 = newreg(A2_pandfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -40813,7 +40813,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_port A2_port_Rd32 A2_port_Pu4 A2_port_Rs32 A2_port_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 0 & b21 = 1 & b22 = 0 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_port_Rd32 & A2_port_Pu4 & A2_port_Rs32 & A2_port_Rt32 {
   local tmp0:1;
-  tmp0 = A2_port_Pu4;
+  tmp0 = A2_port_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -40827,7 +40827,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_porf A2_porf_Rd32 A2_porf_Pu4 A2_porf_Rs32 A2_porf_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 0 & b21 = 1 & b22 = 0 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_porf_Rd32 & A2_porf_Pu4 & A2_porf_Rs32 & A2_porf_Rt32 {
   local tmp0:1;
-  tmp0 = ! A2_porf_Pu4;
+  tmp0 = ! (A2_porf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40843,7 +40843,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_portnew A2_portnew_Rd32 A2_portnew_Pu4 A2_portnew_Rs32 A2_portnew_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 1 & b21 = 1 & b22 = 0 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_portnew_Rd32 & A2_portnew_Pu4 & A2_portnew_Rs32 & A2_portnew_Rt32 {
   local tmp0:1;
-  tmp0 = newreg(A2_portnew_Pu4);
+  tmp0 = newreg(A2_portnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40859,7 +40859,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_porfnew A2_porfnew_Rd32 A2_porfnew_Pu4 A2_porfnew_Rs32 A2_porfnew_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 1 & b21 = 1 & b22 = 0 & b24 = 1 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_porfnew_Rd32 & A2_porfnew_Pu4 & A2_porfnew_Rs32 & A2_porfnew_Rt32 {
   local tmp0:1;
-  tmp0 = newreg(A2_porfnew_Pu4);
+  tmp0 = newreg(A2_porfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -40877,7 +40877,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_psxtbt A4_psxtbt_Rd32 A4_psxtbt_Pu4 A4_psxtbt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 0 & b13 = 1 & b21 = 1 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_psxtbt_Rd32 & A4_psxtbt_Pu4 & A4_psxtbt_Rs32 {
   local tmp0:1;
-  tmp0 = A4_psxtbt_Pu4;
+  tmp0 = A4_psxtbt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -40925,7 +40925,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_psxtbf A4_psxtbf_Rd32 A4_psxtbf_Pu4 A4_psxtbf_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 1 & b13 = 1 & b21 = 1 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_psxtbf_Rd32 & A4_psxtbf_Pu4 & A4_psxtbf_Rs32 {
   local tmp0:1;
-  tmp0 = ! A4_psxtbf_Pu4;
+  tmp0 = ! (A4_psxtbf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -40975,7 +40975,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_psxtbtnew A4_psxtbtnew_Rd32 A4_psxtbtnew_Pu4 A4_psxtbtnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 0 & b13 = 1 & b21 = 1 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_psxtbtnew_Rd32 & A4_psxtbtnew_Pu4 & A4_psxtbtnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_psxtbtnew_Pu4);
+  tmp0 = newreg(A4_psxtbtnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -41025,7 +41025,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_psxtbfnew A4_psxtbfnew_Rd32 A4_psxtbfnew_Pu4 A4_psxtbfnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 1 & b13 = 1 & b21 = 1 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_psxtbfnew_Rd32 & A4_psxtbfnew_Pu4 & A4_psxtbfnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_psxtbfnew_Pu4);
+  tmp0 = newreg(A4_psxtbfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -41077,7 +41077,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pzxtbt A4_pzxtbt_Rd32 A4_pzxtbt_Pu4 A4_pzxtbt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 0 & b13 = 1 & b21 = 0 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pzxtbt_Rd32 & A4_pzxtbt_Pu4 & A4_pzxtbt_Rs32 {
   local tmp0:1;
-  tmp0 = A4_pzxtbt_Pu4;
+  tmp0 = A4_pzxtbt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -41101,7 +41101,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pzxtbf A4_pzxtbf_Rd32 A4_pzxtbf_Pu4 A4_pzxtbf_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 1 & b13 = 1 & b21 = 0 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pzxtbf_Rd32 & A4_pzxtbf_Pu4 & A4_pzxtbf_Rs32 {
   local tmp0:1;
-  tmp0 = ! A4_pzxtbf_Pu4;
+  tmp0 = ! (A4_pzxtbf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -41127,7 +41127,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pzxtbtnew A4_pzxtbtnew_Rd32 A4_pzxtbtnew_Pu4 A4_pzxtbtnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 0 & b13 = 1 & b21 = 0 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pzxtbtnew_Rd32 & A4_pzxtbtnew_Pu4 & A4_pzxtbtnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_pzxtbtnew_Pu4);
+  tmp0 = newreg(A4_pzxtbtnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -41153,7 +41153,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pzxtbfnew A4_pzxtbfnew_Rd32 A4_pzxtbfnew_Pu4 A4_pzxtbfnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 1 & b13 = 1 & b21 = 0 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pzxtbfnew_Rd32 & A4_pzxtbfnew_Pu4 & A4_pzxtbfnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_pzxtbfnew_Pu4);
+  tmp0 = newreg(A4_pzxtbfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -41181,7 +41181,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_psxtht A4_psxtht_Rd32 A4_psxtht_Pu4 A4_psxtht_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 0 & b13 = 1 & b21 = 1 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_psxtht_Rd32 & A4_psxtht_Pu4 & A4_psxtht_Rs32 {
   local tmp0:1;
-  tmp0 = A4_psxtht_Pu4;
+  tmp0 = A4_psxtht_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -41229,7 +41229,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_psxthf A4_psxthf_Rd32 A4_psxthf_Pu4 A4_psxthf_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 1 & b13 = 1 & b21 = 1 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_psxthf_Rd32 & A4_psxthf_Pu4 & A4_psxthf_Rs32 {
   local tmp0:1;
-  tmp0 = ! A4_psxthf_Pu4;
+  tmp0 = ! (A4_psxthf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -41279,7 +41279,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_psxthtnew A4_psxthtnew_Rd32 A4_psxthtnew_Pu4 A4_psxthtnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 0 & b13 = 1 & b21 = 1 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_psxthtnew_Rd32 & A4_psxthtnew_Pu4 & A4_psxthtnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_psxthtnew_Pu4);
+  tmp0 = newreg(A4_psxthtnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -41329,7 +41329,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_psxthfnew A4_psxthfnew_Rd32 A4_psxthfnew_Pu4 A4_psxthfnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 1 & b13 = 1 & b21 = 1 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_psxthfnew_Rd32 & A4_psxthfnew_Pu4 & A4_psxthfnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_psxthfnew_Pu4);
+  tmp0 = newreg(A4_psxthfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -41381,7 +41381,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pzxtht A4_pzxtht_Rd32 A4_pzxtht_Pu4 A4_pzxtht_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 0 & b13 = 1 & b21 = 0 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pzxtht_Rd32 & A4_pzxtht_Pu4 & A4_pzxtht_Rs32 {
   local tmp0:1;
-  tmp0 = A4_pzxtht_Pu4;
+  tmp0 = A4_pzxtht_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -41405,7 +41405,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pzxthf A4_pzxthf_Rd32 A4_pzxthf_Pu4 A4_pzxthf_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 1 & b13 = 1 & b21 = 0 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pzxthf_Rd32 & A4_pzxthf_Pu4 & A4_pzxthf_Rs32 {
   local tmp0:1;
-  tmp0 = ! A4_pzxthf_Pu4;
+  tmp0 = ! (A4_pzxthf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -41431,7 +41431,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pzxthtnew A4_pzxthtnew_Rd32 A4_pzxthtnew_Pu4 A4_pzxthtnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 0 & b13 = 1 & b21 = 0 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pzxthtnew_Rd32 & A4_pzxthtnew_Pu4 & A4_pzxthtnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_pzxthtnew_Pu4);
+  tmp0 = newreg(A4_pzxthtnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -41457,7 +41457,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pzxthfnew A4_pzxthfnew_Rd32 A4_pzxthfnew_Pu4 A4_pzxthfnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 1 & b13 = 1 & b21 = 0 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pzxthfnew_Rd32 & A4_pzxthfnew_Pu4 & A4_pzxthfnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_pzxthfnew_Pu4);
+  tmp0 = newreg(A4_pzxthfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -41485,7 +41485,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_paslht A4_paslht_Rd32 A4_paslht_Pu4 A4_paslht_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 0 & b13 = 1 & b21 = 0 & b22 = 0 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_paslht_Rd32 & A4_paslht_Pu4 & A4_paslht_Rs32 {
   local tmp0:1;
-  tmp0 = A4_paslht_Pu4;
+  tmp0 = A4_paslht_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -41501,7 +41501,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_paslhf A4_paslhf_Rd32 A4_paslhf_Pu4 A4_paslhf_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 1 & b13 = 1 & b21 = 0 & b22 = 0 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_paslhf_Rd32 & A4_paslhf_Pu4 & A4_paslhf_Rs32 {
   local tmp0:1;
-  tmp0 = ! A4_paslhf_Pu4;
+  tmp0 = ! (A4_paslhf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -41519,7 +41519,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_paslhtnew A4_paslhtnew_Rd32 A4_paslhtnew_Pu4 A4_paslhtnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 0 & b13 = 1 & b21 = 0 & b22 = 0 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_paslhtnew_Rd32 & A4_paslhtnew_Pu4 & A4_paslhtnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_paslhtnew_Pu4);
+  tmp0 = newreg(A4_paslhtnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -41537,7 +41537,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_paslhfnew A4_paslhfnew_Rd32 A4_paslhfnew_Pu4 A4_paslhfnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 1 & b13 = 1 & b21 = 0 & b22 = 0 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_paslhfnew_Rd32 & A4_paslhfnew_Pu4 & A4_paslhfnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_paslhfnew_Pu4);
+  tmp0 = newreg(A4_paslhfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -41557,7 +41557,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pasrht A4_pasrht_Rd32 A4_pasrht_Pu4 A4_pasrht_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 0 & b13 = 1 & b21 = 1 & b22 = 0 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pasrht_Rd32 & A4_pasrht_Pu4 & A4_pasrht_Rs32 {
   local tmp0:1;
-  tmp0 = A4_pasrht_Pu4;
+  tmp0 = A4_pasrht_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -41573,7 +41573,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pasrhf A4_pasrhf_Rd32 A4_pasrhf_Pu4 A4_pasrhf_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 0 & b11 = 1 & b13 = 1 & b21 = 1 & b22 = 0 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pasrhf_Rd32 & A4_pasrhf_Pu4 & A4_pasrhf_Rs32 {
   local tmp0:1;
-  tmp0 = ! A4_pasrhf_Pu4;
+  tmp0 = ! (A4_pasrhf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -41591,7 +41591,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pasrhtnew A4_pasrhtnew_Rd32 A4_pasrhtnew_Pu4 A4_pasrhtnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 0 & b13 = 1 & b21 = 1 & b22 = 0 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pasrhtnew_Rd32 & A4_pasrhtnew_Pu4 & A4_pasrhtnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_pasrhtnew_Pu4);
+  tmp0 = newreg(A4_pasrhtnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -41609,7 +41609,7 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A4_pasrhfnew A4_pasrhfnew_Rd32 A4_pasrhfnew_Pu4 A4_pasrhfnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b10 = 1 & b11 = 1 & b13 = 1 & b21 = 1 & b22 = 0 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 0 & A4_pasrhfnew_Rd32 & A4_pasrhfnew_Pu4 & A4_pasrhfnew_Rs32 {
   local tmp0:1;
-  tmp0 = newreg(A4_pasrhfnew_Pu4);
+  tmp0 = newreg(A4_pasrhfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -45159,7 +45159,38 @@ gp: reloc is epsilon [ reloc = 0; ] {
 
 :A2_svsubhs A2_svsubhs_Rd32 A2_svsubhs_Rt32 A2_svsubhs_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b21 = 1 & b22 = 0 & b23 = 1 & b24 = 0 & b25 = 1 & b26 = 1 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_svsubhs_Rd32 & A2_svsubhs_Rt32 & A2_svsubhs_Rs32 unimpl
 
-:A2_svsubuhs A2_svsubuhs_Rd32 A2_svsubuhs_Rt32 A2_svsubuhs_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b21 = 1 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 1 & b26 = 1 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_svsubuhs_Rd32 & A2_svsubuhs_Rt32 & A2_svsubuhs_Rs32 unimpl
+:A2_svsubuhs A2_svsubuhs_Rd32 A2_svsubuhs_Rt32 A2_svsubuhs_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b21 = 1 & b22 = 1 & b23 = 1 & b24 = 0 & b25 = 1 & b26 = 1 & b27 = 0 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & A2_svsubuhs_Rd32 & A2_svsubuhs_Rt32 & A2_svsubuhs_Rs32 {
+    local lo_Rt = A2_svsubuhs_Rt32 & 0x0000ffff;
+    local hi_Rt = (A2_svsubuhs_Rt32 & 0xffff0000) >> 16;
+    local lo_Rs = A2_svsubuhs_Rs32 & 0x0000ffff;
+    local hi_Rs = (A2_svsubuhs_Rs32 & 0xffff0000) >> 16;
+
+    local lo_Rd:4;
+    local lo_ovf = lo_Rt < lo_Rs;
+    if (lo_ovf) goto <lo_zero>;
+    lo_Rd = lo_Rt - lo_Rs;
+    goto <hi>;
+
+<lo_zero>
+    lo_Rd = 0; 
+    # OVF bit
+    D_C8 = C8 | 1;
+
+<hi>
+    local hi_Rd:4;
+    local hi_ovf = hi_Rt < hi_Rs;
+    if (hi_ovf) goto <hi_zero>;
+    hi_Rd = hi_Rt - hi_Rs;
+    goto <end>;
+
+<hi_zero>
+    hi_Rd = 0; 
+    # OVF bit
+    D_C8 = C8 | 1;
+
+<end>
+A2_svsubuhs_Rd32  = (hi_Rd << 16) | lo_Rd;
+}
 
 :A2_vraddub A2_vraddub_Rdd32 A2_vraddub_Rss32 A2_vraddub_Rtt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b5 = 1 & b6 = 0 & b7 = 0 & b13 = 0 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 0 & b25 = 0 & b26 = 0 & b27 = 1 & b28 = 0 & b29 = 1 & b30 = 1 & b31 = 1 & A2_vraddub_Rdd32 & A2_vraddub_Rss32 & A2_vraddub_Rtt32 {
   local i:4;
@@ -80022,7 +80053,7 @@ macro f64_getexp(x, res) {
 
 :C2_ccombinewnewt C2_ccombinewnewt_Rdd32 C2_ccombinewnewt_Pu4 C2_ccombinewnewt_Rs32 C2_ccombinewnewt_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 1 & b21 = 0 & b22 = 0 & b23 = 0 & b24 = 1 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & C2_ccombinewnewt_Rdd32 & C2_ccombinewnewt_Pu4 & C2_ccombinewnewt_Rs32 & C2_ccombinewnewt_Rt32 & C2_ccombinewnewt_Rdd32_lo & C2_ccombinewnewt_Rdd32_hi {
   local tmp0:1;
-  tmp0 = newreg(C2_ccombinewnewt_Pu4);
+  tmp0 = newreg(C2_ccombinewnewt_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -80037,7 +80068,7 @@ macro f64_getexp(x, res) {
 
 :C2_ccombinewnewf C2_ccombinewnewf_Rdd32 C2_ccombinewnewf_Pu4 C2_ccombinewnewf_Rs32 C2_ccombinewnewf_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 1 & b21 = 0 & b22 = 0 & b23 = 0 & b24 = 1 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & C2_ccombinewnewf_Rdd32 & C2_ccombinewnewf_Pu4 & C2_ccombinewnewf_Rs32 & C2_ccombinewnewf_Rt32 & C2_ccombinewnewf_Rdd32_lo & C2_ccombinewnewf_Rdd32_hi {
   local tmp0:1;
-  tmp0 = newreg(C2_ccombinewnewf_Pu4);
+  tmp0 = newreg(C2_ccombinewnewf_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -80054,7 +80085,7 @@ macro f64_getexp(x, res) {
 
 :C2_ccombinewt C2_ccombinewt_Rdd32 C2_ccombinewt_Pu4 C2_ccombinewt_Rs32 C2_ccombinewt_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 0 & b13 = 0 & b21 = 0 & b22 = 0 & b23 = 0 & b24 = 1 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & C2_ccombinewt_Rdd32 & C2_ccombinewt_Pu4 & C2_ccombinewt_Rs32 & C2_ccombinewt_Rt32 & C2_ccombinewt_Rdd32_lo & C2_ccombinewt_Rdd32_hi {
   local tmp0:1;
-  tmp0 = C2_ccombinewt_Pu4;
+  tmp0 = C2_ccombinewt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <f_branch_2>;
 <t_branch_2>
@@ -80067,7 +80098,7 @@ macro f64_getexp(x, res) {
 
 :C2_ccombinewf C2_ccombinewf_Rdd32 C2_ccombinewf_Pu4 C2_ccombinewf_Rs32 C2_ccombinewf_Rt32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b7 = 1 & b13 = 0 & b21 = 0 & b22 = 0 & b23 = 0 & b24 = 1 & b25 = 0 & b26 = 1 & b27 = 1 & b28 = 1 & b29 = 1 & b30 = 1 & b31 = 1 & C2_ccombinewf_Rdd32 & C2_ccombinewf_Pu4 & C2_ccombinewf_Rs32 & C2_ccombinewf_Rt32 & C2_ccombinewf_Rdd32_lo & C2_ccombinewf_Rdd32_hi {
   local tmp0:1;
-  tmp0 = ! C2_ccombinewf_Pu4;
+  tmp0 = ! (C2_ccombinewf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -80086,7 +80117,7 @@ macro f64_getexp(x, res) {
 
 :J2_jumprt J2_jumprt_Pu4 J2_jumprt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 0 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprt_Pu4 & J2_jumprt_Rs32 & J2_jumpr_Rs32 = 31 {
   local tmp0:1;
-  tmp0 = J2_jumprt_Pu4;
+  tmp0 = J2_jumprt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <done_2>;
 <t_branch_2>
@@ -80097,7 +80128,7 @@ macro f64_getexp(x, res) {
 
 :J2_jumprf J2_jumprf_Pu4 J2_jumprf_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 0 & b21 = 1 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprf_Pu4 & J2_jumprf_Rs32  & J2_jumprf_Rs32 = 31 {
   local tmp0:1;
-  tmp0 = ! J2_jumprf_Pu4;
+  tmp0 = ! (J2_jumprf_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -80110,7 +80141,7 @@ macro f64_getexp(x, res) {
 
 :J2_jumprtpt J2_jumprtpt_Pu4 J2_jumprtpt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 1 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprtpt_Pu4 & J2_jumprtpt_Rs32 & J2_jumprtpt_Rs32 = 31 {
   local tmp0:1;
-  tmp0 = J2_jumprtpt_Pu4;
+  tmp0 = J2_jumprtpt_Pu4 & 1;
   if (tmp0) goto <t_branch_2>;
   goto <done_2>;
 <t_branch_2>
@@ -80121,7 +80152,7 @@ macro f64_getexp(x, res) {
 
 :J2_jumprfpt J2_jumprfpt_Pu4 J2_jumprfpt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 0 & b12 = 1 & b21 = 1 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprfpt_Pu4 & J2_jumprfpt_Rs32 & J2_jumprfpt_Rs32 = 31 {
   local tmp0:1;
-  tmp0 = ! J2_jumprfpt_Pu4;
+  tmp0 = ! (J2_jumprfpt_Pu4 & 1);
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -80134,7 +80165,7 @@ macro f64_getexp(x, res) {
 
 :J2_jumprtnew J2_jumprtnew_Pu4 J2_jumprtnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 0 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprtnew_Pu4 & J2_jumprtnew_Rs32 & J2_jumprtnew_Rs32 = 31 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumprtnew_Pu4);
+  tmp0 = newreg(J2_jumprtnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -80147,7 +80178,7 @@ macro f64_getexp(x, res) {
 
 :J2_jumprfnew J2_jumprfnew_Pu4 J2_jumprfnew_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 0 & b21 = 1 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprfnew_Pu4 & J2_jumprfnew_Rs32 & J2_jumprfnew_Rs32 = 31 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumprfnew_Pu4);
+  tmp0 = newreg(J2_jumprfnew_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;
@@ -80162,7 +80193,7 @@ macro f64_getexp(x, res) {
 
 :J2_jumprtnewpt J2_jumprtnewpt_Pu4 J2_jumprtnewpt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 1 & b21 = 0 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprtnewpt_Pu4 & J2_jumprtnewpt_Rs32 & J2_jumprtnewpt_Rs32 = 31 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumprtnewpt_Pu4);
+  tmp0 = newreg(J2_jumprtnewpt_Pu4) & 1;
   local tmp1:1;
   tmp1 = tmp0;
   if (tmp1) goto <t_branch_3>;
@@ -80175,7 +80206,7 @@ macro f64_getexp(x, res) {
 
 :J2_jumprfnewpt J2_jumprfnewpt_Pu4 J2_jumprfnewpt_Rs32 is phase = 1 & immext = 0xffffffff & Parse != 0b00 & subinsn = 0 & b11 = 1 & b12 = 1 & b21 = 1 & b22 = 1 & b23 = 0 & b24 = 1 & b25 = 1 & b26 = 0 & b27 = 0 & b28 = 1 & b29 = 0 & b30 = 1 & b31 = 0 & J2_jumprfnewpt_Pu4 & J2_jumprfnewpt_Rs32 & J2_jumprfnewpt_Rs32 = 31 {
   local tmp0:1;
-  tmp0 = newreg(J2_jumprfnewpt_Pu4);
+  tmp0 = newreg(J2_jumprfnewpt_Pu4) & 1;
   local tmp1:1;
   tmp1 = ! tmp0;
   local tmp2:1;

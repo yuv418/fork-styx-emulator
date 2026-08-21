@@ -1148,6 +1148,15 @@ pub fn vadduh_sat_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
     (cpu, mmu, ev)
 }
 
+pub fn vsubuh_sat_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
+    let (cpu, mmu, ev) = setup_objdump(
+        r#"
+	0:	02 c0 e1 f6	f6e1c002 { 	r2 = vsubuh(r0,r1):sat }
+"#,
+    );
+    (cpu, mmu, ev)
+}
+
 /// Tests the "vector add unsigned halfword" instruction.
 ///
 /// In Hexagon manual section 11.1.1, "Vector add halfwords":
@@ -1158,7 +1167,8 @@ pub fn vadduh_sat_setup() -> (HexagonPcodeBackend, Mmu, EventController) {
 ///
 /// The manual (same place as before) specifies that in case of overflow, the
 /// USR.OVF flag should be set, so we test this as well.
-pub fn vadduh_sat_test(
+pub fn vaddsubuh_sat_test(
+    add: bool,
     cpu: &mut dyn CpuBackend,
     mmu: &mut Mmu,
     ev: &mut EventController,
@@ -1184,13 +1194,23 @@ pub fn vadduh_sat_test(
     assert_eq!(exit.exit_reason, TargetExitReason::InstructionCountComplete);
 
     // compute result
-    let expect = [
-        left[0].saturating_add(right[0]),
-        left[1].saturating_add(right[1]),
-    ];
+    let expect = if add {
+        [
+            left[0].saturating_add(right[0]),
+            left[1].saturating_add(right[1]),
+        ]
+    } else {
+        [
+            left[0].saturating_sub(right[0]),
+            left[1].saturating_sub(right[1]),
+        ]
+    };
 
-    let ovf_expect =
-        left[0].checked_add(right[0]).is_none() || left[1].checked_add(right[1]).is_none();
+    let ovf_expect = if add {
+        left[0].checked_add(right[0]).is_none() || left[1].checked_add(right[1]).is_none()
+    } else {
+        left[0].checked_sub(right[0]).is_none() || left[1].checked_sub(right[1]).is_none()
+    };
 
     let r2_result = cpu.read_register::<u32>(HexagonRegister::R2).unwrap();
     let ovf_result =
@@ -1262,14 +1282,30 @@ pub fn addpsat_loops() {
 #[test_case([0xabab, 0xffff], [0xffff, 0x1])]
 #[test_case([0x387, 0x1], [0x987, 0xff])]
 #[test_case([0xfffe, 0x8831], [0x1, 0xea1])]
-pub fn vadduh_sat_hardcode(left: [u16; 2], right: [u16; 2]) {
+pub fn vaddsubuh_sat_hardcode(left: [u16; 2], right: [u16; 2]) {
     let (mut cpu, mut mmu, mut ev) = vadduh_sat_setup();
-    vadduh_sat_test(&mut cpu, &mut mmu, &mut ev, left, right);
+    let (mut cpus, mut mmus, mut evs) = vsubuh_sat_setup();
+    vaddsubuh_sat_test(true, &mut cpu, &mut mmu, &mut ev, left, right);
+    vaddsubuh_sat_test(false, &mut cpus, &mut mmus, &mut evs, left, right);
 }
 
 #[test]
 pub fn vadduh_sat_loops() {
     let (mut cpu, mut mmu, mut ev) = vadduh_sat_setup();
+    vaddsubuh_sat_loops(true, &mut cpu, &mut mmu, &mut ev);
+}
+#[test]
+pub fn vsubuh_sat_loops() {
+    let (mut cpu, mut mmu, mut ev) = vsubuh_sat_setup();
+    vaddsubuh_sat_loops(false, &mut cpu, &mut mmu, &mut ev);
+}
+
+pub fn vaddsubuh_sat_loops(
+    add: bool,
+    cpu: &mut HexagonPcodeBackend,
+    mmu: &mut Mmu,
+    ev: &mut EventController,
+) {
     // The inputs to vadduh are two source and two destination 16-bit values.
     // See 11.1.1 "Vector add halfwords" in Hexagon ISA manual.
     // The steps chosen here are somewhat arbitrary but chosen in a way
@@ -1278,20 +1314,8 @@ pub fn vadduh_sat_loops() {
     // bit patterns.
     for i in (0..0xffff).step_by(0xe4) {
         for j in (0..0xffff).step_by(0x3c1) {
-            vadduh_sat_test(
-                &mut cpu,
-                &mut mmu,
-                &mut ev,
-                [i, 0xffff - i],
-                [j, 0xffff - j],
-            );
-            vadduh_sat_test(
-                &mut cpu,
-                &mut mmu,
-                &mut ev,
-                [i, 0xffff - i],
-                [0xffff - j, j],
-            );
+            vaddsubuh_sat_test(add, cpu, mmu, ev, [i, 0xffff - i], [j, 0xffff - j]);
+            vaddsubuh_sat_test(add, cpu, mmu, ev, [i, 0xffff - i], [0xffff - j, j]);
         }
     }
 }

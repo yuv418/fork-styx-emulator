@@ -421,10 +421,9 @@ impl BackendHelper<HexagonExecuteSingleInfo, Vec<Pcode>> for HexagonPcodeBackend
         };
 
         let pc = self.pc().unwrap();
-        self.profiler
-            .as_mut()
-            .unwrap()
-            .start_instruction_profile(pc);
+        if let Some(profiler) = self.profiler.as_mut() {
+            profiler.start_instruction_profile(pc);
+        }
 
         let ordering = fetch_decode_data.ordering.clone();
 
@@ -509,7 +508,9 @@ impl BackendHelper<HexagonExecuteSingleInfo, Vec<Pcode>> for HexagonPcodeBackend
             delayed_exit = Some(TargetExitReason::InstructionCountComplete)
         }
 
-        self.profiler.as_mut().unwrap().end_instruction_profile();
+        if let Some(profiler) = self.profiler.as_mut() {
+            profiler.end_instruction_profile();
+        }
 
         let mut execution_helper_outer = self.execution_helper.take().unwrap();
         {

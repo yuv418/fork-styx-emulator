@@ -401,10 +401,7 @@ where
                         count: cycles.saturating_sub(self.last_tick_cycles[vcpu_idx]),
                     };
 
-                    info!(
-                        "execution stride time {} idx {vcpu_idx}",
-                        delta.time.as_nanos()
-                    );
+                    info!("{},{vcpu_idx}", delta.time.as_nanos());
 
                     if let Err(e) = styx_core::executor::post_stride_processing(
                         &mut self.vcpus,
