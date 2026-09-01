@@ -329,6 +329,73 @@ impl HexagonDevice for S22 {
                     },
                 ),
             ),
+            StyxHook::MemoryReadVirtual(
+                (0xae2f000c..0xae2f0014).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &mut [u8]|
+                     -> Result<(), UnknownError> {
+                        warn!(
+                            "cmd db address pc {:x?} read {address:x} data {data:x?}",
+                            proc.cpu.pc()
+                        );
+
+                        // put in a physical address for command db (this is from kernel device tree)
+                        if address == 0xae2f000c {
+                            data.copy_from_slice(&0x80860000u32.to_le_bytes());
+                        } else if address == 0xae2f0010 {
+                            data.copy_from_slice(&0x200000u32.to_le_bytes());
+                        }
+
+                        Ok(())
+                    },
+                ),
+            ),
+            StyxHook::MemoryRead(
+                (0x80860000..0x80862000).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &mut [u8]|
+                     -> Result<(), UnknownError> {
+                        warn!(
+                            "cmd db pc {:x?} read {address:x} data {data:x?}",
+                            proc.cpu.pc()
+                        );
+
+                        // put in a physical address for command db (this is from kernel device tree)
+                        if address == 0x8086_0000 {
+                            data.copy_from_slice(&1u32.to_le_bytes());
+                        } else if address == 0x8086_0004 {
+                            data.copy_from_slice(&0xc0330dbu32.to_le_bytes());
+                        }
+
+                        Ok(())
+                    },
+                ),
+            ),
+            StyxHook::MemoryWrite(
+                (0x80860000..0x80862000).into(),
+                Box::new(
+                    |proc: CoreHandle,
+                     address: u64,
+                     size: u32,
+                     data: &[u8]|
+                     -> Result<(), UnknownError> {
+                        warn!(
+                            "cmd db pc {:x?} write {address:x} data {data:x?}",
+                            proc.cpu.pc()
+                        );
+
+                        // put in a physical address for command db (this is from kernel device tree)
+
+                        Ok(())
+                    },
+                ),
+            ),
             // Something related to waipio chipset/revision/whatever. Firmware needs this.
             /*StyxHook::MemoryRead(
                 (0x1fc8000..0x1fc8004).into(),

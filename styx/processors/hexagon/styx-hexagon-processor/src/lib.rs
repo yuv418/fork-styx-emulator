@@ -39,6 +39,7 @@ mod exception;
 #[cfg(feature = "hexagon-clade")]
 mod clade;
 
+mod command_database;
 mod config;
 mod l2vic;
 mod prng;
